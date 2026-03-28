@@ -1,0 +1,33 @@
+name: 🛡️ The Constitutional CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit:
+    name: 🏛️ Institutional Grade Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🛡️ Execute Guardian Audit
+        run: |
+          chmod +x ./scripts/guardian.sh
+          ./scripts/guardian.sh
+        env:
+          NODE_ENV: test
+          # Sentry/Axiom tokens tidak wajib untuk audit lokal, tapi bisa di-inject di sini jika perlu
