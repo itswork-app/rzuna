@@ -29,6 +29,19 @@ export default tseslint.config(
     },
   },
   {
+    files: ['tests/**/*.ts', 'src/**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      'sonarjs/assertions-in-tests': 'off',
+    },
+  },
+  {
     ignores: ['dist/', 'node_modules/', 'vitest.config.ts', 'eslint.config.js', 'scripts/', 'coverage/'],
   }
 );
