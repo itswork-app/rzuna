@@ -1,0 +1,35 @@
+
+> rzuna@1.0.0 lint
+> eslint .
+
+
+/home/kangza/workspace/rzuna/src/app.ts
+  38:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unnecessary-condition')
+  58:30  error    Replace `·status:·'ok',·timestamp:·new·Date().toISOString(),·env:·env.NODE_ENV` with `⏎······status:·'ok',⏎······timestamp:·new·Date().toISOString(),⏎······env:·env.NODE_ENV,⏎···`  prettier/prettier
+
+/home/kangza/workspace/rzuna/src/core/engine.ts
+  1:15  error  'MockTokenSignal' is defined but never used     @typescript-eslint/no-unused-vars
+  1:15  error  Remove this unused import of 'MockTokenSignal'  sonarjs/unused-import
+  3:15  error  'MintEvent' is defined but never used           @typescript-eslint/no-unused-vars
+  3:15  error  Remove this unused import of 'MintEvent'        sonarjs/unused-import
+
+/home/kangza/workspace/rzuna/src/core/tiers/tier.service.ts
+   72:7  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call' or '@typescript-eslint/no-unsafe-member-access')
+  105:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call')
+  118:7  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call')
+
+/home/kangza/workspace/rzuna/src/infrastructure/solana/geyser.service.ts
+   39:19  error    'unknown' overrides all other types in this union type                                                                                                                                       @typescript-eslint/no-redundant-type-constituents
+   49:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   70:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   85:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access' or '@typescript-eslint/no-unsafe-call')
+   86:10  error    This assertion is unnecessary since it does not change the type of the expression                                                                                                            @typescript-eslint/no-unnecessary-type-assertion
+  135:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-member-access', or '@typescript-eslint/no-explicit-any')
+  193:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-member-access', or '@typescript-eslint/no-explicit-any')
+
+/home/kangza/workspace/rzuna/src/plugins/fee.plugin.ts
+  35:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-member-access', '@typescript-eslint/no-unsafe-assignment', or '@typescript-eslint/no-explicit-any')
+
+✖ 17 problems (7 errors, 10 warnings)
+  2 errors and 10 warnings potentially fixable with the `--fix` option.
+

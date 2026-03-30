@@ -1,0 +1,79 @@
+
+> rzuna@1.0.0 lint
+> eslint .
+
+
+/home/kangza/workspace/rzuna/src/core/engine.ts
+   1:15   error  'MockTokenSignal' is defined but never used     @typescript-eslint/no-unused-vars
+   1:15   error  Remove this unused import of 'MockTokenSignal'  sonarjs/unused-import
+   3:15   error  'MintEvent' is defined but never used           @typescript-eslint/no-unused-vars
+   3:15   error  Remove this unused import of 'MintEvent'        sonarjs/unused-import
+  21:34   error  Unsafe member access .event on an `any` value   @typescript-eslint/no-unsafe-member-access
+  21:76   error  Unsafe member access .score on an `any` value   @typescript-eslint/no-unsafe-member-access
+  21:100  error  Unsafe member access .event on an `any` value   @typescript-eslint/no-unsafe-member-access
+
+/home/kangza/workspace/rzuna/src/core/scoring/scoring.service.ts
+   1:1   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+   2:1   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+  81:23  error    Make sure that using this pseudorandom number generator is safe here                                           sonarjs/pseudo-random
+
+/home/kangza/workspace/rzuna/src/core/tiers/tier.service.ts
+   49:33  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
+   51:27  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
+   52:30  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
+   73:44  error  Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
+  107:19  error  Unsafe argument of type `any` assigned to a parameter of type `never`                         @typescript-eslint/no-unsafe-argument
+  120:17  error  Unsafe argument of type `any` assigned to a parameter of type `never`                         @typescript-eslint/no-unsafe-argument
+
+/home/kangza/workspace/rzuna/src/infrastructure/monitoring/monitoring.plugin.ts
+  10:56  error  Async arrow function 'monitoring' has no 'await' expression  @typescript-eslint/require-await
+
+/home/kangza/workspace/rzuna/src/infrastructure/solana/geyser.service.ts
+   40:19  error  'any' overrides all other types in this union type                    @typescript-eslint/no-redundant-type-constituents
+   50:21  error  Unsafe construction of an `any` typed value                           @typescript-eslint/no-unsafe-call
+   69:13  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+   70:28  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+   72:7   error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+   84:9   error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+  133:31  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+  160:45  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  161:18  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  180:31  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  189:37  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+  189:37  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+
+/home/kangza/workspace/rzuna/src/infrastructure/solana/mocks/geyser.mock.ts
+  47:18  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  52:33  error  Extract this nested ternary operation into an independent statement   sonarjs/no-nested-conditional
+  54:56  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  55:29  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+  56:50  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+
+/home/kangza/workspace/rzuna/src/infrastructure/supabase/client.ts
+  60:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/kangza/workspace/rzuna/src/plugins/fee.plugin.ts
+  17:62  error  Async arrow function 'feePlugin' has no 'await' expression  @typescript-eslint/require-await
+  36:48  error  Unsafe call of an `any` typed value                         @typescript-eslint/no-unsafe-call
+
+/home/kangza/workspace/rzuna/src/server.ts
+  17:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+/home/kangza/workspace/rzuna/src/utils/env.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+
+/home/kangza/workspace/rzuna/tests/geyser.test.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  2:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+  3:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+
+/home/kangza/workspace/rzuna/tests/server.test.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
+  2:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+  3:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+✖ 47 problems (37 errors, 10 warnings)
+  0 errors and 9 warnings potentially fixable with the `--fix` option.
+
