@@ -84,10 +84,12 @@ export class TierService {
 
   /**
    * Add trading volume and handle rank upgrades.
+   * Also accumulates total_fees_paid for platform revenue tracking.
    */
-  async addVolume(walletAddress: string, amount: number): Promise<UserRank> {
+  async addVolume(walletAddress: string, amount: number, feePaid: number = 0): Promise<UserRank> {
     const profile = await this.getUserProfile(walletAddress);
     const newVolume = profile.volume.currentMonthVolume + amount;
+    const newTotalFees = profile.volume.totalFeesPaid + feePaid;
     let newRank = profile.rank;
 
     if (newVolume >= this.ELITE_THRESHOLD) {
@@ -101,6 +103,7 @@ export class TierService {
         {
           wallet_address: walletAddress,
           current_month_volume: newVolume,
+          total_fees_paid: newTotalFees,
           rank: newRank,
           updated_at: new Date().toISOString(),
         } as unknown as never,
