@@ -83,7 +83,7 @@ export class ScoringService {
     return score > 80;
   }
 
-  evaluateThreshold(score: number): boolean {
+  shouldDelist(score: number): boolean {
     return score < 85;
   }
 }
