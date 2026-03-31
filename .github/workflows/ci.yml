@@ -19,23 +19,23 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
-      - name: 🔍 The Law (Polisi: Static Analysis & Linting)
+      - name: "🔍 The Law (Polisi: Static Analysis & Linting)"
         run: npm run lint
 
-      - name: 🧪 The Truth (Hakim: Unit & Integration Tests w/ Coverage)
+      - name: "🧪 The Truth (Hakim: Unit & Integration Tests w/ Coverage)"
         run: npm run test:coverage
         env:
           NODE_ENV: test
           SUPABASE_URL: "https://mock.supabase.co"
           SUPABASE_KEY: "mock-key"
 
-      - name: 🔒 The Fortress (Security Audit)
+      - name: "🔒 The Fortress (Security Audit)"
         run: npm audit --audit-level=high
 
-      - name: 📦 The Integrity (Jaksa: Type Check & Production Build)
+      - name: "📦 The Integrity (Jaksa: Type Check & Production Build)"
         run: npm run build
 
-      - name: ⚡ The Performance (Smoke Test)
+      - name: "⚡ The Performance (Smoke Test)"
         run: |
           if [ -f "./tests/smoke-test.js" ]; then
             sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69

@@ -3,8 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { type Client } from '@axiomhq/axiom-node';
 import { monitoringPlugin } from './infrastructure/monitoring/monitoring.plugin.js';
-import { GeyserService, type AlphaSignal } from './infrastructure/solana/geyser.service.js';
-import { ScoringService } from './core/scoring/scoring.service.js';
+import { IntelligenceEngine } from './core/engine.js';
 import { feePlugin } from './plugins/fee.plugin.js';
 import { TierService } from './core/tiers/tier.service.js';
 import { env } from './utils/env.js';
@@ -28,29 +27,20 @@ export const buildApp = async () => {
   await fastify.register(feePlugin);
 
   // Initialize Services (Domain & Infrastructure)
-  const scoringService = new ScoringService();
-  const geyserService = new GeyserService(scoringService);
   const tierService = new TierService();
-
-  // Unified Alpha Signal Consumer
-  geyserService.on('alpha', (data: AlphaSignal) => {
-    void (async () => {
-      if (fastify.logAlpha) {
-        await fastify.logAlpha({
-          type: 'ALPHA-SIGNAL',
-          score: data.score,
-          latency: data.latency,
-          token: data.event.metadata?.symbol,
-          mint: data.event.mint,
-          liquidity: data.event.initialLiquidity ?? 0,
-        });
-      }
-    })();
+  const engine = new IntelligenceEngine({
+    logAudit: (data) => {
+      void (async () => {
+        if (fastify.logAlpha) {
+          await fastify.logAlpha(data);
+        }
+      })();
+    },
   });
 
-  await geyserService.start();
+  await engine.start();
 
-  fastify.decorate('geyserService', geyserService);
+  fastify.decorate('engine', engine);
 
   // Health check for Checkly/Guardian
   fastify.get('/health', async (_request, reply) => {
@@ -80,7 +70,7 @@ export const buildApp = async () => {
       profile.status === SubscriptionStatus.STARLIGHT_PLUS;
     const isVIP = profile.status === SubscriptionStatus.VIP;
 
-    const signals = geyserService.getTieredSignals(profile.rank, isStarlight, isVIP);
+    const signals = engine.getTieredSignals(profile.rank, isStarlight, isVIP);
 
     return await reply.send({
       user: {
@@ -102,6 +92,6 @@ declare module 'fastify' {
     axiom?: Client;
     posthog?: import('posthog-node').PostHog;
     logAlpha?(data: Record<string, unknown>): Promise<void>;
-    geyserService: GeyserService;
+    engine: IntelligenceEngine;
   }
 }
