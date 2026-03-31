@@ -19,6 +19,8 @@ export interface Database {
           is_banned: boolean;
           created_at: string;
           updated_at: string;
+          ai_quota_limit: number;
+          ai_quota_used: number;
         };
         Insert: {
           id?: string;
@@ -31,6 +33,8 @@ export interface Database {
           is_banned?: boolean;
           created_at?: string;
           updated_at?: string;
+          ai_quota_limit?: number;
+          ai_quota_used?: number;
         };
         Update: {
           id?: string;
@@ -43,6 +47,8 @@ export interface Database {
           is_banned?: boolean;
           created_at?: string;
           updated_at?: string;
+          ai_quota_limit?: number;
+          ai_quota_used?: number;
         };
       };
       scouted_tokens: {

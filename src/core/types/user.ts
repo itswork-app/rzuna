@@ -34,6 +34,8 @@ export interface UserProfile {
   createdAt: Date;
   lastActiveAt: Date;
   isBanned: boolean; // Guardian Police feature
+  aiQuotaLimit: number; // Tier-based limit
+  aiQuotaUsed: number; // Usage tracker
 }
 
 /**
@@ -42,6 +44,7 @@ export interface UserProfile {
  */
 export type UserTierAccess = {
   hasPrivateTokenAccess: boolean; // Starlight+ & VIP
-  hasAiReasoning: boolean; // VIP Only
+  hasAiReasoning: boolean; // STARLIGHT+ & VIP
+  aiReasoningQuota: number; // Remaining quota for current session
   priorityLevel: number; // 1 (Low) - 10 (Dedicated VIP)
 };

@@ -146,35 +146,47 @@ export class IntelligenceEngine {
     if (this.autoDownInterval) clearInterval(this.autoDownInterval);
   }
 
-  getTieredSignals(rank: UserRank, isStarlight: boolean, isVIP: boolean): AlphaSignal[] {
-    return Array.from(this.activeSignals.values())
-      .filter((signal) => {
-        if (signal.score < 85) return false;
-        if (signal.isPremium) {
-          if (isStarlight || isVIP || rank === UserRank.ELITE) return true;
+  getTieredSignals(
+    rank: UserRank,
+    isStarlight: boolean,
+    isVIP: boolean,
+    profile: { aiQuotaLimit: number; aiQuotaUsed: number },
+  ): AlphaSignal[] {
+    try {
+      const access = {
+        hasPrivateTokenAccess: isStarlight || isVIP,
+        hasAiReasoning: isStarlight || isVIP,
+        aiReasoningQuota: profile.aiQuotaLimit - profile.aiQuotaUsed,
+        priorityLevel: isVIP ? 10 : isStarlight ? 5 : 1,
+      };
 
-          // SCARCITY ENGINE: Probabilistic access for non-premium
-          const prob = Math.random();
-          if (rank === UserRank.PRO) return prob > 0.5; // 50% chance
-          return prob > 0.9; // 10% chance for NEWBIE
-        }
-        return true;
-      })
-      .map((signal) => {
-        // Obfuscate AI reasoning if not VIP
-        if (!isVIP) {
-          return {
-            ...signal,
-            reasoning: undefined,
-            aiReasoning: signal.aiReasoning
-              ? {
-                  ...signal.aiReasoning,
-                  narrative: '[HIDDEN] Upgrade to VIP per Eliza OS reasoning',
-                }
-              : undefined,
-          };
-        }
-        return signal;
-      });
+      const signals = Array.from(this.activeSignals.values())
+        .filter((s) => {
+          if (s.isPremium && !access.hasPrivateTokenAccess) {
+            const prob = rank === UserRank.ELITE ? 0.5 : rank === UserRank.PRO ? 0.3 : 0.1;
+            return Math.random() < prob;
+          }
+          return true;
+        })
+        .map((s) => ({
+          ...s,
+          aiReasoning:
+            access.hasAiReasoning && access.aiReasoningQuota > 0
+              ? s.aiReasoning
+              : isVIP
+                ? s.aiReasoning // VIP bypasses quota for dedicated infrastructure
+                : s.aiReasoning
+                  ? {
+                      ...s.aiReasoning,
+                      narrative: '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning',
+                    }
+                  : undefined,
+        }));
+
+      return signals.sort((a, b) => b.score - a.score);
+    } catch (error) {
+      console.error('[ENGINE] Failed to get tiered signals:', error);
+      return [];
+    }
   }
 }

@@ -70,7 +70,7 @@ export const buildApp = async () => {
       profile.status === SubscriptionStatus.STARLIGHT_PLUS;
     const isVIP = profile.status === SubscriptionStatus.VIP;
 
-    const signals = engine.getTieredSignals(profile.rank, isStarlight, isVIP);
+    const signals = engine.getTieredSignals(profile.rank, isStarlight, isVIP, profile);
 
     return await reply.send({
       user: {

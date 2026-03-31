@@ -27,6 +27,8 @@ const makeProfile = (rank: UserRank, status: SubscriptionStatus): UserProfile =>
   createdAt: new Date(),
   lastActiveAt: new Date(),
   isBanned: false,
+  aiQuotaLimit: 0,
+  aiQuotaUsed: 0,
 });
 
 describe('TierService — Dynamic Fee Calculator', () => {

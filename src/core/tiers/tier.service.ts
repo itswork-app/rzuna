@@ -63,8 +63,12 @@ export class TierService {
         createdAt: new Date(),
         lastActiveAt: new Date(),
         isBanned: false,
+        aiQuotaLimit: 0,
+        aiQuotaUsed: 0,
       };
     }
+
+    const { limit, used } = this.getQuotaData(data);
 
     return {
       id: data.id,
@@ -79,7 +83,49 @@ export class TierService {
       createdAt: new Date(data.created_at),
       lastActiveAt: new Date(data.updated_at),
       isBanned: data.is_banned,
+      aiQuotaLimit: limit,
+      aiQuotaUsed: used,
     };
+  }
+
+  private getQuotaData(data: ProfileRow): { limit: number; used: number } {
+    const status = data.subscription_status as SubscriptionStatus;
+    const used = Number(data.ai_quota_used ?? 0);
+    
+    // Default limits based on v1.4 Blueprint
+    let limit = Number(data.ai_quota_limit ?? 0);
+    if (limit === 0) {
+      if (status === SubscriptionStatus.VIP) limit = 999;
+      else if (status === SubscriptionStatus.STARLIGHT_PLUS) limit = 30;
+      else if (status === SubscriptionStatus.STARLIGHT) limit = 10;
+    }
+
+    return { limit, used };
+  }
+
+  /**
+   * AI Quota Management
+   * Standar: Canonical Master Blueprint v1.4
+   */
+  async consumeQuota(walletAddress: string): Promise<boolean> {
+    const profile = await this.getUserProfile(walletAddress);
+    
+    // VIP has effectively unlimited quota
+    if (profile.status === SubscriptionStatus.VIP) return true;
+
+    if (profile.aiQuotaUsed >= profile.aiQuotaLimit) {
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        ai_quota_used: profile.aiQuotaUsed + 1,
+        updated_at: new Date().toISOString(),
+      } as unknown as never)
+      .eq('wallet_address', walletAddress);
+
+    return !error;
   }
 
   /**
