@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useSignals } from '@/hooks/useSignals';
 import { TokenCard } from '@/components/TokenCard';
-import { RankBadge, QuotaMonitor } from '@/components/UserStats';
-import { UserProfile } from '@/types';
+import { UserStats } from '@/components/UserStats';
+import { RankWidget } from '@/components/RankWidget';
+import { UserProfile, UserRank, SubscriptionStatus } from '@/types';
 import { AnimatePresence } from 'framer-motion';
 import { TrendingUp, Activity } from 'lucide-react';
 
@@ -19,8 +20,8 @@ export default function Dashboard() {
       // In production, this would be a real API fetch to the Fastify backend
       const mockProfile: UserProfile = {
         walletAddress: 'rzun...7p2v',
-        rank: 'PRO',
-        status: 'STARLIGHT',
+        rank: UserRank.PRO,
+        status: SubscriptionStatus.STARLIGHT,
         aiQuotaLimit: 10,
         aiQuotaUsed: 4,
         volume: {
@@ -56,17 +57,18 @@ export default function Dashboard() {
         </div>
         
         {profile && (
-          <RankBadge 
+          <RankWidget 
             rank={profile.rank} 
             status={profile.status} 
-            progressPercentage={45} 
+            currentVolume={profile.volume.currentMonthVolume}
+            nextThreshold={5000} 
           />
         )}
 
         {profile && (
-          <QuotaMonitor 
-            used={profile.aiQuotaUsed} 
-            limit={profile.aiQuotaLimit} 
+          <UserStats 
+            quotaUsed={profile.aiQuotaUsed} 
+            quotaLimit={profile.aiQuotaLimit} 
           />
         )}
       </header>
@@ -106,7 +108,7 @@ export default function Dashboard() {
             <TokenCard 
               key={signal.mint} 
               signal={signal} 
-              isVIP={profile?.status === 'VIP'} 
+              isVIP={profile?.status === SubscriptionStatus.VIP} 
             />
           ))}
         </div>

@@ -3,6 +3,8 @@
 import { useSignals } from '@/hooks/useSignals';
 import { TokenCard } from '@/components/TokenCard';
 import { RankWidget } from '@/components/RankWidget';
+import { UserStats } from '@/components/UserStats';
+import { UserRank, SubscriptionStatus } from '@/types';
 
 export default function Dashboard() {
   const { signals, loading } = useSignals();
@@ -14,8 +16,8 @@ export default function Dashboard() {
         <div className="flex gap-4 items-center">
           {/* Rank ala Mobile Legends akan muncul di sini */}
           <RankWidget
-            rank="NEWBIE"
-            status="NONE"
+            rank={UserRank.NEWBIE}
+            status={SubscriptionStatus.NONE}
             currentVolume={0}
             nextThreshold={1000}
           />
@@ -44,13 +46,10 @@ export default function Dashboard() {
 
         {/* AI Reasoning & Quota Sidebar */}
         <aside className="space-y-6">
-          <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 shadow-md">
-            <h3 className="text-sm font-bold mb-2 text-white">AI Quota Status</h3>
-            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 w-[20%]"></div>
-            </div>
-            <p className="text-[10px] text-zinc-500 mt-2 font-medium tracking-wide">4 / 20 Analysis Used (Starlight Tier)</p>
-          </div>
+          <UserStats 
+            quotaUsed={4} 
+            quotaLimit={20} 
+          />
         </aside>
       </section>
     </main>
