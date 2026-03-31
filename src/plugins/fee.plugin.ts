@@ -11,8 +11,18 @@ interface TradeBody {
   networkFeeSOL?: number; // Solana network fee (in SOL)
 }
 
-// Approximate SOL/USD for fee bundling (ideally fetched from price feed)
-const SOL_USD_APPROX = 150;
+/** Fetch live SOL/USD price from Jupiter Price API v4 */
+async function getLiveSOLPrice(): Promise<number> {
+  try {
+    const res = await fetch('https://price.jup.ag/v4/price?ids=SOL');
+    if (!res.ok) throw new Error('Price fetch failed');
+    const json = (await res.json()) as { data: { SOL: { price: number } } };
+    return json.data.SOL.price;
+  } catch {
+    // Fallback to approximate value if feed is unavailable
+    return 150;
+  }
+}
 
 /**
  * FeePlugin: Dynamic Trading Fee Engine
@@ -57,18 +67,21 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
       const feeRate = tierService.getTradingFeePercentage(profile);
       const tradingFeeUSD = amountUSD * feeRate;
 
-      // 4. External Cost Bundling (Jito + Network)
-      const jitoTipUSD = jitoTipSOL * SOL_USD_APPROX;
-      const networkFeeUSD = networkFeeSOL * SOL_USD_APPROX;
+      // 4. Live SOL price for accurate Jito + Network fee bundling
+      const solPrice = await getLiveSOLPrice();
+
+      // 5. External Cost Bundling (Jito + Network)
+      const jitoTipUSD = jitoTipSOL * solPrice;
+      const networkFeeUSD = networkFeeSOL * solPrice;
       const totalBundledCostUSD = tradingFeeUSD + jitoTipUSD + networkFeeUSD;
 
-      // 5. Update trading volume and rank
-      const newRank = await tierService.addVolume(walletAddress, amountUSD);
+      // 6. Update trading volume, rank, AND total_fees_paid (revenue accumulation)
+      const newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
 
-      // 6. Fetch updated profile (for ID)
+      // 7. Fetch updated profile (for ID)
       const updatedProfile = await tierService.getUserProfile(walletAddress);
 
-      // 7. Audit Trail: Insert to transactions table
+      // 8. Audit Trail: Insert to transactions table
       if (updatedProfile.id) {
         void (async () => {
           const { error: insertError } = await supabase.from('transactions').insert({
@@ -83,7 +96,7 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
         })();
       }
 
-      // 8. Axiom Revenue Audit Log
+      // 9. Axiom Revenue Audit Log
       if (fastify.logAlpha) {
         void fastify.logAlpha({
           type: 'TRADE_FEE_COLLECTED',
