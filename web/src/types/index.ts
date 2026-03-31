@@ -1,5 +1,15 @@
-export type UserRank = 'NEWBIE' | 'PRO' | 'ELITE';
-export type SubscriptionStatus = 'NONE' | 'STARLIGHT' | 'STARLIGHT_PLUS' | 'VIP';
+export enum UserRank {
+  NEWBIE = 'NEWBIE',
+  PRO = 'PRO',
+  ELITE = 'ELITE',
+}
+
+export enum SubscriptionStatus {
+  NONE = 'NONE',
+  STARLIGHT = 'STARLIGHT',
+  STARLIGHT_PLUS = 'STARLIGHT_PLUS',
+  VIP = 'VIP',
+}
 
 export interface UserProfile {
   walletAddress: string;
