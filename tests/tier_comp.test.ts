@@ -20,6 +20,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => {
   return {
     supabase: {
       from: vi.fn().mockReturnValue(mockBuilder),
+      rpc: vi.fn().mockResolvedValue({ error: null }),
     },
   };
 });
@@ -50,6 +51,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
 
   it('should consume AI quota for non-VIP', async () => {
     const mockFrom = supabase.from('profiles');
+    const mockRpc = supabase.rpc;
 
     // 1. First call: getUserProfile
     // @ts-expect-error - Accessing private mock for internal Vitest state manipulation
@@ -60,13 +62,12 @@ describe('🛡️ TierService Institutional Coverage', () => {
       }),
     );
 
-    // 2. Second call: update
-    (mockFrom.update as any).mockImplementationOnce(() => ({
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    }));
+    // 2. Second call: rpc
+    (mockRpc as any).mockResolvedValueOnce({ error: null });
 
-    const success = await service.consumeQuota(WALLET);
+    const success = await service.consumeAiQuota(WALLET);
     expect(success).toBe(true);
+    expect(mockRpc).toHaveBeenCalledWith('increment_ai_usage', { wallet: WALLET });
   });
 
   it('should fail quota consumption if limit reached', async () => {
@@ -77,7 +78,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
       error: null,
     });
 
-    const success = await service.consumeQuota(WALLET);
+    const success = await service.consumeAiQuota(WALLET);
     expect(success).toBe(false);
   });
 

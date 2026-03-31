@@ -104,26 +104,21 @@ export class TierService {
   }
 
   /**
-   * AI Quota Management
-   * Standar: Canonical Master Blueprint v1.4
+   * AI Quota Management (Atomic Increments)
+   * Standar: Canonical Master Blueprint v1.5
    */
-  async consumeQuota(walletAddress: string): Promise<boolean> {
+  async consumeAiQuota(walletAddress: string): Promise<boolean> {
     const profile = await this.getUserProfile(walletAddress);
 
     // VIP has effectively unlimited quota
     if (profile.status === SubscriptionStatus.VIP) return true;
 
     if (profile.aiQuotaUsed >= profile.aiQuotaLimit) {
-      return false;
+      return false; // Quota exceeded
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        ai_quota_used: profile.aiQuotaUsed + 1,
-        updated_at: new Date().toISOString(),
-      } as unknown as never)
-      .eq('wallet_address', walletAddress);
+    // Atomic increment via DB RPC to prevent race conditions
+    const { error } = await supabase.rpc('increment_ai_usage', { wallet: walletAddress });
 
     return !error;
   }
