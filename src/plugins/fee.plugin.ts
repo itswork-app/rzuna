@@ -32,14 +32,14 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
       // 3. Audit Trail: Insert to transactions table (Asyncly)
       if (profile.id) {
         void (async () => {
-          const { error: insertError } = await (supabase.from('transactions') as any).insert({
+          const { error: insertError } = await supabase.from('transactions').insert({
             profile_id: profile.id,
             tx_hash: signature,
             amount_usd: amountUSD,
             fee_collected: fee,
             platform,
             status: 'success',
-          });
+          } as unknown as never);
           if (insertError) fastify.log.error(insertError, 'Failed to log transaction audit trail');
         })();
       }

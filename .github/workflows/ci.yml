@@ -2,32 +2,82 @@ name: 🛡️ The Constitutional CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, pr-* ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  audit:
-    name: 🏛️ Institutional Grade Audit
+  lint:
+    name: 🔍 Static Analysis (Lint)
     runs-on: ubuntu-latest
-
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
-
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
       - name: 📦 Install Dependencies
         run: npm ci
+      - name: 🛡️ Run ESLint
+        run: npm run lint
 
-      - name: 🛡️ Execute Guardian Audit
-        run: |
-          chmod +x ./scripts/guardian.sh
-          ./scripts/guardian.sh
+  type-check:
+    name: 🏗️ Strict Type Check
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: 📦 Install Dependencies
+        run: npm ci
+      - name: 🛡️ Run TypeScript Compiler
+        run: npx tsc --noEmit
+
+  test:
+    name: 🧪 Unit & Logic Tests
+    runs-on: ubuntu-latest
+    needs: type-check
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: 📦 Install Dependencies
+        run: npm ci
+      - name: 🛡️ Execute Vitest with Coverage
+        run: npm run test:coverage
         env:
           NODE_ENV: test
-          # Sentry/Axiom tokens tidak wajib untuk audit lokal, tapi bisa di-inject di sini jika perlu
+          SUPABASE_URL: "https://mock.supabase.co"
+          SUPABASE_KEY: "mock-key"
+
+  build:
+    name: 📦 Production Build Verification
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: 📦 Install Dependencies
+        run: npm ci
+      - name: 🛡️ Execute Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+          SUPABASE_URL: "https://mock.supabase.co"
+          SUPABASE_KEY: "mock-key"

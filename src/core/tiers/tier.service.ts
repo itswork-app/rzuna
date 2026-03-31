@@ -1,5 +1,7 @@
 import { UserRank, type UserProfile, SubscriptionStatus } from '../types/user.js';
-import { supabase } from '../../infrastructure/supabase/client.js';
+import { supabase, type Database } from '../../infrastructure/supabase/client.js';
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 /**
  * Domain Logic: User Ranking & Progression
@@ -20,7 +22,7 @@ export class TierService {
       .eq('wallet_address', walletAddress)
       .single();
 
-    const data = rawData as any;
+    const data = rawData as unknown as ProfileRow | null;
 
     if (error || !data) {
       // Default for No-Registration / New Wallet
@@ -71,13 +73,13 @@ export class TierService {
 
     // Upsert Profile (Asyncly)
     void (async () => {
-      const { error: upsertError } = await (supabase.from('profiles') as any).upsert(
+      const { error: upsertError } = await supabase.from('profiles').upsert(
         {
           wallet_address: walletAddress,
           current_month_volume: newVolume,
           rank: newRank,
           updated_at: new Date().toISOString(),
-        },
+        } as unknown as never,
         { onConflict: 'wallet_address' },
       );
       if (upsertError) console.error('Failed to update volume:', upsertError);
@@ -96,33 +98,22 @@ export class TierService {
       .eq('wallet_address', walletAddress)
       .single();
 
-    const profile = rawData as any;
+    const profile = rawData as unknown as ProfileRow | null;
 
     if (error || !profile) return UserRank.NEWBIE;
 
-    // Fast check for protection
-    const hasProtection = profile.rank_protection;
-
-    if (hasProtection) {
-      void (async () => {
-        await (supabase.from('profiles') as any)
-          .update({ rank_protection: false, last_rank_reset: new Date().toISOString() })
-          .eq('wallet_address', walletAddress);
-      })();
-      return profile.rank as UserRank;
-    }
-
-    let newRank = profile.rank as UserRank;
+    let newRank = (profile.rank as UserRank) ?? UserRank.NEWBIE;
     if (newRank === UserRank.ELITE) newRank = UserRank.PRO;
     else if (newRank === UserRank.PRO) newRank = UserRank.NEWBIE;
 
     void (async () => {
-      await (supabase.from('profiles') as any)
+      await supabase
+        .from('profiles')
         .update({
           rank: newRank,
           current_month_volume: 0,
           last_rank_reset: new Date().toISOString(),
-        })
+        } as unknown as never)
         .eq('wallet_address', walletAddress);
     })();
 
