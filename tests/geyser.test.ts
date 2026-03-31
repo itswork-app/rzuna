@@ -98,7 +98,7 @@ describe('IntelligenceEngine Integration', () => {
       };
 
       const result = scoringService.calculateScore(legitEvent);
-      expect(result.score).toBeGreaterThanOrEqual(80);
+      expect(result.score).toBeGreaterThanOrEqual(85);
       expect(scoringService.shouldSignal(result.score)).toBe(true);
     });
   });

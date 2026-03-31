@@ -80,7 +80,7 @@ export class ScoringService {
   }
 
   shouldSignal(score: number): boolean {
-    return score > 80;
+    return score >= 85;
   }
 
   shouldDelist(score: number): boolean {
