@@ -79,6 +79,18 @@ describe('ReasoningService — L2 Agent Intelligence', () => {
     expect(result.generatedByAI).toBe(false);
     expect(result.narrative).toContain('PRIVATE');
   });
+
+  it('falls back to template reasoning on OpenAI error', async () => {
+    const openaiErrorService = new ReasoningService();
+    // @ts-expect-error - Accessing private openai instance for testing
+    vi.spyOn(openaiErrorService.openai.chat.completions, 'create').mockRejectedValue(
+      new Error('OpenAI Failure'),
+    );
+
+    const result = await openaiErrorService.analyzeToken(mockEvent, 92);
+    expect(result.generatedByAI).toBe(false);
+    expect(result.narrative).toContain('ALPHA');
+  });
 });
 
 describe('IntelligenceEngine — Scarcity Engine', () => {
@@ -89,7 +101,7 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
   });
 
   it('obfuscates narrative for non-VIP users', () => {
-    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP per Eliza OS reasoning';
+    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning';
     const mockSignal = {
       event: { mint: 'mint1' } as any,
       score: 95,

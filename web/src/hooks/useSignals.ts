@@ -40,13 +40,28 @@ export function useSignals() {
             setSignals(prev => prev.map(s => s.mint === updatedToken.mint_address ? {
               ...s,
               score: updatedToken.base_score,
-              aiReasoning: updatedToken.ai_reasoning ? JSON.parse(updatedToken.ai_reasoning) : s.aiReasoning
+              aiReasoning: (() => {
+                if (!updatedToken.ai_reasoning) return s.aiReasoning;
+                try {
+                  return JSON.parse(updatedToken.ai_reasoning);
+                } catch {
+                  return s.aiReasoning;
+                }
+              })()
             } : s));
           }
         } else if (payload.eventType === 'INSERT') {
-          const newToken = payload.new as { is_active: boolean; base_score: number };
+          const newToken = payload.new as { mint_address: string; base_score: number; is_active: boolean };
           if (newToken.is_active && newToken.base_score >= 85) {
-             // Logic to fetch full signal metadata...
+            const signal: AlphaSignal = {
+              mint: newToken.mint_address,
+              symbol: 'UNKNOWN',
+              score: newToken.base_score,
+              isPremium: true,
+              isNew: true,
+              timestamp: Date.now()
+            };
+            setSignals(prev => [...prev, signal]);
           }
         }
       })

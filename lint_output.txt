@@ -3,77 +3,85 @@
 > eslint .
 
 
-/home/kangza/workspace/rzuna/src/core/engine.ts
-   1:15   error  'MockTokenSignal' is defined but never used     @typescript-eslint/no-unused-vars
-   1:15   error  Remove this unused import of 'MockTokenSignal'  sonarjs/unused-import
-   3:15   error  'MintEvent' is defined but never used           @typescript-eslint/no-unused-vars
-   3:15   error  Remove this unused import of 'MintEvent'        sonarjs/unused-import
-  21:34   error  Unsafe member access .event on an `any` value   @typescript-eslint/no-unsafe-member-access
-  21:76   error  Unsafe member access .score on an `any` value   @typescript-eslint/no-unsafe-member-access
-  21:100  error  Unsafe member access .event on an `any` value   @typescript-eslint/no-unsafe-member-access
+/home/kangza/workspace/rzuna/tests/app_siege.test.ts
+   4:10  error  'env' is defined but never used                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   4:10  error  Remove this unused import of 'env'                                                                                                                                                                                                                                                                                                          sonarjs/unused-import
+  44:15  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
 
-/home/kangza/workspace/rzuna/src/core/scoring/scoring.service.ts
-   1:1   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
-   2:1   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
-  81:23  error    Make sure that using this pseudorandom number generator is safe here                                           sonarjs/pseudo-random
+/home/kangza/workspace/rzuna/tests/branch_final.test.ts
+   75:15  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+   83:15  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+   94:15  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  145:15  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
 
-/home/kangza/workspace/rzuna/src/core/tiers/tier.service.ts
-   49:33  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
-   51:27  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
-   52:30  error  Unsafe argument of type error typed assigned to a parameter of type `string | number | Date`  @typescript-eslint/no-unsafe-argument
-   73:44  error  Unsafe call of an `any` typed value                                                           @typescript-eslint/no-unsafe-call
-  107:19  error  Unsafe argument of type `any` assigned to a parameter of type `never`                         @typescript-eslint/no-unsafe-argument
-  120:17  error  Unsafe argument of type `any` assigned to a parameter of type `never`                         @typescript-eslint/no-unsafe-argument
+/home/kangza/workspace/rzuna/tests/engine_nuclear.test.ts
+  23:5  error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  31:5  error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
 
-/home/kangza/workspace/rzuna/src/infrastructure/monitoring/monitoring.plugin.ts
-  10:56  error  Async arrow function 'monitoring' has no 'await' expression  @typescript-eslint/require-await
+/home/kangza/workspace/rzuna/tests/infra.test.ts
+   60:29  error  Using http protocol is insecure. Use https instead                                                                                                                                                                                                                                                                                          sonarjs/no-clear-text-protocols
+   87:29  error  Using http protocol is insecure. Use https instead                                                                                                                                                                                                                                                                                          sonarjs/no-clear-text-protocols
+   92:7   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer                                                                                                                                                                               @typescript-eslint/ban-ts-comment
+   98:7   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer                                                                                                                                                                               @typescript-eslint/ban-ts-comment
+  111:29  error  Using http protocol is insecure. Use https instead                                                                                                                                                                                                                                                                                          sonarjs/no-clear-text-protocols
+  116:7   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer                                                                                                                                                                               @typescript-eslint/ban-ts-comment
+  122:7   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer                                                                                                                                                                               @typescript-eslint/ban-ts-comment
+  137:29  error  Using http protocol is insecure. Use https instead                                                                                                                                                                                                                                                                                          sonarjs/no-clear-text-protocols
+  152:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
 
-/home/kangza/workspace/rzuna/src/infrastructure/solana/geyser.service.ts
-   40:19  error  'any' overrides all other types in this union type                    @typescript-eslint/no-redundant-type-constituents
-   50:21  error  Unsafe construction of an `any` typed value                           @typescript-eslint/no-unsafe-call
-   69:13  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-   70:28  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-   72:7   error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-   84:9   error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-  133:31  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-  160:45  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  161:18  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  180:31  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  189:37  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
-  189:37  error  Unsafe call of an `any` typed value                                   @typescript-eslint/no-unsafe-call
+/home/kangza/workspace/rzuna/tests/infra_final.test.ts
+  2:10  error  'GeyserService' is defined but never used     @typescript-eslint/no-unused-vars
+  2:10  error  Remove this unused import of 'GeyserService'  sonarjs/unused-import
+  5:10  error  'env' is defined but never used               @typescript-eslint/no-unused-vars
+  5:10  error  Remove this unused import of 'env'            sonarjs/unused-import
 
-/home/kangza/workspace/rzuna/src/infrastructure/solana/mocks/geyser.mock.ts
-  47:18  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  52:33  error  Extract this nested ternary operation into an independent statement   sonarjs/no-nested-conditional
-  54:56  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  55:29  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
-  56:50  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+/home/kangza/workspace/rzuna/tests/integration.test.ts
+  1:36  error  'beforeEach' is defined but never used     @typescript-eslint/no-unused-vars
+  1:36  error  Remove this unused import of 'beforeEach'  sonarjs/unused-import
 
-/home/kangza/workspace/rzuna/src/infrastructure/supabase/client.ts
-  60:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  71:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  82:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/kangza/workspace/rzuna/tests/reasoning.test.ts
+  104:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  110:33  warning  Define a constant instead of duplicating this literal 3 times                                                        sonarjs/no-duplicate-string
 
-/home/kangza/workspace/rzuna/src/plugins/fee.plugin.ts
-  17:62  error  Async arrow function 'feePlugin' has no 'await' expression  @typescript-eslint/require-await
-  36:48  error  Unsafe call of an `any` typed value                         @typescript-eslint/no-unsafe-call
+/home/kangza/workspace/rzuna/tests/siege_final.test.ts
+   1:48  error  'afterEach' is defined but never used                                                                                                                          @typescript-eslint/no-unused-vars
+   1:48  error  Remove this unused import of 'afterEach'                                                                                                                       sonarjs/unused-import
+   2:8   error  'Fastify' is defined but never used                                                                                                                            @typescript-eslint/no-unused-vars
+   2:8   error  Remove this unused import of 'Fastify'                                                                                                                         sonarjs/unused-import
+  23:27  error  Using http protocol is insecure. Use https instead                                                                                                             sonarjs/no-clear-text-protocols
+  32:5   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  43:5   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  45:5   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  54:5   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  56:5   error  Include a description after the "@ts-expect-error" directive to explain why the @ts-expect-error is necessary. The description must be 3 characters or longer  @typescript-eslint/ban-ts-comment
+  68:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free                                            @typescript-eslint/ban-ts-comment
+  70:7   error  Handle this exception or don't catch it at all                                                                                                                 sonarjs/no-ignored-exceptions
+  70:14  error  'e' is defined but never used                                                                                                                                  @typescript-eslint/no-unused-vars
 
-/home/kangza/workspace/rzuna/src/server.ts
-  17:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+/home/kangza/workspace/rzuna/tests/tier.test.ts
+   86:17  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  107:17  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
 
-/home/kangza/workspace/rzuna/src/utils/env.ts
-  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
+/home/kangza/workspace/rzuna/tests/tier_comp.test.ts
+   3:20  error    'SubscriptionStatus' is defined but never used                 @typescript-eslint/no-unused-vars
+   3:20  error    Remove this unused import of 'SubscriptionStatus'              sonarjs/unused-import
+  67:48  warning  Define a constant instead of duplicating this literal 4 times  sonarjs/no-duplicate-string
 
-/home/kangza/workspace/rzuna/tests/geyser.test.ts
-  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
-  2:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
-  3:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
-
-/home/kangza/workspace/rzuna/tests/server.test.ts
-  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-member-access')
-  2:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unsafe-assignment')
-  3:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
-
-✖ 47 problems (37 errors, 10 warnings)
-  0 errors and 9 warnings potentially fixable with the `--fix` option.
+✖ 44 problems (42 errors, 2 warnings)
 

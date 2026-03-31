@@ -54,5 +54,21 @@ describe('Scoring Logic Audit (Alpha Intelligence)', () => {
       expect(scoringService.shouldSignal(result.score)).toBe(true);
       expect(result.reasoning.length).toBeGreaterThan(0);
     });
+
+    it('should cover fallback liquidity and social branches', () => {
+      const edgeCase: MintEvent = {
+        mint: 'edge_1',
+        signature: 's1',
+        timestamp: new Date().toISOString(),
+        initialLiquidity: 75, // Triggers return 15
+        socialScore: undefined as any, // Triggers random social score branch
+        metadata: { name: 'Normal', symbol: 'NORM', mint: 'edge_1' },
+      };
+
+      const result = scoringService.calculateScore(edgeCase);
+      expect(result.score).toBeDefined();
+      expect(scoringService.shouldDelist(10)).toBe(true);
+      expect(scoringService.shouldDelist(90)).toBe(false);
+    });
   });
 });

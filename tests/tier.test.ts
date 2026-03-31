@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TierService } from '../src/core/tiers/tier.service.js';
 import { UserRank, SubscriptionStatus, type UserProfile } from '../src/core/types/user.js';
+import { supabase } from '../src/infrastructure/supabase/client.js';
 
 // Mock Supabase
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
@@ -76,6 +77,45 @@ describe('TierService — Dynamic Fee Calculator', () => {
       expect(profile.rank).toBe(UserRank.NEWBIE);
       expect(profile.status).toBe(SubscriptionStatus.NONE);
       expect(profile.isBanned).toBe(false);
+    });
+  });
+
+  describe('addVolume() — Rank Upgrades', () => {
+    it('upgrades user to ELITE when threshold is met', async () => {
+      // Mock profile with 9000 volume
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(supabase.from('profiles').select as any).mockReturnValue({
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            wallet_address: 'w1',
+            rank: 'PRO',
+            current_month_volume: 9000,
+            total_fees_paid: 100,
+            subscription_status: 'NONE',
+          },
+          error: null,
+        }),
+      });
+
+      const nextRank = await service.addVolume('w1', 1500); // 9000 + 1500 = 10500 (ELITE)
+      expect(nextRank).toBe(UserRank.ELITE);
+    });
+  });
+
+  describe('performMonthlyReset() — Demotions', () => {
+    it('demotes PRO to NEWBIE if not protected', async () => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(supabase.from('profiles').select as any).mockReturnValue({
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { wallet_address: 'w2', rank: 'PRO', subscription_status: 'NONE' },
+          error: null,
+        }),
+      });
+
+      const newRank = await service.performMonthlyReset('w2');
+      expect(newRank).toBe(UserRank.NEWBIE);
     });
   });
 });
