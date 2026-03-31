@@ -185,7 +185,7 @@ export class GeyserService extends EventEmitter {
         const isDegrading = Math.random() > 0.95;
         const finalScore = isDegrading ? 80 : currentResult.score;
 
-        if (this.scoringService.evaluateThreshold(finalScore)) {
+        if (this.scoringService.shouldDelist(finalScore)) {
           this.activeSignals.delete(mint);
           this.emit('token_down', mint);
           console.warn(`[AUTO-DOWN] Mint ${mint} score dropped below 85.`);
