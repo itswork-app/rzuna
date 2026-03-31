@@ -74,3 +74,21 @@ export function useSignals() {
 
   return { signals, loading };
 }
+
+/**
+ * Consume one AI quota unit for the given wallet.
+ * Called by TokenCard when a Starlight user expands the AI Reasoning section.
+ * Standar: Canonical Master Blueprint v1.5
+ */
+export async function consumeQuota(walletAddress: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/consume-quota', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet: walletAddress }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

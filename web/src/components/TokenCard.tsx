@@ -1,17 +1,36 @@
 'use client';
 
 import { AlphaSignal } from '@/types';
-import { motion } from 'framer-motion';
-import { Zap, AlertTriangle, ExternalLink, Cpu } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Zap, AlertTriangle, ExternalLink, Cpu, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
+import { consumeQuota } from '@/hooks/useSignals';
 
 interface TokenCardProps {
   signal: AlphaSignal;
   isVIP?: boolean;
+  walletAddress?: string;
 }
 
-export function TokenCard({ signal }: TokenCardProps) {
+export function TokenCard({ signal, walletAddress }: TokenCardProps) {
   const isHighAlpha = signal.score >= 90;
-  
+  const [aiExpanded, setAiExpanded] = useState(false);
+  const [quotaConsuming, setQuotaConsuming] = useState(false);
+
+  const handleRevealAI = async () => {
+    if (aiExpanded) {
+      setAiExpanded(false);
+      return;
+    }
+    // Consume one quota unit before revealing narrative
+    if (walletAddress) {
+      setQuotaConsuming(true);
+      await consumeQuota(walletAddress);
+      setQuotaConsuming(false);
+    }
+    setAiExpanded(true);
+  };
+
   return (
     <motion.div
       layout
@@ -58,7 +77,7 @@ export function TokenCard({ signal }: TokenCardProps) {
             <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Catalysts</span>
           </div>
           <ul style={{ listStyle: 'none', fontSize: '0.75rem', color: '#e2e8f0' }}>
-            {(signal.aiReasoning?.catalysts || []).slice(0, 2).map((c, i) => (
+            {(signal.reasoning?.catalysts || []).slice(0, 2).map((c, i) => (
               <li key={i} style={{ marginBottom: '4px' }}>• {c}</li>
             ))}
           </ul>
@@ -69,38 +88,78 @@ export function TokenCard({ signal }: TokenCardProps) {
             <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Risks</span>
           </div>
           <ul style={{ listStyle: 'none', fontSize: '0.75rem', color: '#e2e8f0' }}>
-            {(signal.aiReasoning?.riskFactors || []).slice(0, 2).map((r, i) => (
+            {(signal.reasoning?.riskFactors || []).slice(0, 2).map((r, i) => (
               <li key={i} style={{ marginBottom: '4px' }}>• {r}</li>
             ))}
           </ul>
         </div>
       </div>
 
-      <div style={{ 
-        padding: '16px', 
-        background: 'rgba(124, 58, 237, 0.05)', 
-        borderRadius: '12px', 
-        border: '1px solid rgba(124, 58, 237, 0.1)',
-        marginBottom: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Cpu size={16} color="var(--primary)" />
-          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#a78bfa' }}>AI Reasoning Oracle</span>
-        </div>
-        <p style={{ fontSize: '0.8125rem', color: '#cbd5e1', lineHeight: '1.6' }}>
-          {signal.aiReasoning?.narrative || 'Analyzing token narrative and social sentiment...'}
-        </p>
+      {/* AI Reasoning — collapsible, quota-gated */}
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          id={`ai-reveal-${signal.mint}`}
+          onClick={() => void handleRevealAI()}
+          disabled={quotaConsuming}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            background: 'rgba(124, 58, 237, 0.05)',
+            border: '1px solid rgba(124, 58, 237, 0.15)',
+            borderRadius: '12px',
+            cursor: quotaConsuming ? 'wait' : 'pointer',
+            color: '#a78bfa',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            transition: 'background 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Cpu size={16} color="var(--primary)" />
+            <span>{quotaConsuming ? 'Consuming quota...' : 'AI Reasoning Oracle'}</span>
+          </div>
+          {aiExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        <AnimatePresence>
+          {aiExpanded && (
+            <motion.div
+              key="ai-reasoning"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{
+                padding: '16px',
+                background: 'rgba(124, 58, 237, 0.05)',
+                borderRadius: '0 0 12px 12px',
+                borderLeft: '1px solid rgba(124, 58, 237, 0.15)',
+                borderRight: '1px solid rgba(124, 58, 237, 0.15)',
+                borderBottom: '1px solid rgba(124, 58, 237, 0.15)',
+              }}>
+                <p style={{ fontSize: '0.8125rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+                  {signal.aiReasoning?.narrative || 'Analyzing token narrative and social sentiment...'}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div style={{ display: 'flex', gap: '12px' }}>
-        <button style={{ 
+        <button style={{
           flex: 1,
-          background: 'var(--primary)', 
-          color: '#fff', 
-          border: 'none', 
-          padding: '10px', 
-          borderRadius: '8px', 
-          fontSize: '0.8125rem', 
+          background: 'var(--primary)',
+          color: '#fff',
+          border: 'none',
+          padding: '10px',
+          borderRadius: '8px',
+          fontSize: '0.8125rem',
           fontWeight: 600,
           cursor: 'pointer',
           display: 'flex',
@@ -110,13 +169,13 @@ export function TokenCard({ signal }: TokenCardProps) {
         }}>
           Swap on Jupiter <ExternalLink size={14} />
         </button>
-        <button style={{ 
-          background: 'rgba(255,255,255,0.05)', 
-          color: '#fff', 
-          border: '1px solid var(--card-border)', 
-          padding: '10px 16px', 
-          borderRadius: '8px', 
-          fontSize: '0.8125rem', 
+        <button style={{
+          background: 'rgba(255,255,255,0.05)',
+          color: '#fff',
+          border: '1px solid var(--card-border)',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          fontSize: '0.8125rem',
           fontWeight: 600,
           cursor: 'pointer'
         }}>

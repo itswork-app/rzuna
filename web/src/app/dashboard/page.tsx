@@ -13,7 +13,12 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tighter">RZUNA <span className="text-zinc-500">v1.5</span></h1>
         <div className="flex gap-4 items-center">
           {/* Rank ala Mobile Legends akan muncul di sini */}
-          <RankWidget />
+          <RankWidget
+            rank="NEWBIE"
+            status="NONE"
+            currentVolume={0}
+            nextThreshold={1000}
+          />
           <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-bold shadow-md hover:bg-zinc-200 transition-colors">
             Connect Wallet
           </button>

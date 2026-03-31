@@ -117,9 +117,14 @@ export class TierService {
       return false; // Quota exceeded
     }
 
-    // Atomic increment via DB RPC to prevent race conditions
-    // @ts-expect-error - RPC exists in db but schema types are not synchronized yet
-    const { error } = await supabase.rpc('increment_ai_usage', { wallet: walletAddress });
+    // Atomic increment via DB RPC to prevent race conditions.
+    // Cast via unknown until `supabase gen types` is run against the live project (Blueprint v1.5).
+    const rpc = (
+      supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: unknown }>;
+      }
+    ).rpc;
+    const { error } = await rpc('increment_ai_usage', { wallet: walletAddress });
 
     return !error;
   }
