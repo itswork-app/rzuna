@@ -50,6 +50,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'vitest.config.ts', 'eslint.config.js', 'scripts/', 'coverage/'],
+    ignores: ['dist/', 'node_modules/', 'vitest.config.ts', 'eslint.config.js', 'scripts/', 'coverage/', 'web/**'],
   }
 );

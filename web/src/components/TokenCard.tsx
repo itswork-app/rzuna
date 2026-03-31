@@ -1,15 +1,15 @@
 'use client';
 
 import { AlphaSignal } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Zap, AlertTriangle, ExternalLink, Cpu } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Zap, AlertTriangle, ExternalLink, Cpu } from 'lucide-react';
 
 interface TokenCardProps {
   signal: AlphaSignal;
-  isVIP: boolean;
+  isVIP?: boolean;
 }
 
-export function TokenCard({ signal, isVIP }: TokenCardProps) {
+export function TokenCard({ signal }: TokenCardProps) {
   const isHighAlpha = signal.score >= 90;
   
   return (

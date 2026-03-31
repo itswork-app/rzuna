@@ -91,7 +91,7 @@ export class TierService {
   private getQuotaData(data: ProfileRow): { limit: number; used: number } {
     const status = data.subscription_status as SubscriptionStatus;
     const used = Number(data.ai_quota_used ?? 0);
-    
+
     // Default limits based on v1.4 Blueprint
     let limit = Number(data.ai_quota_limit ?? 0);
     if (limit === 0) {
@@ -109,7 +109,7 @@ export class TierService {
    */
   async consumeQuota(walletAddress: string): Promise<boolean> {
     const profile = await this.getUserProfile(walletAddress);
-    
+
     // VIP has effectively unlimited quota
     if (profile.status === SubscriptionStatus.VIP) return true;
 

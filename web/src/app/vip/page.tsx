@@ -3,31 +3,34 @@
 import { useEffect, useState } from 'react';
 import { TokenCard } from '@/components/TokenCard';
 import { AlphaSignal } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Crown, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function VIPChannel() {
   const [signals, setSignals] = useState<AlphaSignal[]>([]);
   
   useEffect(() => {
-    // Simulation of VIP exclusive signals (Score >= 90)
-    const vipSignals: AlphaSignal[] = [
-      {
-        mint: 'DezXAZ8z7Pnrn9vzct2PrfLvWzoZOAP89TO86UVHjm6',
-        symbol: 'BONK',
-        score: 98,
-        isPremium: true,
-        isNew: true,
-        timestamp: Date.now(),
-        aiReasoning: {
-          narrative: 'Deep institutional liquidity depth and high directional conviction from top-tier traders.',
-          riskFactors: ['High concentration in whale wallets'],
-          catalysts: ['Major CEX listing pending', 'DEX volume spike (+400%)'],
-          generatedByAI: true
+    const fetchVIPSignals = () => {
+      const vipSignals: AlphaSignal[] = [
+        {
+          mint: 'DezXAZ8z7Pnrn9vzct2PrfLvWzoZOAP89TO86UVHjm6',
+          symbol: 'BONK',
+          score: 98,
+          isPremium: true,
+          isNew: true,
+          timestamp: Date.now(),
+          aiReasoning: {
+            narrative: 'Deep institutional liquidity depth and high directional conviction from top-tier traders.',
+            riskFactors: ['High concentration in whale wallets'],
+            catalysts: ['Major CEX listing pending', 'DEX volume spike (+400%)'],
+            generatedByAI: true
+          }
         }
-      }
-    ];
-    setSignals(vipSignals);
+      ];
+      setSignals(vipSignals);
+    };
+
+    fetchVIPSignals();
   }, []);
 
   return (

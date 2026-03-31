@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useSignals } from '@/hooks/useSignals';
 import { TokenCard } from '@/components/TokenCard';
 import { RankBadge, QuotaMonitor } from '@/components/UserStats';
-import { AlphaSignal, UserProfile } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, TrendingUp, Cpu, Activity, User } from 'lucide-react';
+import { UserProfile } from '@/types';
+import { AnimatePresence } from 'framer-motion';
+import { TrendingUp, Activity } from 'lucide-react';
 
 export default function Dashboard() {
   const { signals, loading } = useSignals();
@@ -15,7 +15,7 @@ export default function Dashboard() {
 
   // Mock profile fetch logic
   useEffect(() => {
-    const fetchProfileData = async () => {
+    const fetchProfileData = () => {
       // In production, this would be a real API fetch to the Fastify backend
       const mockProfile: UserProfile = {
         walletAddress: 'rzun...7p2v',

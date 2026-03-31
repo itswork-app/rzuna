@@ -100,7 +100,10 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
     // Inject signal manually for testing
     (engine as any).activeSignals.set('mint1', mockSignal);
 
-    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, false, { aiQuotaLimit: 10, aiQuotaUsed: 0 });
+    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, false, {
+      aiQuotaLimit: 10,
+      aiQuotaUsed: 0,
+    });
     if (signals.length > 0) {
       expect(signals[0].aiReasoning?.narrative).toBe(HIDDEN_MSG);
     }
@@ -116,7 +119,10 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
 
     (engine as any).activeSignals.set('mint1', mockSignal);
 
-    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, true, { aiQuotaLimit: 999, aiQuotaUsed: 0 });
+    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, true, {
+      aiQuotaLimit: 999,
+      aiQuotaUsed: 0,
+    });
     expect(signals[0].aiReasoning?.narrative).toBe('Secret Alpha');
   });
 });

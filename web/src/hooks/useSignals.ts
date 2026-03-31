@@ -31,7 +31,7 @@ export function useSignals() {
       .channel('public:scouted_tokens')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'scouted_tokens' }, (payload) => {
         if (payload.eventType === 'UPDATE') {
-          const updatedToken = payload.new as any;
+          const updatedToken = payload.new as { is_active: boolean; base_score: number; mint_address: string; ai_reasoning?: string };
           
           if (!updatedToken.is_active || updatedToken.base_score < 85) {
             // AUTO-DOWN
@@ -44,7 +44,7 @@ export function useSignals() {
             } : s));
           }
         } else if (payload.eventType === 'INSERT') {
-          const newToken = payload.new as any;
+          const newToken = payload.new as { is_active: boolean; base_score: number };
           if (newToken.is_active && newToken.base_score >= 85) {
              // Logic to fetch full signal metadata...
           }
