@@ -21,6 +21,7 @@ const envSchema = z.object({
   JITO_BLOCK_ENGINE_URL: z.string().default('https://mainnet.block-engine.jito.wtf'),
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
+  EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
 });
 
 /**

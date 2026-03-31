@@ -19,6 +19,7 @@ export interface SwapResult {
   outAmount: number;
   fee: number;
   jitoBundle?: boolean;
+  dryRun: boolean;
 }
 
 interface JupiterQuoteResponse {
@@ -40,12 +41,24 @@ const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6';
 /**
  * Jupiter V6 Swap Service with Jito MEV Protection
  * Standar: Canonical Master Blueprint v1.5 (Institutional Live Ready)
+ *
+ * Supports two execution modes:
+ * - dry_run: Simulates everything, logs, but does NOT submit transactions
+ * - real: Full live execution with Jito bundle submission
  */
 export class JupiterService {
   private connection: Connection;
+  private isDryRun: boolean;
 
   constructor() {
     this.connection = new Connection(env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
+    this.isDryRun = env.EXECUTION_MODE === 'dry_run';
+
+    if (this.isDryRun) {
+      console.info('[JupiterService] 🧪 DRY RUN mode — no real transactions will be executed.');
+    } else {
+      console.info('[JupiterService] ⚡ REAL mode — live transactions enabled.');
+    }
   }
 
   /**
@@ -96,9 +109,42 @@ export class JupiterService {
   }
 
   /**
-   * Execute real-world swap with Jito bundle submission.
+   * Execute swap — behavior depends on EXECUTION_MODE.
+   *
+   * dry_run: Validates route, logs the would-be trade, returns simulated result.
+   * real:    Signs, submits via Jito bundle, returns real signature.
    */
   async executeSwap(route: SwapRoute): Promise<SwapResult> {
+    if (this.isDryRun) {
+      return this.executeDryRun(route);
+    }
+    return this.executeReal(route);
+  }
+
+  /**
+   * DRY RUN: Validate and log without submitting any transaction.
+   */
+  private executeDryRun(route: SwapRoute): SwapResult {
+    console.info(
+      `[DRY_RUN] 🧪 Simulated swap: ${route.inMint} → ${route.outMint} | ` +
+        `In: ${route.inAmount} | Out: ${route.outAmount} | ` +
+        `Impact: ${route.priceImpactPct}% | Fee: ${route.platformFeeBps ?? 0} bps`,
+    );
+
+    return {
+      signature: `DRY_RUN_${Date.now()}`,
+      inAmount: route.inAmount,
+      outAmount: route.outAmount,
+      fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
+      jitoBundle: false,
+      dryRun: true,
+    };
+  }
+
+  /**
+   * REAL: Sign and submit transaction via Jito bundle.
+   */
+  private async executeReal(route: SwapRoute): Promise<SwapResult> {
     if (!env.WALLET_PRIVATE_KEY) {
       throw new Error('WALLET_PRIVATE_KEY missing in environment.');
     }
@@ -151,6 +197,7 @@ export class JupiterService {
         outAmount: route.outAmount,
         fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
         jitoBundle: true,
+        dryRun: false,
       };
     } catch (err) {
       console.warn('Jito submission failed, falling back to standard RPC:', err);
@@ -164,6 +211,7 @@ export class JupiterService {
         outAmount: route.outAmount,
         fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
         jitoBundle: false,
+        dryRun: false,
       };
     }
   }

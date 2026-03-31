@@ -18,7 +18,8 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
 // Mock Axiom
 vi.mock('@axiomhq/js', () => ({
   Axiom: vi.fn().mockImplementation(function (this: any) {
-    this.ingest = vi.fn().mockResolvedValue({ status: 'ok' });
+    this.ingest = vi.fn();
+    this.flush = vi.fn().mockResolvedValue(undefined);
     return this;
   }),
 }));
@@ -187,12 +188,12 @@ describe('🚀 RZUNA Core Foundation (Schema v1.3)', () => {
     });
 
     it('🛡️ Axiom Catch Hook: Harus menangkap error jika ingest gagal', async () => {
-      // Mock Axiom.ingest to reject
-      const mockIngest = vi.fn().mockImplementation(() => {
-        throw new Error('Axiom Network Error');
-      });
+      // Mock Axiom.ingest to throw and flush to reject
+      const mockIngest = vi.fn();
+      const mockFlush = vi.fn().mockRejectedValue(new Error('Axiom Network Error'));
       vi.mocked(Axiom).mockImplementation(function (this: any) {
         this.ingest = mockIngest;
+        this.flush = mockFlush;
         return this;
       } as any);
 

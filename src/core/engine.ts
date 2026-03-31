@@ -118,15 +118,13 @@ export class IntelligenceEngine {
   private startAutoDownExecution() {
     this.autoDownInterval = setInterval(() => {
       for (const [mint, signal] of this.activeSignals.entries()) {
+        // Re-evaluate score using real data from the original event
         const currentResult: ScoringResult = this.scorer.calculateScore(signal.event);
 
-        // Randomly simulate score decay for demonstration
-        const finalScore = Math.random() > 0.95 ? 80 : currentResult.score;
-
-        // 4. AUTO-DOWN EXECUTION
-        if (this.scorer.shouldDelist(finalScore)) {
+        // AUTO-DOWN EXECUTION: Delist if score drops below threshold
+        if (this.scorer.shouldDelist(currentResult.score)) {
           this.activeSignals.delete(mint);
-          console.warn(`[AUTO-DOWN] Mint ${mint} score dropped to ${finalScore}.`);
+          console.warn(`[AUTO-DOWN] Mint ${mint} score dropped to ${currentResult.score}. Delisted.`);
 
           void (async () => {
             const { error } = await supabase

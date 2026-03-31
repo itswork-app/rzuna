@@ -16,6 +16,7 @@ export const start = async () => {
 
     console.info(`🚀  RZUNA FOUNDATION [PR 1] STARTED ON PORT ${port}`);
     console.info(`🌍  ENVIRONMENT: ${env.NODE_ENV}`);
+    console.info(`⚙️  EXECUTION MODE: ${env.EXECUTION_MODE === 'real' ? '⚡ REAL (LIVE TRADES)' : '🧪 DRY RUN (SIMULATION)'}`);
     console.info('🛡️  GUARDIAN CI: CONSTITUTIONAL AUDIT READY');
 
     return app;
