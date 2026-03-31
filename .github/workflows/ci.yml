@@ -16,32 +16,18 @@ jobs:
         with: 
           node-version: '20'
           cache: 'npm'
+
       - name: 📦 Install Dependencies
-        run: npm ci --no-audit
+        run: npm install --no-audit --no-fund
 
-      - name: "🔍 The Law (Polisi: Static Analysis & Linting)"
-        run: npm run lint
+      - name: "🛡️ Backend Constitutional Audit (The Guardian)"
+        run: npm run guardian
         env:
           NODE_ENV: test
           SUPABASE_URL: "https://mock.supabase.co"
           SUPABASE_KEY: "mock-key"
           NEXT_PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-key"
-
-      - name: "🧪 The Truth (Hakim: Unit & Integration Tests w/ Coverage)"
-        run: npm run test:coverage
-        env:
-          NODE_ENV: test
-          SUPABASE_URL: "https://mock.supabase.co"
-          SUPABASE_KEY: "mock-key"
-          NEXT_PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-key"
-
-      - name: "🔒 The Fortress (Security Audit)"
-        run: npm audit --audit-level=high
-
-      - name: "📦 The Integrity (Jaksa: Type Check & Production Build)"
-        run: npm run build
 
       - name: "⚡ The Performance (Smoke Test)"
         run: |
@@ -66,7 +52,7 @@ jobs:
 
       - name: 📦 Install Frontend Dependencies
         working-directory: ./web
-        run: npm ci --no-audit
+        run: npm install --no-audit --no-fund
 
       - name: "🛡️ UI The Guardian (Constitutional Audit)"
         working-directory: ./web

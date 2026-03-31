@@ -71,6 +71,22 @@ describe('🛡️ TierService Institutional Coverage', () => {
     expect(mockRpc).toHaveBeenCalledWith('increment_ai_usage', { wallet: WALLET });
   });
 
+  it('should allow AI quota for VIP without tracking', async () => {
+    const mockFrom = supabase.from('profiles');
+    const mockRpc = supabase.rpc;
+
+    // @ts-expect-error - Internal mock
+    (mockFrom.single as any).mockResolvedValueOnce({
+      data: { id: '2', ai_quota_limit: 999, ai_quota_used: 10, subscription_status: 'VIP' },
+      error: null,
+    });
+
+    const success = await service.consumeAiQuota('vip-wallet');
+    expect(success).toBe(true);
+    // VIP skips the DB update completely
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
   it('should fail quota consumption if limit reached', async () => {
     const mockFrom = supabase.from('profiles');
     // @ts-expect-error - Accessing private mock for internal Vitest state manipulation
