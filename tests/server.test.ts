@@ -2,17 +2,73 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { Client } from '@axiomhq/axiom-node';
+import { env } from '../src/utils/env.js';
 
-vi.mock('@axiomhq/axiom-node', () => {
-  return {
-    Client: vi.fn().mockImplementation(function (this: any) {
-      this.ingestEvents = vi.fn().mockResolvedValue({ status: 'ok' });
-      return this;
+// Mock gRPC
+vi.mock('@triton-one/yellowstone-grpc', () => ({
+  default: class {
+    connect = vi.fn().mockResolvedValue(undefined);
+    subscribe = vi.fn().mockResolvedValue({
+      on: vi.fn(),
+      write: vi.fn().mockImplementation((req: any, cb: any) => cb(null)),
+    });
+  },
+}));
+
+// Mock Axiom
+vi.mock('@axiomhq/axiom-node', () => ({
+  Client: vi.fn().mockImplementation(function (this: any) {
+    this.ingestEvents = vi.fn().mockResolvedValue({ status: 'ok' });
+    return this;
+  }),
+}));
+
+// Mock Sentry
+vi.mock('@sentry/node', () => ({
+  init: vi.fn(),
+  captureException: vi.fn(),
+}));
+
+// Mock Supabase to align with Database Schema v1.3
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockResolvedValue({ error: null }),
+    update: vi.fn().mockResolvedValue({ error: null }),
+    insert: vi.fn().mockResolvedValue({ error: null }),
+    single: vi.fn().mockResolvedValue({
+      data: {
+        id: 'test-uuid',
+        wallet_address: 'test-wallet',
+        rank: 'NEWBIE',
+        subscription_status: 'NONE',
+        current_month_volume: 0,
+        total_fees_paid: 0,
+        last_rank_reset: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_banned: false,
+      },
+      error: null,
     }),
-  };
-});
+  }),
+}));
 
-describe('🚀 RZUNA Core Foundation', () => {
+// Mock Env
+vi.mock('../src/utils/env.js', () => ({
+  env: {
+    NODE_ENV: 'test',
+    SUPABASE_URL: 'https://test.supabase.co',
+    SUPABASE_KEY: 'test-key-long-enough-for-zod',
+    PORT: '3000',
+  },
+}));
+
+const TEST_WALLET = 'test-wallet';
+
+describe('🚀 RZUNA Core Foundation (Schema v1.3)', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
@@ -23,12 +79,11 @@ describe('🚀 RZUNA Core Foundation', () => {
     await app.close();
   });
 
-  it('🟢 Health Check: Harus mengembalikan status 200 untuk Checkly', async () => {
+  it('🟢 Health Check: Modular App Factory harus bootstrap dengan benar', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/health',
     });
-
     expect(response.statusCode).toBe(200);
     const payload = response.json() as unknown as { status: string; timestamp: string };
     expect(payload.status).toBe('ok');
@@ -54,12 +109,41 @@ describe('🚀 RZUNA Core Foundation', () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it('🛡️ Signals Endpoint: Harus memproses tiered signals dari infrastructure', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/signals',
+      query: { wallet: TEST_WALLET },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const payload = response.json();
+    expect(payload.user.rank).toBe('NEWBIE');
+  });
+
+  it('🛡️ Trade Audit: Harus mencatat volume ke profiles & audit ke transactions', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/trade',
+      body: {
+        walletAddress: TEST_WALLET,
+        amountUSD: 1000,
+        platform: 'PUMP_FUN',
+        signature: 'sig_test',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().feeCollected).toBe(10); // 1% of 1000
+    expect(response.json().currentRank).toBeDefined();
+  });
+
   describe('📊 Monitoring & Coverage', () => {
     it('🛡️ Sentry & Axiom: Harus terinisialisasi jika env vars tersedia', async () => {
       // Kita buat instance baru dengan env vars terpacak
-      process.env.SENTRY_DSN = 'https://example@sentry.io/123';
-      process.env.AXIOM_TOKEN = 'test-token';
-      process.env.AXIOM_DATASET = 'test-dataset';
+      env.SENTRY_DSN = 'https://example@sentry.io/123';
+      env.AXIOM_TOKEN = 'test-token';
+      env.AXIOM_DATASET = 'test-dataset';
 
       const monitorApp = await buildApp();
       const response = await monitorApp.inject({
@@ -72,7 +156,7 @@ describe('🚀 RZUNA Core Foundation', () => {
     });
 
     it('🛡️ Sentry Error Hook: Harus dipicu saat terjadi error', async () => {
-      process.env.SENTRY_DSN = 'https://example@sentry.io/123';
+      env.SENTRY_DSN = 'https://example@sentry.io/123';
       const monitorApp = await buildApp();
 
       monitorApp.get('/trigger-error', () => {
@@ -96,8 +180,8 @@ describe('🚀 RZUNA Core Foundation', () => {
         return this;
       } as any);
 
-      process.env.AXIOM_TOKEN = 'test-token';
-      process.env.AXIOM_DATASET = 'test-dataset';
+      env.AXIOM_TOKEN = 'test-token';
+      env.AXIOM_DATASET = 'test-dataset';
 
       const monApp = await buildApp();
       const logSpy = vi.spyOn(monApp.log, 'error');
