@@ -66,6 +66,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+
   // 3. PostHog initialization
   let posthog: PostHog | undefined;
   if (env.POSTHOG_API_KEY) {
