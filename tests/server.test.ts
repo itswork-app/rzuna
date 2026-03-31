@@ -134,7 +134,8 @@ describe('🚀 RZUNA Core Foundation (Schema v1.3)', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().feeCollected).toBe(10); // 1% of 1000
+    // Dynamic fee: NEWBIE wallet pays 2% → $1000 * 0.02 = $20
+    expect(response.json().tradingFeeUSD).toBe(20);
     expect(response.json().currentRank).toBeDefined();
   });
 

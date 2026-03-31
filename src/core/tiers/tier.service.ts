@@ -1,16 +1,41 @@
-import { UserRank, type UserProfile, SubscriptionStatus } from '../types/user.js';
+import { UserRank, SubscriptionStatus, type UserProfile } from '../types/user.js';
 import { supabase, type Database } from '../../infrastructure/supabase/client.js';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 /**
  * Domain Logic: User Ranking & Progression
- * Standar: Canonical Master Blueprint v1.3
- * Table: public.profiles
+ * Standar: Canonical Master Blueprint v1.3 (PR 4 — Rank & Economy)
  */
 export class TierService {
   private readonly PRO_THRESHOLD = 1000;
   private readonly ELITE_THRESHOLD = 10000;
+
+  /**
+   * Dynamic Trading Fee Calculator.
+   * Returns the platform fee percentage based on rank + subscription.
+   * Blueprint v1.3 Revenue Structure:
+   *   NONE:         Newbie (2.0%) | Pro (1.75%) | Elite (1.5%)
+   *   STARLIGHT:    1.25%
+   *   STARLIGHT+:   1.0%
+   *   VIP:          0.75%
+   */
+  getTradingFeePercentage(profile: UserProfile): number {
+    if (profile.status === SubscriptionStatus.VIP) return 0.0075;
+    if (profile.status === SubscriptionStatus.STARLIGHT_PLUS) return 0.01;
+    if (profile.status === SubscriptionStatus.STARLIGHT) return 0.0125;
+
+    // NONE status — differentiated by Rank
+    switch (profile.rank) {
+      case UserRank.ELITE:
+        return 0.015;
+      case UserRank.PRO:
+        return 0.0175;
+      case UserRank.NEWBIE:
+      default:
+        return 0.02;
+    }
+  }
 
   /**
    * Get user profile and calculate their current rank.
@@ -71,7 +96,6 @@ export class TierService {
       newRank = UserRank.PRO;
     }
 
-    // Upsert Profile (Asyncly)
     void (async () => {
       const { error: upsertError } = await supabase.from('profiles').upsert(
         {
@@ -89,7 +113,8 @@ export class TierService {
   }
 
   /**
-   * Monthly Reset Logic
+   * Monthly Reset Logic.
+   * Rank Protection: STARLIGHT and above are immune to demotion.
    */
   async performMonthlyReset(walletAddress: string): Promise<UserRank> {
     const { data: rawData, error } = await supabase
@@ -102,9 +127,21 @@ export class TierService {
 
     if (error || !profile) return UserRank.NEWBIE;
 
+    const currentStatus =
+      (profile.subscription_status as SubscriptionStatus) ?? SubscriptionStatus.NONE;
     let newRank = (profile.rank as UserRank) ?? UserRank.NEWBIE;
-    if (newRank === UserRank.ELITE) newRank = UserRank.PRO;
-    else if (newRank === UserRank.PRO) newRank = UserRank.NEWBIE;
+
+    // RANK PROTECTION: Paid subscribers cannot be demoted
+    const isProtected =
+      currentStatus === SubscriptionStatus.STARLIGHT ||
+      currentStatus === SubscriptionStatus.STARLIGHT_PLUS ||
+      currentStatus === SubscriptionStatus.VIP;
+
+    if (!isProtected) {
+      // Free users demote by one tier
+      if (newRank === UserRank.ELITE) newRank = UserRank.PRO;
+      else if (newRank === UserRank.PRO) newRank = UserRank.NEWBIE;
+    }
 
     void (async () => {
       await supabase
