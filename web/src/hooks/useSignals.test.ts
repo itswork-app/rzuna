@@ -143,7 +143,6 @@ describe('useSignals Hook Institutional Siege', () => {
     });
 
     await waitFor(() => expect(result.current.signals[0].score).toBe(95));
-    // @ts-expect-error - Accessing internal structure for verification
     expect(result.current.signals[0].aiReasoning?.narrative).toBe('Upgraded Alpha');
   });
 
@@ -180,7 +179,6 @@ describe('useSignals Hook Institutional Siege', () => {
     });
 
     await waitFor(() => {
-      // @ts-expect-error - Accessing internal structure
       expect(result.current.signals[0].aiReasoning?.narrative).toBe('Old');
     });
   });
