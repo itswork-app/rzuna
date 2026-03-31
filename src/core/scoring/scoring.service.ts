@@ -82,4 +82,8 @@ export class ScoringService {
   shouldSignal(score: number): boolean {
     return score > 80;
   }
+
+  evaluateThreshold(score: number): boolean {
+    return score < 85;
+  }
 }

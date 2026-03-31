@@ -46,7 +46,11 @@ export class GeyserService extends EventEmitter {
     this.scoringService = scoringService;
 
     if (env.GEYSER_ENDPOINT && env.GEYSER_TOKEN) {
-      this.client = new (Client as any)(env.GEYSER_ENDPOINT, env.GEYSER_TOKEN, undefined);
+      this.client = new (Client as unknown as new (
+        endpoint: string,
+        token: string | undefined,
+        opts: unknown,
+      ) => unknown)(env.GEYSER_ENDPOINT, env.GEYSER_TOKEN, undefined);
       this.isMock = false;
     } else {
       console.warn('Geyser credentials missing. Running in MOCK mode.');
@@ -131,18 +135,18 @@ export class GeyserService extends EventEmitter {
 
       // Persistence: Schema v1.3 (scouted_tokens)
 
-      const { error } = (await (supabase.from('scouted_tokens') as any).upsert(
+      const { error } = await supabase.from('scouted_tokens').upsert(
         {
           mint_address: event.mint,
-          symbol: event.metadata?.symbol,
+          symbol: event.metadata?.symbol ?? 'UNKNOWN',
           base_score: result.score,
           ai_reasoning: result.reasoning.join('\n'), // Eliza OS Placeholder
           is_active: true,
           is_private: result.score >= 90,
-          metadata: event.metadata,
-        },
+          metadata: event.metadata ? JSON.parse(JSON.stringify(event.metadata)) : null,
+        } as unknown as never,
         { onConflict: 'mint_address' },
-      )) as { error: any };
+      );
       if (error) console.error('Failed to upsert scouted token:', error);
     }
     this.emit('mint', event);
@@ -181,16 +185,16 @@ export class GeyserService extends EventEmitter {
         const isDegrading = Math.random() > 0.95;
         const finalScore = isDegrading ? 80 : currentResult.score;
 
-        if (finalScore < 85) {
+        if (this.scoringService.evaluateThreshold(finalScore)) {
           this.activeSignals.delete(mint);
           this.emit('token_down', mint);
           console.warn(`[AUTO-DOWN] Mint ${mint} score dropped below 85.`);
 
-          // Persistence: Update Database Status
           void (async () => {
-            const { error } = (await (supabase.from('scouted_tokens') as any)
-              .update({ is_active: false })
-              .eq('mint_address', mint)) as { error: any };
+            const { error } = await supabase
+              .from('scouted_tokens')
+              .update({ is_active: false } as unknown as never)
+              .eq('mint_address', mint);
             if (error) console.error('Failed to deactivate token:', error);
           })();
         }

@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import * as Sentry from '@sentry/node';
 import { Client } from '@axiomhq/axiom-node';
+import { PostHog } from 'posthog-node';
 import { env } from '../../utils/env.js';
 
 /**
@@ -64,6 +65,17 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
       }
     }
   });
+
+  // 3. PostHog initialization
+  let posthog: PostHog | undefined;
+  if (env.POSTHOG_API_KEY) {
+    posthog = new PostHog(env.POSTHOG_API_KEY, { host: env.POSTHOG_HOST });
+    fastify.decorate('posthog', posthog);
+
+    fastify.addHook('onClose', async () => {
+      await posthog?.shutdown();
+    });
+  }
 };
 
 export const monitoringPlugin = fp(monitoring);

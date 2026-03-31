@@ -100,6 +100,7 @@ export const buildApp = async () => {
 declare module 'fastify' {
   interface FastifyInstance {
     axiom?: Client;
+    posthog?: import('posthog-node').PostHog;
     logAlpha?(data: Record<string, unknown>): Promise<void>;
     geyserService: GeyserService;
   }

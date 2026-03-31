@@ -14,6 +14,8 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   AXIOM_TOKEN: z.string().optional(),
   AXIOM_DATASET: z.string().optional(),
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().default('https://app.posthog.com'),
 });
 
 /**
