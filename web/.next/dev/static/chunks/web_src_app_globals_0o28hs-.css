@@ -1,0 +1,122 @@
+@import "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap";
+/* [project]/web/src/app/globals.css [app-client] (css) */
+:root {
+  --background: #0a0a0c;
+  --foreground: #fff;
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --secondary: #10b981;
+  --secondary-glow: #10b98133;
+  --accent: #f43f5e;
+  --card-bg: #ffffff08;
+  --card-border: #ffffff0f;
+  --glass-bg: #ffffff0d;
+  --glass-border: #ffffff1a;
+  --text-muted: #94a3b8;
+  --selection-bg: #7c3aed4d;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  font-family: Outfit, Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  transition: transform .3s cubic-bezier(.4, 0, .2, 1), box-shadow .3s;
+}
+
+.glass-card:hover {
+  border-color: #7c3aed33;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px #0006;
+}
+
+.glass-nav {
+  z-index: 50;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--card-border);
+  background: #0a0a0ccc;
+  position: sticky;
+  top: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: .6s ease-out forwards fadeIn;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.stat-value {
+  letter-spacing: -.02em;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.badge {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.badge-primary {
+  color: #a78bfa;
+  background: #7c3aed26;
+  border: 1px solid #7c3aed4d;
+}
+
+.badge-secondary {
+  color: #34d399;
+  background: #10b98126;
+  border: 1px solid #10b9814d;
+}
+
+.badge-accent {
+  color: #fb7185;
+  background: #f43f5e26;
+  border: 1px solid #f43f5e4d;
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: #fff;
+}
+
+/*# sourceMappingURL=web_src_app_globals_0o28hs-.css.map*/

@@ -1,126 +1,145 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useSignals } from '@/hooks/useSignals';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { TokenCard } from '@/components/TokenCard';
 import { UserStats } from '@/components/UserStats';
-import { RankWidget } from '@/components/RankWidget';
-import { UserProfile, UserRank, SubscriptionStatus } from '@/types';
-import { AnimatePresence } from 'framer-motion';
-import { TrendingUp, Activity } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Dashboard() {
-  const { signals, loading } = useSignals();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [fetchingProfile, setFetchingProfile] = useState(true);
+  const { connected, publicKey } = useWallet();
+  const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
+  const { signals, isLoading: signalsLoading } = useSignals();
+  const [activeSignals, setActiveSignals] = useState<any[]>([]);
+  const supabase = createClient();
 
-  // Mock profile fetch logic
   useEffect(() => {
-    const fetchProfileData = () => {
-      // In production, this would be a real API fetch to the Fastify backend
-      const mockProfile: UserProfile = {
-        walletAddress: 'rzun...7p2v',
-        rank: UserRank.PRO,
-        status: SubscriptionStatus.STARLIGHT,
-        aiQuotaLimit: 10,
-        aiQuotaUsed: 4,
-        volume: {
-          currentMonthVolume: 1250.50,
-          totalFeesPaid: 25.01,
-        }
-      };
-      setProfile(mockProfile);
-      setFetchingProfile(false);
-    };
+    if (signals) {
+      setActiveSignals(signals);
+    }
+  }, [signals]);
 
-    fetchProfileData();
-  }, []);
+  const handleConsumeQuota = async (tokenMint: string) => {
+    if (!publicKey) return;
+    
+    // Decrement quota in DB atomically
+    await supabase.rpc('consume_quota', { 
+      user_wallet: publicKey.toBase58() 
+    });
+  };
 
-  if (loading || fetchingProfile) return (
-    <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '1.25rem', fontWeight: 500 }}>Initializing Neural Core...</p>
-    </div>
-  );
+  // 1. Connection Gate
+  if (!connected) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-transparent">
+        <div className="max-w-md w-full bg-[#1a1a2e] border border-cyan-500/20 rounded-2xl p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8 text-cyan-400" />
+          </div>
+          <h1 className="text-3xl font-black text-white mb-4 tracking-tighter">UNAUTHORIZED ACCESS</h1>
+          <p className="text-gray-400 mb-8 leading-relaxed">
+            Institutional credentials required. Connect your soul-bound Solana wallet to access the rzuna alpha stream.
+          </p>
+          <div className="flex justify-center flex-col gap-4">
+            <WalletMultiButton className="!bg-cyan-600 hover:!bg-cyan-500 !transition-all !h-14 !rounded-xl !font-bold !w-full !justify-center" />
+          </div>
+        </div>
+      </main>
+    );
+  }
 
+  // 2. Authentication (SIWS) Gate
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#1a1a2e] border border-purple-500/20 rounded-2xl p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldCheck className="w-8 h-8 text-purple-400" />
+          </div>
+          <h1 className="text-3xl font-black text-white mb-4 tracking-tighter">VERIFY OWNERSHIP</h1>
+          <p className="text-gray-400 mb-8 leading-relaxed">
+            Sign a secure message (SIWS) to verify you are the legitimate owner of this institutional wallet.
+          </p>
+          <button
+            onClick={login}
+            disabled={isAuthenticating}
+            className="w-full h-14 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+          >
+            {isAuthenticating ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Sign Mission Order <ArrowRight className="w-5 h-5" /></>}
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // 3. Main Dashboard
   return (
-    <div className="animate-fade-in">
-      {/* Header Info Section */}
-      <header style={{ marginBottom: '48px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-        <div className="glass-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ padding: '16px', background: 'rgba(124, 58, 237, 0.1)', borderRadius: '16px' }}>
-            <TrendingUp color="var(--primary)" size={32} />
-          </div>
+    <main className="min-h-screen bg-[#0a0a0f] text-gray-100 p-4 md:p-8 lg:p-12 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Volume Current Month</p>
-            <div className="stat-value">${profile?.volume.currentMonthVolume.toLocaleString()}</div>
+            <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-400 to-cyan-600 mb-2">
+              RZUNA INSTITUTIONAL
+            </h1>
+            <p className="text-gray-500 font-mono text-sm flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              Live Mainnet Scouting Active
+            </p>
           </div>
+          <div className="flex items-center gap-4 bg-[#1a1a2e] p-2 rounded-xl border border-white/5">
+            <div className="hidden md:block px-4">
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Active Address</p>
+              <p className="text-xs font-mono text-cyan-400">{publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}</p>
+            </div>
+            <WalletMultiButton className="!bg-white/5 hover:!bg-white/10 !transition-all !h-10 !rounded-lg !text-sm !font-bold !border !border-white/10" />
+            <button 
+              onClick={logout}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-xs font-bold transition-all"
+            >
+              Log Out
+            </button>
+          </div>
+        </header>
+
+        <UserStats />
+
+        <div className="mb-8 flex justify-between items-end">
+          <h2 className="text-2xl font-bold flex items-center gap-3">
+            Alpha Signal Feed
+            <span className="text-xs font-mono bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">
+              {activeSignals.length} Active
+            </span>
+          </h2>
         </div>
-        
-        {profile && (
-          <RankWidget 
-            rank={profile.rank} 
-            status={profile.status} 
-            currentVolume={profile.volume.currentMonthVolume}
-            nextThreshold={5000} 
-          />
+
+        {signalsLoading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+            <p className="text-gray-500 font-mono animate-pulse">Scanning Solana mempools for alpha...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeSignals.map((signal) => (
+              <TokenCard 
+                key={signal.id} 
+                signal={signal} 
+                onConsumeQuota={() => handleConsumeQuota(signal.event.mint)} 
+              />
+            ))}
+          </div>
         )}
 
-        {profile && (
-          <UserStats 
-            quotaUsed={profile.aiQuotaUsed} 
-            quotaLimit={profile.aiQuotaLimit} 
-          />
+        {activeSignals.length === 0 && !signalsLoading && (
+          <div className="text-center py-24 bg-[#1a1a2e]/50 rounded-2xl border border-dashed border-white/10">
+            <p className="text-gray-500 font-medium">No high-conviction signals detected currently.</p>
+            <p className="text-gray-600 text-sm mt-1">System is idling, waiting for the next narrative arc.</p>
+          </div>
         )}
-      </header>
-
-      {/* Signals Grid Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '8px', height: '8px', background: 'var(--secondary)', borderRadius: '50%', boxShadow: '0 0 10px var(--secondary-glow)' }}></div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Real-time Alpha Feed</h2>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button style={{ 
-            background: 'rgba(255,255,255,0.05)', 
-            color: '#fff', 
-            border: '1px solid var(--card-border)', 
-            padding: '8px 16px', 
-            borderRadius: '8px', 
-            fontSize: '0.875rem', 
-            fontWeight: 600
-          }}>All Signals</button>
-          <button style={{ 
-            background: 'var(--primary)', 
-            color: '#fff', 
-            border: 'none', 
-            padding: '8px 16px', 
-            borderRadius: '8px', 
-            fontSize: '0.875rem', 
-            fontWeight: 600
-          }}>VIP Only</button>
-        </div>
       </div>
-
-      {/* Signals List */}
-      <AnimatePresence mode="popLayout">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '24px' }}>
-          {signals.map((signal) => (
-            <TokenCard 
-              key={signal.mint} 
-              signal={signal} 
-              isVIP={profile?.status === SubscriptionStatus.VIP} 
-            />
-          ))}
-        </div>
-      </AnimatePresence>
-
-      {signals.length === 0 && (
-        <div style={{ padding: '64px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px dashed var(--card-border)' }}>
-          <Activity size={48} color="var(--text-muted)" style={{ marginBottom: '16px', opacity: 0.3 }} />
-          <h3 style={{ color: '#fff', marginBottom: '8px' }}>Scanning for Alpha Signals...</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>The geyser is currently monitoring Pump.fun and Raydium streams.</p>
-        </div>
-      )}
-    </div>
+    </main>
   );
 }

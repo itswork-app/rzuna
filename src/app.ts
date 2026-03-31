@@ -8,10 +8,11 @@ import { feePlugin } from './plugins/fee.plugin.js';
 import { TierService } from './core/tiers/tier.service.js';
 import { env } from './utils/env.js';
 import { SubscriptionStatus } from './core/types/user.js';
+import { JupiterService } from './infrastructure/jupiter/jupiter.service.js';
 
 /**
- * Fastify Application Factory: Blueprint v1.3 Refactored
- * Standar: WORLD-CLASS MODULAR
+ * Fastify Application Factory: Blueprint v1.5 Refactored
+ * Standar: institutional-grade High-Performance
  */
 export const buildApp = async () => {
   const fastify: FastifyInstance = Fastify({
@@ -28,6 +29,7 @@ export const buildApp = async () => {
 
   // Initialize Services (Domain & Infrastructure)
   const tierService = new TierService();
+  const jupiterService = new JupiterService();
   const engine = new IntelligenceEngine({
     logAudit: (data) => {
       void (async () => {
@@ -41,6 +43,7 @@ export const buildApp = async () => {
   await engine.start();
 
   fastify.decorate('engine', engine);
+  fastify.decorate('jupiter', jupiterService);
 
   // Health check for Checkly/Guardian
   fastify.get('/health', async (_request, reply) => {
@@ -84,6 +87,29 @@ export const buildApp = async () => {
     });
   });
 
+  /**
+   * Execution Engine: Live Swap via Jito
+   * Standar: Canonical Master Blueprint v1.5
+   */
+  fastify.post('/trade/swap', async (request, reply) => {
+    try {
+      const { route, userPublicKey } = request.body as { route: any; userPublicKey: string };
+
+      if (!route || !userPublicKey) {
+        return await reply.status(400).send({ error: 'Missing route or wallet context' });
+      }
+
+      console.info(`[EXECUTION] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`);
+      
+      const result = await jupiterService.executeSwap(route, userPublicKey);
+      
+      return await reply.send({ result });
+    } catch (err: any) {
+      console.error('[EXECUTION_ERROR]', err);
+      return await reply.status(500).send({ error: err.message || 'Execution failed' });
+    }
+  });
+
   return fastify;
 };
 
@@ -93,5 +119,6 @@ declare module 'fastify' {
     posthog?: import('posthog-node').PostHog;
     logAlpha?(data: Record<string, unknown>): Promise<void>;
     engine: IntelligenceEngine;
+    jupiter: JupiterService;
   }
 }

@@ -1,114 +1,138 @@
 import { EventEmitter } from 'events';
+import bs58 from 'bs58';
 import Client from '@triton-one/yellowstone-grpc';
 import { env } from '../../utils/env.js';
-import { MockGeyserStream, type MockTokenSignal } from './mocks/geyser.mock.js';
+
+export interface TokenMetadata {
+  mint: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  isMintable?: boolean;
+}
 
 export interface MintEvent {
   mint: string;
   signature: string;
   timestamp: string;
-  initialLiquidity: number;
-  socialScore: number;
-  metadata?: any;
+  metadata?: TokenMetadata;
+  initialLiquidity?: number;
+  socialScore?: number;
 }
 
 /**
- * GeyserService: Real-time Solana Transaction Stream
- * Standar: Canonical Master Blueprint v1.3 (PR 4 — Rank & Economy)
+ * GeyserService: YellowStone gRPC Stream (Production Only)
+ * Standar: Canonical Master Blueprint v1.5 (Institutional Uptime)
+ *
+ * No mock fallback — requires real GEYSER_ENDPOINT & GEYSER_TOKEN.
+ * If credentials are missing, the service runs in no-op mode (no signals emitted).
  */
 export class GeyserService extends EventEmitter {
-  private isMock: boolean;
-  private stream: any = null;
+  private client: any = null;
+  private isActive: boolean = false;
+  private retryCount: number = 0;
+  private static readonly MAX_RETRIES = 5;
 
   constructor() {
     super();
-    this.isMock = !env.GEYSER_ENDPOINT;
+
+    if (env.GEYSER_ENDPOINT && env.GEYSER_TOKEN) {
+      // @ts-ignore
+      this.client = new Client(env.GEYSER_ENDPOINT, env.GEYSER_TOKEN);
+      this.isActive = true;
+    } else {
+      console.warn(
+        '[GeyserService] GEYSER_ENDPOINT / GEYSER_TOKEN not configured. ' +
+          'Running in NO-OP mode — no live signals will be emitted.',
+      );
+    }
   }
 
   async start(): Promise<void> {
-    if (this.isMock) {
-      console.info('[GEYSER] Starting in MOCK mode...');
-      this.startMockStream();
-    } else {
-      console.info('[GEYSER] Connecting to Real Geyser...', env.GEYSER_ENDPOINT);
+    this.retryCount = 0;
+
+    if (!this.isActive) {
+      console.warn('[GeyserService] No-op mode active. Skipping stream connection.');
+      return;
+    }
+
+    await this.connectWithRetry();
+  }
+
+  private async connectWithRetry(): Promise<void> {
+    try {
+      console.info(`📡 Connecting to Geyser (Attempt ${this.retryCount + 1})...`);
       await this.startRealStream();
+      this.retryCount = 0;
+      console.info('✅ Geyser stream connected successfully.');
+    } catch (error) {
+      this.retryCount++;
+      const delay = Math.min(1000 * Math.pow(2, this.retryCount), 30000);
+      console.error(`❌ Geyser connection failed. Retrying in ${delay}ms...`, error);
+
+      if (this.retryCount < GeyserService.MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.connectWithRetry();
+      } else {
+        console.error(
+          `[GeyserService] Max retries (${GeyserService.MAX_RETRIES}) reached. ` +
+            'Stream is offline. No signals will be emitted until restart.',
+        );
+        this.isActive = false;
+        this.emit('error', new Error('Geyser max retries reached. Stream offline.'));
+      }
     }
   }
 
   private async startRealStream(): Promise<void> {
-    try {
-      // Handle potential ESM/CJS default export differences
-      const ClientClass = (Client as any).default || Client;
-      const client = new ClientClass(env.GEYSER_ENDPOINT!, env.GEYSER_TOKEN);
-      await client.connect();
+    if (!this.client) return;
 
-      this.stream = await client.subscribe();
+    const stream = await this.client.subscribe();
 
-      // Ensure error handling for the stream to reach 80% branch coverage
-      this.stream.on('error', (err: Error) => {
-        console.error('[GEYSER] Real stream error:', err);
-      });
+    stream.on('data', (data: any) => {
+      if (data?.transaction?.transaction) {
+        const tx = data.transaction.transaction;
+        const signature = bs58.encode(tx.signatures[0]);
+        const accountKeys = tx.message.accountKeys.map((k: any) => bs58.encode(k));
+        const PUMP_FUN_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC';
 
-      this.stream.on('data', (data: any) => {
-        // Map raw gRPC payload to standardized MintEvent
-        if (data?.transaction?.transaction) {
-          const sigs = data.transaction.transaction.signatures;
-          const hasSigs = sigs && sigs.length > 0;
+        if (accountKeys.includes(PUMP_FUN_ID)) {
+          const detectedMint = accountKeys.find(
+            (k: string) => k !== PUMP_FUN_ID && k.length > 32,
+          );
 
-          if (hasSigs || this.isMock) {
-            const signature =
-              hasSigs && Buffer.isBuffer(sigs[0]) ? sigs[0].toString('base64') : 'UNKNOWN';
+          if (detectedMint) {
             const event: MintEvent = {
-              mint: 'LIVE_GEYSER_MINT', // Parsing complex proto buffers in production
+              mint: detectedMint,
               signature,
               timestamp: new Date().toISOString(),
-              initialLiquidity: Math.random() * 200,
-              socialScore: Math.random() * 100,
+              // Real data provided by upstream or left undefined
             };
             this.emit('mint', event);
           }
         }
-      });
+      }
+    });
 
-      // Request sub for Pump.fun or specific program
-      const request = {
-        transactions: {
-          pumpFun: {
-            accountInclude: [],
-            accountExclude: [],
-            accountRequired: [],
-          },
+    const request = {
+      transactions: {
+        mints: {
+          accountInclude: ['6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC'],
         },
-      };
+      },
+      commitment: 1,
+    };
 
-      await new Promise<void>((resolve, reject) => {
-        this.stream.write(request, (err: Error | null) => {
-          if (err) reject(err);
-          else resolve();
-        });
+    await new Promise<void>((resolve, reject) => {
+      stream.write(request, (err: Error | null) => {
+        if (err) reject(err);
+        else resolve();
       });
-    } catch (error) {
-      console.error('Real Geyser failed, fallback to mock:', error);
-      this.isMock = true;
-      this.startMockStream();
-    }
-  }
+    });
 
-  private startMockStream(): void {
-    this.stream = new MockGeyserStream();
-    this.stream.on('error', (err: Error) => {
-      console.error('[GEYSER] Mock stream error:', err);
+    stream.on('error', (err: any) => {
+      console.error('[GeyserService] Stream error:', err);
+      void this.connectWithRetry();
     });
-    this.stream.on('token_mint', (token: MockTokenSignal) => {
-      const event: MintEvent = {
-        mint: token.mint,
-        signature: 'mock_sig',
-        timestamp: new Date().toISOString(),
-        initialLiquidity: token.initialLiquidity,
-        socialScore: token.socialScore,
-      };
-      this.emit('mint', event);
-    });
-    this.stream.start();
   }
 }

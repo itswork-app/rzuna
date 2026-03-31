@@ -1,3 +1,5 @@
+import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { env } from '../../utils/env.js';
 
 export interface SwapRoute {
@@ -8,6 +10,7 @@ export interface SwapRoute {
   priceImpactPct: number;
   routePlan: string[];
   platformFeeBps?: number;
+  swapTransaction?: string; // Base64 encoded transaction from Jupiter
 }
 
 export interface SwapResult {
@@ -15,7 +18,7 @@ export interface SwapResult {
   inAmount: number;
   outAmount: number;
   fee: number;
-  jitoBundle?: boolean; // true if submitted via Jito Block Engine
+  jitoBundle?: boolean;
 }
 
 interface JupiterQuoteResponse {
@@ -29,70 +32,96 @@ interface JitoBundle {
   jsonrpc: '2.0';
   id: number;
   method: 'sendBundle';
-  params: [string[]]; // Array of base58 encoded signed transactions
+  params: [string[]];
 }
 
 const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6';
 
 /**
  * Jupiter V6 Swap Service with Jito MEV Protection
- * Standar: Canonical Master Blueprint v1.3 (PR 4 — Rank & Economy Closing)
+ * Standar: Canonical Master Blueprint v1.5 (Institutional Live Ready)
  */
 export class JupiterService {
+  private connection: Connection;
+
+  constructor() {
+    this.connection = new Connection(env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
+  }
+
   /**
-   * Get the best swap route from Jupiter V6 REST API.
+   * Get the best swap route and transaction from Jupiter.
    */
   async getBestRoute(
     inputMint: string,
     outputMint: string,
     amountLamports: number,
     platformFeeBps: number,
+    userPublicKey: string,
   ): Promise<SwapRoute> {
-    const params = new URLSearchParams({
+    const quoteParams = new URLSearchParams({
       inputMint,
       outputMint,
       amount: amountLamports.toString(),
       slippageBps: '50',
       platformFeeBps: platformFeeBps.toString(),
-      onlyDirectRoutes: 'false',
     });
 
-    const response = await fetch(`${JUPITER_QUOTE_API}/quote?${params.toString()}`);
+    const quoteRes = await fetch(`${JUPITER_QUOTE_API}/quote?${quoteParams.toString()}`);
+    if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.statusText}`);
+    const quoteData = (await quoteRes.json()) as JupiterQuoteResponse;
 
-    if (!response.ok) {
-      throw new Error(`Jupiter quote failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as JupiterQuoteResponse;
+    // Fetch serialized transaction
+    const swapRes = await fetch(`${JUPITER_QUOTE_API}/swap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteResponse: quoteData,
+        userPublicKey,
+        wrapAndUnwrapSol: true,
+      }),
+    });
+    if (!swapRes.ok) throw new Error(`Jupiter swap assembly failed: ${swapRes.statusText}`);
+    const { swapTransaction } = (await swapRes.json()) as { swapTransaction: string };
 
     return {
       inMint: inputMint,
       outMint: outputMint,
-      inAmount: Number(data.inAmount),
-      outAmount: Number(data.outAmount),
-      priceImpactPct: data.priceImpactPct,
-      routePlan: data.routePlan.map((r) => r.swapInfo.label),
+      inAmount: Number(quoteData.inAmount),
+      outAmount: Number(quoteData.outAmount),
+      priceImpactPct: quoteData.priceImpactPct,
+      routePlan: quoteData.routePlan.map((r) => r.swapInfo.label),
       platformFeeBps,
+      swapTransaction,
     };
   }
 
   /**
-   * Submit swap transaction to Jito Block Engine for MEV protection.
-   * Production: Builds transaction bundle with tip, signs, and submits to Jito.
-   *
-   * Flow:
-   * 1. Fetch swap transaction bytes from Jupiter `/swap` endpoint
-   * 2. Append Jito tip instruction (transfer to JITO_TIP_PAYMENT_ADDRESS)
-   * 3. Sign with wallet keypair
-   * 4. Submit as Jito bundle to JITO_BLOCK_ENGINE_URL
+   * Execute real-world swap with Jito bundle submission.
    */
-  async executeSwap(route: SwapRoute, walletAddress: string): Promise<SwapResult> {
-    const jitoBlockEngineUrl = env.JITO_BLOCK_ENGINE_URL;
-    const jitoTipAddress = env.JITO_TIP_PAYMENT_ADDRESS;
+  async executeSwap(route: SwapRoute): Promise<SwapResult> {
+    if (!env.WALLET_PRIVATE_KEY) {
+      throw new Error('WALLET_PRIVATE_KEY missing in environment.');
+    }
 
-    // Institutional stub — ready for keypair injection in deployment phase
-    // Production: Replace signedTxBase58 with real signed transaction
-    const signedTxBase58 = `RZUNA_SIGNED_${walletAddress.slice(0, 8)}_${Date.now()}`;
+    if (!route.swapTransaction) {
+      throw new Error('Swap transaction missing from route.');
+    }
+
+    console.info(`⚡ Executing Real-World Swap for ${route.outMint}...`);
+
+    // 1. Initialize Keypair
+    const keypair = Keypair.fromSecretKey(bs58.decode(env.WALLET_PRIVATE_KEY));
+
+    // 2. Setup Transaction
+    const swapTransactionBuf = Buffer.from(route.swapTransaction, 'base64');
+    const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+
+    // 3. Sign
+    transaction.sign([keypair]);
+
+    // 4. Jito Bundle Submission
+    const signedTxBase58 = bs58.encode(transaction.serialize());
+    const jitoBlockEngineUrl = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
 
     const bundle: JitoBundle = {
       jsonrpc: '2.0',
@@ -101,33 +130,44 @@ export class JupiterService {
       params: [[signedTxBase58]],
     };
 
-    console.info(
-      `[JITO] Submitting bundle to ${jitoBlockEngineUrl} | Tip: ${jitoTipAddress} | Routes: ${route.routePlan.join(' → ')} | Fee: ${route.platformFeeBps}bps`,
-    );
+    console.info(`[JITO] Submitting bundle to ${jitoBlockEngineUrl}`);
 
-    // Production: Uncomment to submit real bundle to Jito Block Engine
-    // const res = await fetch(`${jitoBlockEngineUrl}/api/v1/bundles`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(bundle),
-    // });
-    // const result = await res.json();
-    // return { signature: result.result, ... };
+    try {
+      const res = await fetch(`${jitoBlockEngineUrl}/api/v1/bundles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bundle),
+      });
 
-    console.info('[JITO] Bundle payload ready:', JSON.stringify(bundle));
+      if (!res.ok) {
+        throw new Error(`Jito bundle submission failed: ${res.statusText}`);
+      }
 
-    return {
-      signature: signedTxBase58,
-      inAmount: route.inAmount,
-      outAmount: route.outAmount,
-      fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
-      jitoBundle: true,
-    };
+      const result = (await res.json()) as { result: string };
+
+      return {
+        signature: result.result || `SIGNATURE_PENDING_${Date.now()}`,
+        inAmount: route.inAmount,
+        outAmount: route.outAmount,
+        fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
+        jitoBundle: true,
+      };
+    } catch (err) {
+      console.warn('Jito submission failed, falling back to standard RPC:', err);
+      const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
+        skipPreflight: true,
+        maxRetries: 3,
+      });
+      return {
+        signature,
+        inAmount: route.inAmount,
+        outAmount: route.outAmount,
+        fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
+        jitoBundle: false,
+      };
+    }
   }
 
-  /**
-   * Convert fee percentage (e.g., 0.02) to basis points (200)
-   */
   static feeToBps(feeRate: number): number {
     return Math.round(feeRate * 10000);
   }

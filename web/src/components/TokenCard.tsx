@@ -1,187 +1,106 @@
 'use client';
 
-import { AlphaSignal } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, AlertTriangle, ExternalLink, Cpu, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
-import { consumeQuota } from '@/hooks/useSignals';
+import React, { useState } from 'react';
+import { ExternalLink, Loader2 } from 'lucide-react';
+import { useTrade } from '@/hooks/useTrade';
+import { useWallet } from '@solana/wallet-adapter-react';
 
-interface TokenCardProps {
-  signal: AlphaSignal;
-  isVIP?: boolean;
-  walletAddress?: string;
+interface TokenSignal {
+  id: string;
+  score: number;
+  aiReasoning?: {
+    narrative: string;
+    confident: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  event: {
+    mint: string;
+    signature: string;
+    timestamp: string;
+    initialLiquidity: number;
+    socialScore: number;
+    metadata?: {
+      name: string;
+      symbol: string;
+    };
+  };
 }
 
-export function TokenCard({ signal, walletAddress }: TokenCardProps) {
-  const isHighAlpha = signal.score >= 90;
-  const [aiExpanded, setAiExpanded] = useState(false);
-  const [quotaConsuming, setQuotaConsuming] = useState(false);
+export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onConsumeQuota: () => void }) {
+  const [isReasoningVisible, setIsReasoningVisible] = useState(false);
+  const { executeTrade, isExecuting } = useTrade();
+  const { connected } = useWallet();
 
-  const handleRevealAI = async () => {
-    if (aiExpanded) {
-      setAiExpanded(false);
-      return;
+  const handleBuy = async () => {
+    if (!connected) return alert('Please connect wallet first.');
+    try {
+      const result = await executeTrade(signal);
+      console.log('Trade result:', result);
+      alert(`Institutional Trade Initialized: ${result.signature?.slice(0, 8)}...`);
+    } catch (err: any) {
+      alert(`Trade failed: ${err.message}`);
     }
-    // Consume one quota unit before revealing narrative
-    if (walletAddress) {
-      setQuotaConsuming(true);
-      await consumeQuota(walletAddress);
-      setQuotaConsuming(false);
-    }
-    setAiExpanded(true);
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="glass-card"
-      style={{ padding: '20px', position: 'relative', overflow: 'hidden' }}
-    >
-      {isHighAlpha && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent, var(--secondary), transparent)',
-          boxShadow: '0 0 15px var(--secondary-glow)'
-        }} />
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+    <div className="bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/50 transition-all group">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{signal.symbol}</h3>
-            {signal.isNew && <span className="badge badge-secondary">New</span>}
-            {signal.isPremium && <span className="badge badge-primary">Private</span>}
-          </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'Inter' }}>
-            {signal.mint.slice(0, 4)}...{signal.mint.slice(-4)}
+          <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
+            {signal.event.metadata?.name || 'Unknown Token'}
+          </h3>
+          <p className="text-gray-400 text-sm font-mono">{signal.event.mint.slice(0, 6)}...{signal.event.mint.slice(-4)}</p>
+        </div>
+        <div className="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full text-sm font-bold border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+          Score: {signal.score}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1 font-bold">Liquidity</p>
+          <p className="text-white font-mono text-sm">${signal.event.initialLiquidity?.toFixed(2)}</p>
+        </div>
+        <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1 font-bold">Socials</p>
+          <p className="text-white font-mono text-sm">{signal.event.socialScore}%</p>
+        </div>
+      </div>
+
+      {isReasoningVisible ? (
+        <div className="mb-6 p-4 bg-black/40 rounded-lg border border-cyan-500/10 animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-gray-300 text-sm italic leading-relaxed">
+            "{signal.aiReasoning?.narrative}"
           </p>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div className="stat-value" style={{ fontSize: '1.5rem' }}>{signal.score}</div>
-          <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontWeight: 600 }}>ALPHA SCORE</p>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <div style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--secondary)', marginBottom: '8px' }}>
-            <Zap size={14} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Catalysts</span>
-          </div>
-          <ul style={{ listStyle: 'none', fontSize: '0.75rem', color: '#e2e8f0' }}>
-            {(signal.reasoning?.catalysts || []).slice(0, 2).map((c, i) => (
-              <li key={i} style={{ marginBottom: '4px' }}>• {c}</li>
-            ))}
-          </ul>
-        </div>
-        <div style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent)', marginBottom: '8px' }}>
-            <AlertTriangle size={14} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Risks</span>
-          </div>
-          <ul style={{ listStyle: 'none', fontSize: '0.75rem', color: '#e2e8f0' }}>
-            {(signal.reasoning?.riskFactors || []).slice(0, 2).map((r, i) => (
-              <li key={i} style={{ marginBottom: '4px' }}>• {r}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* AI Reasoning — collapsible, quota-gated */}
-      <div style={{ marginBottom: '16px' }}>
+      ) : (
         <button
-          id={`ai-reveal-${signal.mint}`}
-          onClick={() => void handleRevealAI()}
-          disabled={quotaConsuming}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 16px',
-            background: 'rgba(124, 58, 237, 0.05)',
-            border: '1px solid rgba(124, 58, 237, 0.15)',
-            borderRadius: '12px',
-            cursor: quotaConsuming ? 'wait' : 'pointer',
-            color: '#a78bfa',
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            transition: 'background 0.2s ease',
+          onClick={() => {
+            onConsumeQuota();
+            setIsReasoningVisible(true);
           }}
+          className="w-full mb-6 py-2 rounded-lg bg-cyan-500/5 hover:bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02]"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Cpu size={16} color="var(--primary)" />
-            <span>{quotaConsuming ? 'Consuming quota...' : 'AI Reasoning Oracle'}</span>
-          </div>
-          {aiExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          Reveal AI Reasoning (-1 Quota)
         </button>
+      )}
 
-        <AnimatePresence>
-          {aiExpanded && (
-            <motion.div
-              key="ai-reasoning"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div style={{
-                padding: '16px',
-                background: 'rgba(124, 58, 237, 0.05)',
-                borderRadius: '0 0 12px 12px',
-                borderLeft: '1px solid rgba(124, 58, 237, 0.15)',
-                borderRight: '1px solid rgba(124, 58, 237, 0.15)',
-                borderBottom: '1px solid rgba(124, 58, 237, 0.15)',
-              }}>
-                <p style={{ fontSize: '0.8125rem', color: '#cbd5e1', lineHeight: '1.6' }}>
-                  {signal.aiReasoning?.narrative || 'Analyzing token narrative and social sentiment...'}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div style={{ display: 'flex', gap: '12px' }}>
-        <button style={{
-          flex: 1,
-          background: 'var(--primary)',
-          color: '#fff',
-          border: 'none',
-          padding: '10px',
-          borderRadius: '8px',
-          fontSize: '0.8125rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}>
-          Swap on Jupiter <ExternalLink size={14} />
+      <div className="flex gap-3">
+        <button 
+          onClick={handleBuy}
+          disabled={isExecuting}
+          className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 text-white py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          {isExecuting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Institutional Buy (Jito)'}
         </button>
-        <button style={{
-          background: 'rgba(255,255,255,0.05)',
-          color: '#fff',
-          border: '1px solid var(--card-border)',
-          padding: '10px 16px',
-          borderRadius: '8px',
-          fontSize: '0.8125rem',
-          fontWeight: 600,
-          cursor: 'pointer'
-        }}>
-          Details
-        </button>
+        <a
+          href={`https://solscan.io/token/${signal.event.mint}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-3 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all group"
+        >
+          <ExternalLink className="w-5 h-5 text-gray-400 group-hover:text-white" />
+        </a>
       </div>
-    </motion.div>
+    </div>
   );
 }
