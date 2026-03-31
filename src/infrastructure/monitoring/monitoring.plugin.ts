@@ -16,7 +16,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
       tracesSampleRate: 1.0,
     });
 
-    fastify.addHook('onError', (request, reply, error) => {
+    fastify.addHook('onError', async (request, reply, error) => {
       Sentry.captureException(error);
     });
   }

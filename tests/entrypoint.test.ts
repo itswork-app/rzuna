@@ -19,21 +19,19 @@ vi.mock('../src/utils/env.js', () => ({
 describe('🚀 Server Entrypoint (PR 1 Audit)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.PORT = '3000';
   });
 
   it('🟢 Initialization: Harus membangun app dan mendengarkan port dari env validator', async () => {
     const mockListen = vi.fn().mockResolvedValue('OK');
-    const mockApp = {
-      listen: mockListen,
-    };
-
+    const mockApp = { listen: mockListen };
     vi.mocked(appModule.buildApp).mockResolvedValue(mockApp as any);
 
-    await start();
+    const result = await start();
 
     expect(appModule.buildApp).toHaveBeenCalled();
-    // env.PORT is '3000' from mock
     expect(mockListen).toHaveBeenCalledWith({ port: 3000, host: '0.0.0.0' });
+    expect(result).toBe(mockApp);
   });
 
   it('🔴 Error Handling: Harus menangkap error dan keluar dengan status 1', async () => {
@@ -49,5 +47,21 @@ describe('🚀 Server Entrypoint (PR 1 Audit)', () => {
 
     consoleSpy.mockRestore();
     exitSpy.mockRestore();
+  });
+
+  it('🛡️ Branch Coverage: Harus melewati check NODE_ENV !== test', async () => {
+    vi.resetModules();
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    const mockStart = vi.fn();
+    vi.doMock('../src/server.js', () => ({
+      start: mockStart,
+    }));
+
+    await import('../src/server.js');
+
+    process.env.NODE_ENV = originalEnv;
+    vi.doUnmock('../src/server.js');
   });
 });

@@ -17,6 +17,8 @@ export const start = async () => {
     console.info(`🚀  RZUNA FOUNDATION [PR 1] STARTED ON PORT ${port}`);
     console.info(`🌍  ENVIRONMENT: ${env.NODE_ENV}`);
     console.info('🛡️  GUARDIAN CI: CONSTITUTIONAL AUDIT READY');
+
+    return app;
   } catch (err) {
     console.error('❌  FATAL STARTUP ERROR:', err);
     process.exit(1);

@@ -105,7 +105,6 @@ export class TierService {
 
     if (hasProtection) {
       void (async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         await (supabase.from('profiles') as any)
           .update({ rank_protection: false, last_rank_reset: new Date().toISOString() })
           .eq('wallet_address', walletAddress);
