@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import * as Sentry from '@sentry/node';
-import { Client } from '@axiomhq/axiom-node';
+import { Axiom } from '@axiomhq/js';
 import { PostHog } from 'posthog-node';
 import { env } from '../../utils/env.js';
 
@@ -23,9 +23,9 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
   }
 
   // 2. Axiom initialization
-  let axiom: Client | undefined;
+  let axiom: Axiom | undefined;
   if (env.AXIOM_TOKEN && env.AXIOM_DATASET) {
-    axiom = new Client({
+    axiom = new Axiom({
       token: env.AXIOM_TOKEN,
     });
 
@@ -34,7 +34,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
     fastify.addHook('onResponse', async (request, reply) => {
       if (axiom) {
         try {
-          await axiom.ingestEvents(env.AXIOM_DATASET!, [
+          axiom.ingest(env.AXIOM_DATASET!, [
             {
               method: request.method,
               url: request.url,
@@ -54,7 +54,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
   fastify.decorate('logAlpha', async (data: Record<string, unknown>) => {
     if (axiom && env.AXIOM_DATASET) {
       try {
-        await axiom.ingestEvents(env.AXIOM_DATASET, [
+        axiom.ingest(env.AXIOM_DATASET, [
           {
             ...data,
             _time: new Date().toISOString(),

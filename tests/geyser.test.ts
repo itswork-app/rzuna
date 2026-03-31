@@ -84,6 +84,7 @@ describe('IntelligenceEngine Integration', () => {
         signature: 'sig_123',
         timestamp: new Date().toISOString(),
         initialLiquidity: 5,
+        socialScore: 0,
         metadata: {
           name: 'ScamCoin Rug',
           symbol: 'SCAM',
@@ -139,6 +140,21 @@ describe('IntelligenceEngine Integration', () => {
       // Verify it was saved to the Active Signals map internally
       // @ts-expect-error - Accessing internal map
       expect(engine.activeSignals.has('alpha_123')).toBe(true);
+    });
+
+    it('should handle stream error gracefully', async () => {
+      // @ts-expect-error - Accessing private
+      await engine.geyser.start();
+      const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Simulate stream error on the stored private stream
+      // @ts-expect-error - Accessing private
+      engine.geyser.stream.emit('error', new Error('Stream Break'));
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('stream error'),
+        expect.any(Error),
+      );
     });
   });
 });

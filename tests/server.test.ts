@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
-import { Client } from '@axiomhq/axiom-node';
+import { Axiom } from '@axiomhq/js';
 import { env } from '../src/utils/env.js';
 
 // Mock gRPC
@@ -16,9 +16,9 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
 }));
 
 // Mock Axiom
-vi.mock('@axiomhq/axiom-node', () => ({
-  Client: vi.fn().mockImplementation(function (this: any) {
-    this.ingestEvents = vi.fn().mockResolvedValue({ status: 'ok' });
+vi.mock('@axiomhq/js', () => ({
+  Axiom: vi.fn().mockImplementation(function (this: any) {
+    this.ingest = vi.fn().mockResolvedValue({ status: 'ok' });
     return this;
   }),
 }));
@@ -186,11 +186,13 @@ describe('🚀 RZUNA Core Foundation (Schema v1.3)', () => {
       await monitorApp.close();
     });
 
-    it('🛡️ Axiom Catch Hook: Harus menangkap error jika ingestEvents gagal', async () => {
-      // Mock Client.ingestEvents to reject
-      const mockIngest = vi.fn().mockRejectedValue(new Error('Axiom Network Error'));
-      vi.mocked(Client).mockImplementation(function (this: any) {
-        this.ingestEvents = mockIngest;
+    it('🛡️ Axiom Catch Hook: Harus menangkap error jika ingest gagal', async () => {
+      // Mock Axiom.ingest to reject
+      const mockIngest = vi.fn().mockImplementation(() => {
+        throw new Error('Axiom Network Error');
+      });
+      vi.mocked(Axiom).mockImplementation(function (this: any) {
+        this.ingest = mockIngest;
         return this;
       } as any);
 

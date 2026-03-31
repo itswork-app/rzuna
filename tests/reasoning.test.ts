@@ -79,6 +79,18 @@ describe('ReasoningService — L2 Agent Intelligence', () => {
     expect(result.generatedByAI).toBe(false);
     expect(result.narrative).toContain('PRIVATE');
   });
+
+  it('falls back to template reasoning on OpenAI error', async () => {
+    const openaiErrorService = new ReasoningService();
+    // @ts-expect-error - Accessing private openai instance for testing
+    vi.spyOn(openaiErrorService.openai.chat.completions, 'create').mockRejectedValue(
+      new Error('OpenAI Failure'),
+    );
+
+    const result = await openaiErrorService.analyzeToken(mockEvent, 92);
+    expect(result.generatedByAI).toBe(false);
+    expect(result.narrative).toContain('ALPHA');
+  });
 });
 
 describe('IntelligenceEngine — Scarcity Engine', () => {
@@ -89,34 +101,46 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
   });
 
   it('obfuscates narrative for non-VIP users', () => {
-    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP per Eliza OS reasoning';
+    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning';
+    const TEST_MINT = 'mint1';
+    const SECRET_TEXT = 'Secret Alpha';
+
     const mockSignal = {
-      event: { mint: 'mint1' } as any,
+      event: { mint: TEST_MINT } as any,
       score: 95,
       isPremium: true,
-      aiReasoning: { narrative: 'Secret Alpha' } as any,
+      aiReasoning: { narrative: SECRET_TEXT } as any,
     };
 
     // Inject signal manually for testing
-    (engine as any).activeSignals.set('mint1', mockSignal);
+    (engine as any).activeSignals.set(TEST_MINT, mockSignal);
 
-    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, false, { aiQuotaLimit: 10, aiQuotaUsed: 0 });
+    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, false, {
+      aiQuotaLimit: 10,
+      aiQuotaUsed: 0,
+    });
     if (signals.length > 0) {
       expect(signals[0].aiReasoning?.narrative).toBe(HIDDEN_MSG);
     }
   });
 
   it('allows full access for VIP users', () => {
+    const TEST_MINT = 'mint1';
+    const SECRET_TEXT = 'Secret Alpha';
+
     const mockSignal = {
-      event: { mint: 'mint1' } as any,
+      event: { mint: TEST_MINT } as any,
       score: 95,
       isPremium: true,
-      aiReasoning: { narrative: 'Secret Alpha' } as any,
+      aiReasoning: { narrative: SECRET_TEXT } as any,
     };
 
-    (engine as any).activeSignals.set('mint1', mockSignal);
+    (engine as any).activeSignals.set(TEST_MINT, mockSignal);
 
-    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, true, { aiQuotaLimit: 999, aiQuotaUsed: 0 });
-    expect(signals[0].aiReasoning?.narrative).toBe('Secret Alpha');
+    const signals = engine.getTieredSignals(UserRank.NEWBIE, false, true, {
+      aiQuotaLimit: 999,
+      aiQuotaUsed: 0,
+    });
+    expect(signals[0].aiReasoning?.narrative).toBe(SECRET_TEXT);
   });
 });

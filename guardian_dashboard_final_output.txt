@@ -1,0 +1,89 @@
+
+> web@0.1.0 guardian
+> bash scripts/guardian.sh
+
+[0;32m🛡️  STARTING FRONTEND CONSTITUTIONAL AUDIT...[0m
+
+🔍 [STAGE 1] Checking UI Syntax & Style (ESLint)...
+
+> web@0.1.0 lint
+> eslint .
+
+
+/home/kangza/workspace/rzuna/web/coverage/block-navigation.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+✖ 1 problem (0 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
+
+🧪 [STAGE 2] Running UI Logic Tests (Vitest)...
+
+> web@0.1.0 test:coverage
+> vitest run --coverage
+
+
+[1m[46m RUN [49m[22m [36mv4.1.2 [39m[90m/home/kangza/workspace/rzuna/web[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m src/hooks/useSignals.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 411[2mms[22m[39m
+ [32m✓[39m src/components/TokenCard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 243[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 17:23:38
+[2m   Duration [22m 1.68s[2m (transform 155ms, setup 148ms, import 526ms, tests 654ms, environment 1.42s)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+----------------|---------|----------|---------|---------|-------------------
+File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------|---------|----------|---------|---------|-------------------
+All files       |   97.61 |    84.37 |     100 |     100 |                   
+ components     |     100 |      100 |     100 |     100 |                   
+  TokenCard.tsx |     100 |      100 |     100 |     100 |                   
+ hooks          |   97.29 |       75 |     100 |     100 |                   
+  useSignals.ts |   97.29 |       75 |     100 |     100 | 16-18,40-53       
+----------------|---------|----------|---------|---------|-------------------
+
+🔒 [STAGE 3] Scanning for Vulnerabilities (NPM Audit)...
+found 0 vulnerabilities
+
+🏗️ [STAGE 4] Building Production UI Bundle...
+
+> web@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/kangza/workspace/rzuna/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/kangza/workspace/rzuna/web/package-lock.json
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+  Finished TypeScript in 4.3s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/6) ...
+  Generating static pages using 7 workers (1/6) 
+  Generating static pages using 7 workers (2/6) 
+  Generating static pages using 7 workers (4/6) 
+✓ Generating static pages using 7 workers (6/6) in 428ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /dashboard
+└ ○ /vip
+
+
+○  (Static)  prerendered as static content
+
+
+[0;32m✅ ALL UI SYSTEMS GO. CONSTITUTIONAL CHECK PASSED.[0m
+[0;32mStatus: 🟢 FRONTEND INSTITUTIONAL GRADE READY.[0m
