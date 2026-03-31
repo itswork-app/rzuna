@@ -12,7 +12,13 @@ export interface AlphaSignal {
 }
 
 export interface EngineHooks {
-  logAudit?: (data: { type: string; score: number; reasoning: string; latency: number; mint: string }) => void;
+  logAudit?: (data: {
+    type: string;
+    score: number;
+    reasoning: string;
+    latency: number;
+    mint: string;
+  }) => void;
 }
 
 /**
@@ -39,7 +45,7 @@ export class IntelligenceEngine {
 
   private setupPipeline() {
     // 1. GEYSER INGESTION: Receive event from GeyserService
-    this.geyser.on('mint', async (event: MintEvent) => {
+    this.geyser.on('mint', (event: MintEvent) => {
       const startTime = performance.now();
 
       // 2. SCORING INTEGRATION: Send to calculateScore
@@ -95,7 +101,7 @@ export class IntelligenceEngine {
     this.autoDownInterval = setInterval(() => {
       for (const [mint, signal] of this.activeSignals.entries()) {
         const currentResult: ScoringResult = this.scorer.calculateScore(signal.event);
-        
+
         // Randomly simulate score decay for demonstration
         const finalScore = Math.random() > 0.95 ? 80 : currentResult.score;
 
@@ -109,7 +115,7 @@ export class IntelligenceEngine {
               .from('scouted_tokens')
               .update({ is_active: false } as unknown as never)
               .eq('mint_address', mint);
-            
+
             if (error) console.error('[Engine] Failed to Auto-Down token:', error);
           })();
         }
@@ -123,19 +129,21 @@ export class IntelligenceEngine {
   }
 
   getTieredSignals(rank: UserRank, isStarlight: boolean, isVIP: boolean): AlphaSignal[] {
-    return Array.from(this.activeSignals.values()).filter((signal) => {
-      if (signal.score < 85) return false;
-      if (signal.isPremium) {
-        if (isStarlight || rank === UserRank.ELITE) return true;
-        const prob = Math.random();
-        if (rank === UserRank.PRO) return prob > 0.5;
-        return Math.random() > 0.9;
-      }
-      return true;
-    }).map(signal => {
+    return Array.from(this.activeSignals.values())
+      .filter((signal) => {
+        if (signal.score < 85) return false;
+        if (signal.isPremium) {
+          if (isStarlight || rank === UserRank.ELITE) return true;
+          const prob = Math.random();
+          if (rank === UserRank.PRO) return prob > 0.5;
+          return Math.random() > 0.9;
+        }
+        return true;
+      })
+      .map((signal) => {
         // Obfuscate reasoning if not VIP
         if (!isVIP) return { ...signal, reasoning: undefined };
         return signal;
-    });
+      });
   }
 }

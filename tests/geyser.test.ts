@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GeyserService, type MintEvent } from '../src/infrastructure/solana/geyser.service.js';
+import { type MintEvent } from '../src/infrastructure/solana/geyser.service.js';
 import { ScoringService } from '../src/core/scoring/scoring.service.js';
 import { IntelligenceEngine } from '../src/core/engine.js';
 
@@ -32,7 +32,7 @@ vi.mock('@triton-one/yellowstone-grpc', () => {
   };
 });
 
-// Mock Env 
+// Mock Env
 vi.mock('../src/utils/env.js', () => ({
   env: {
     NODE_ENV: 'test',
@@ -42,7 +42,7 @@ vi.mock('../src/utils/env.js', () => ({
   },
 }));
 
-// Mock Supabase 
+// Mock Supabase
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
   supabase: {
     from: vi.fn().mockReturnThis(),

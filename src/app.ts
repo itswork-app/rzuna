@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { type Client } from '@axiomhq/axiom-node';
 import { monitoringPlugin } from './infrastructure/monitoring/monitoring.plugin.js';
-import { IntelligenceEngine, type AlphaSignal } from './core/engine.js';
+import { IntelligenceEngine } from './core/engine.js';
 import { feePlugin } from './plugins/fee.plugin.js';
 import { TierService } from './core/tiers/tier.service.js';
 import { env } from './utils/env.js';
@@ -35,7 +35,7 @@ export const buildApp = async () => {
           await fastify.logAlpha(data);
         }
       })();
-    }
+    },
   });
 
   await engine.start();

@@ -76,12 +76,12 @@ export class GeyserService extends EventEmitter {
 
       const request = {
         transactions: {
-          mints: { 
+          mints: {
             accountInclude: [
               '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC', // Pump.fun
               '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', // Raydium AMM
-              'Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB'  // Meteora AMM
-            ] 
+              'Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB', // Meteora AMM
+            ],
           },
         },
         commitment: 1,
