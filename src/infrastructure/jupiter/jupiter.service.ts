@@ -48,13 +48,18 @@ const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6';
  */
 export class JupiterService {
   private connection: Connection;
-  private isDryRun: boolean;
+  private jitoValidator: string;
+  private mode: 'dry_run' | 'real';
 
-  constructor() {
-    this.connection = new Connection(env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
-    this.isDryRun = env.EXECUTION_MODE === 'dry_run';
+  constructor(modeOverride?: 'dry_run' | 'real') {
+    this.connection = new Connection(
+      env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+      'confirmed',
+    );
+    this.jitoValidator = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
+    this.mode = modeOverride || env.EXECUTION_MODE || 'dry_run';
 
-    if (this.isDryRun) {
+    if (this.mode === 'dry_run') {
       console.info('[JupiterService] 🧪 DRY RUN mode — no real transactions will be executed.');
     } else {
       console.info('[JupiterService] ⚡ REAL mode — live transactions enabled.');
@@ -115,7 +120,7 @@ export class JupiterService {
    * real:    Signs, submits via Jito bundle, returns real signature.
    */
   async executeSwap(route: SwapRoute): Promise<SwapResult> {
-    if (this.isDryRun) {
+    if (this.mode !== 'real') {
       return this.executeDryRun(route);
     }
     return this.executeReal(route);

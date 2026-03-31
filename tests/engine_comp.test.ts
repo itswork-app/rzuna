@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IntelligenceEngine } from '../src/core/engine.js';
 import { UserRank } from '../src/core/types/user.js';
+import { ScoringService } from '../src/core/scoring/scoring.service.js';
+import { supabase } from '../src/infrastructure/supabase/client.js';
 
 vi.mock('../src/infrastructure/solana/geyser.service.js', () => ({
   GeyserService: class {
     on = vi.fn();
     start = vi.fn().mockResolvedValue(undefined);
     removeAllListeners = vi.fn();
+    emit = vi.fn();
   },
 }));
 
@@ -16,102 +19,199 @@ vi.mock('../src/infrastructure/supabase/realtime.service.js', () => ({
   },
 }));
 
+vi.mock('../src/core/scoring/scoring.service.js', () => ({
+  ScoringService: class {
+    calculateScore = vi.fn();
+    shouldSignal = vi.fn().mockImplementation((score: number) => score >= 85);
+    shouldDelist = vi.fn().mockImplementation((score: number) => score < 85);
+  },
+}));
+
+vi.mock('../src/infrastructure/supabase/client.js', () => ({
+  supabase: {
+    from: vi.fn(),
+  },
+}));
+
 describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
   let engine: IntelligenceEngine;
+  let scoringService: ScoringService;
 
   beforeEach(() => {
-    engine = new IntelligenceEngine();
     vi.clearAllMocks();
-  });
 
-  it('should filter signals by rank probability for non-VIP', () => {
-    const mockSignal = {
-      id: '1',
-      mint: 'mint1',
-      score: 95,
-      isPremium: true,
-      aiReasoning: { narrative: 'ORIGINAL' },
-      metadata: {},
+    // Default Supabase mock chain
+    const mockQueryBuilder = {
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
     };
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(supabase.from).mockReturnValue(mockQueryBuilder as any);
+
+    engine = new IntelligenceEngine();
     // @ts-expect-error - Accessing private
-    engine.activeSignals.set('1', mockSignal as any);
-
-    // Probability for PRO is 0.3. Math.random() < 0.3 => access.
-    vi.spyOn(Math, 'random').mockReturnValue(0.2); // Success
-
-    const signals = engine.getTieredSignals(
-      UserRank.PRO,
-      false, // isStarlight
-      false, // isVIP
-      { aiQuotaLimit: 10, aiQuotaUsed: 0 },
-    );
-
-    expect(signals).toHaveLength(1);
-    expect(signals[0].aiReasoning?.narrative).toContain('[HIDDEN]');
+    scoringService = engine.scorer;
   });
 
-  it('should block signals by rank probability for non-VIP', () => {
-    const mockSignal = { id: '2', mint: 'mint2', score: 95, isPremium: true, metadata: {} };
-    // @ts-expect-error - Accessing private
-    engine.activeSignals.set('2', mockSignal as any);
+  describe('Tiered Access and Probability (Lines 164-186)', () => {
+    it('should handle ELITE rank access probability (0.5)', () => {
+      const mockSignal = { id: 'p', mint: 'm', score: 95, isPremium: true, metadata: {} };
+      // @ts-expect-error - Accessing private
+      engine.activeSignals.set('m', mockSignal as any);
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.8); // Fail (0.8 > 0.3)
+      const spy = vi.spyOn(Math, 'random');
+      spy.mockReturnValue(0.4); // Success (0.4 < 0.5)
+      expect(
+        engine.getTieredSignals(UserRank.ELITE, false, false, { aiQuotaLimit: 1, aiQuotaUsed: 0 }),
+      ).toHaveLength(1);
 
-    const signals = engine.getTieredSignals(UserRank.PRO, false, false, {
-      aiQuotaLimit: 10,
-      aiQuotaUsed: 0,
+      spy.mockReturnValue(0.6); // Fail (0.6 > 0.5)
+      expect(
+        engine.getTieredSignals(UserRank.ELITE, false, false, { aiQuotaLimit: 1, aiQuotaUsed: 0 }),
+      ).toHaveLength(0);
+
+      spy.mockRestore();
     });
 
-    expect(signals).toHaveLength(0);
+    it('should bypass quota for VIP (Line 176)', () => {
+      const mockSignal = {
+        id: 'v',
+        mint: 'v',
+        score: 95,
+        isPremium: true,
+        aiReasoning: { narrative: 'VIP_ALPHA' },
+      };
+      // @ts-expect-error - Accessing private
+      engine.activeSignals.set('v', mockSignal as any);
+
+      const signals = engine.getTieredSignals(UserRank.PRO, false, true, {
+        aiQuotaLimit: 10,
+        aiQuotaUsed: 10,
+      });
+      expect(signals[0].aiReasoning?.narrative).toBe('VIP_ALPHA');
+    });
+
+    it('should hide reasoning if quota exhausted (Line 181)', () => {
+      const mockSignal = {
+        id: 'p',
+        mint: 'm',
+        score: 95,
+        isPremium: true,
+        aiReasoning: { narrative: 'ALPHA' },
+      };
+      // @ts-expect-error - Accessing private
+      engine.activeSignals.set('m', mockSignal as any);
+
+      const signals = engine.getTieredSignals(UserRank.PRO, true, false, {
+        aiQuotaLimit: 1,
+        aiQuotaUsed: 1,
+      });
+      expect(signals[0].aiReasoning?.narrative).toContain('[HIDDEN]');
+    });
   });
 
-  it('should allow VIP to see VIP-only reasoning', () => {
-    const mockSignal = {
-      id: 'vip1',
-      mint: 'mint-vip',
-      score: 99,
-      isPremium: true,
-      aiReasoning: { narrative: 'ALPHA REAL REASONING' },
-      metadata: {},
-    };
-    // @ts-expect-error - Accessing private
-    engine.activeSignals.set('vip1', mockSignal as any);
+  describe('Engine Pipeline and Error Handling', () => {
+    it('should handle Geyser error listener (Line 101)', async () => {
+      const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await engine.start();
 
-    const signals = engine.getTieredSignals(
-      UserRank.PRO,
-      false,
-      true, // isVIP
-      { aiQuotaLimit: 0, aiQuotaUsed: 0 }, // Quota exhausted but VIP bypasses
-    );
+      // @ts-expect-error - Accessing private geyser mock
+      const errorHandler = engine.geyser.on.mock.calls.find(
+        (call: any[]) => call[0] === 'error',
+      )[1];
+      errorHandler(new Error('Stream crash'));
 
-    expect(signals).toHaveLength(1);
-    expect(signals[0].aiReasoning?.narrative).toBe('ALPHA REAL REASONING');
-  });
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Geyser stream error'),
+        expect.any(Error),
+      );
+    });
 
-  it('should cover Auto-Down execution and stop()', async () => {
-    vi.useFakeTimers();
-    const mockSignal = { mint: 'mint-down', score: 90, event: { mint: 'mint-down' } };
-    // @ts-expect-error - Accessing private
-    engine.activeSignals.set('mint-down', mockSignal as any);
+    it('should log error when Supabase persistence fails or returns null (Line 112)', async () => {
+      const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await engine.start();
+      // Test explicit error
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(supabase.from).mockReturnValue({
+        upsert: vi.fn().mockResolvedValue({ error: new Error('Db Fail') }),
+      } as any);
+      // @ts-expect-error - Accessing private
+      await engine.persistToSupabase({ event: { mint: 'm' }, score: 90 } as any);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to persist token'),
+        expect.any(Error),
+      );
 
-    // Simulate score decay
-    vi.spyOn(Math, 'random').mockReturnValue(0.99); // Triggers score = 80 in Auto-Down DEMO logic
+      // Test null response
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(supabase.from).mockReturnValue({ upsert: vi.fn().mockResolvedValue(null) } as any);
+      // @ts-expect-error - Accessing private
+      await engine.persistToSupabase({ event: { mint: 'm2' }, score: 90 } as any);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to persist token'),
+        'No response',
+      );
+    });
 
-    // Fast-forward 10s to trigger interval
-    await vi.advanceTimersByTimeAsync(11000);
+    it('should cover preparation of data with null metadata (Line 126)', () => {
+      const mockSignal = { event: { mint: 'm' }, score: 90, isPremium: false } as any;
+      // @ts-expect-error - Accessing private
+      const data = engine.preparePersistData(mockSignal) as any;
+      expect(data.metadata).toBeNull();
+    });
 
-    // @ts-expect-error - Accessing private
-    expect(engine.activeSignals.has('mint-down')).toBe(false);
+    it('should log error when Auto-Down Supabase update fails or returns null (Line 147)', async () => {
+      vi.useFakeTimers();
+      const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    engine.stop();
-    vi.useRealTimers();
-  });
+      // Setup signal to be delisted
+      // @ts-expect-error - Accessing private
+      engine.activeSignals.set('m', { mint: 'm', score: 90, event: { mint: 'm' } } as any);
 
-  it('should catch errors in getTieredSignals', () => {
-    // Force an error by passing null for profile
-    const signals = engine.getTieredSignals(UserRank.PRO, false, false, null as any);
-    expect(signals).toEqual([]);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(scoringService.calculateScore).mockReturnValue({
+        score: 80,
+        reasoning: [],
+        isPremium: false,
+      });
+
+      // Mock failure
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      vi.mocked(supabase.from).mockReturnValue({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: new Error('Update Fail') }),
+      } as any);
+
+      await engine.start();
+      await vi.advanceTimersByTimeAsync(11000);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to Auto-Down'),
+        expect.any(Error),
+      );
+
+      engine.stop();
+      vi.useRealTimers();
+    });
+
+    it('should handle getTieredSignals crash (Line 188)', () => {
+      const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      // @ts-expect-error - Mocking crash
+
+      const valuesSpy = vi.spyOn(engine.activeSignals, 'values').mockImplementationOnce(() => {
+        throw new Error('Iteration Failure');
+      });
+
+      const signals = engine.getTieredSignals(UserRank.PRO, false, false, {
+        aiQuotaLimit: 0,
+        aiQuotaUsed: 0,
+      });
+      expect(signals).toEqual([]);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[ENGINE] Failed'),
+        expect.any(Error),
+      );
+      valuesSpy.mockRestore();
+    });
   });
 });

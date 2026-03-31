@@ -99,10 +99,12 @@ export const buildApp = async () => {
         return await reply.status(400).send({ error: 'Missing route or wallet context' });
       }
 
-      console.info(`[EXECUTION] [${env.EXECUTION_MODE.toUpperCase()}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`);
-      
+      console.info(
+        `[EXECUTION] [${env.EXECUTION_MODE.toUpperCase()}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`,
+      );
+
       const result = await jupiterService.executeSwap(route);
-      
+
       return await reply.send({ mode: env.EXECUTION_MODE, result });
     } catch (err: any) {
       console.error('[EXECUTION_ERROR]', err);

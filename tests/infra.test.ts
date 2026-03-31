@@ -4,30 +4,31 @@ import { RealtimeService } from '../src/infrastructure/supabase/realtime.service
 import { supabase } from '../src/infrastructure/supabase/client.js';
 import { env } from '../src/utils/env.js';
 import { EventEmitter } from 'events';
+import bs58 from 'bs58';
 
-vi.mock('@triton-one/yellowstone-grpc', () => ({
-  default: class {
-    endpoint: string;
-    constructor(endpoint: string) {
-      this.endpoint = endpoint;
-    }
-    connect = vi.fn().mockImplementation(() => {
-      if (this.endpoint.includes('fail-conn')) return Promise.reject(new Error('Conn Fail'));
-      return Promise.resolve();
-    });
-    subscribe = vi.fn().mockImplementation(() => {
-      const stream = new EventEmitter() as any;
-      stream.write = vi.fn().mockImplementation((req, cb) => {
-        if (this.endpoint.includes('fail-write')) {
-          cb(new Error('Write Fail'));
-        } else {
-          cb(null);
-        }
-      });
-      return Promise.resolve(stream);
-    });
-  },
-}));
+const mockConnect = vi.fn();
+const mockSubscribe = vi.fn();
+
+vi.mock('@triton-one/yellowstone-grpc', () => {
+  return {
+    default: class {
+      endpoint: string;
+      constructor(endpoint: string) {
+        this.endpoint = endpoint;
+      }
+      connect() {
+        if (this.endpoint && this.endpoint.includes('fail-conn'))
+          return Promise.reject(new Error('Conn Fail'));
+        return mockConnect();
+      }
+      subscribe() {
+        if (this.endpoint && this.endpoint.includes('fail-subscribe'))
+          return Promise.reject(new Error('Sub Fail'));
+        return mockSubscribe();
+      }
+    },
+  };
+});
 
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
   supabase: {
@@ -48,107 +49,116 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
   },
 }));
 
+const REAL_GEYSER_URL = 'https://real';
+
 describe('🛡️ Infrastructure Coverage Siege', () => {
+  let stream: EventEmitter;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    stream = new EventEmitter() as any;
+    // @ts-expect-error - Mocking write
+    stream.write = vi.fn().mockImplementation((req, cb) => cb(null));
+
+    mockConnect.mockResolvedValue(undefined);
+    mockSubscribe.mockResolvedValue(stream);
+
     env.GEYSER_ENDPOINT = undefined;
     env.GEYSER_TOKEN = undefined;
   });
 
-  describe('GeyserService (Real Stream Path)', () => {
-    it('should map gRPC data to MintEvent correctly', async () => {
-      env.GEYSER_ENDPOINT = 'https://real-stream';
-      env.GEYSER_TOKEN = 'test-token';
+  describe('GeyserService (Production Stream Path)', () => {
+    it('should map gRPC data correctly using bs58', async () => {
+      const mockSig = '58J123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijk';
+      const mockMint = 'Mint111111111111111111111111111111111111111';
+      env.GEYSER_ENDPOINT = REAL_GEYSER_URL;
+      env.GEYSER_TOKEN = 't';
 
       const service = new GeyserService();
       await service.start();
 
       let capturedEvent: any = null;
-      service.on('mint', (e) => {
-        capturedEvent = e;
-      });
+      service.on('mint', (e) => (capturedEvent = e));
 
       const mockGrpcData = {
         transaction: {
           transaction: {
-            signatures: [Buffer.from('test_signature_bytes')],
+            signatures: [bs58.decode(mockSig)],
+            message: {
+              accountKeys: [
+                bs58.decode('6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC'),
+                bs58.decode(mockMint),
+              ],
+            },
           },
         },
       };
 
-      // @ts-expect-error - Accessing private stream for test emission
-      service.stream.emit('data', mockGrpcData);
+      stream.emit('data', mockGrpcData);
 
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(capturedEvent).toBeDefined();
-      expect(capturedEvent.mint).toBe('LIVE_GEYSER_MINT');
+      expect(capturedEvent.mint).toBe(mockMint);
     });
 
-    it('should handle zero signatures in Geyser data without emitting if not mock', async () => {
-      env.GEYSER_ENDPOINT = 'https://real-stream';
+    it('should handle zero signatures (Branch Ingest Skip)', async () => {
+      env.GEYSER_ENDPOINT = REAL_GEYSER_URL;
       const service = new GeyserService();
       await service.start();
+      const mintSpy = vi.fn();
+      service.on('mint', mintSpy);
 
-      // Force non-mock explicitly for this branch test
-      // @ts-expect-error - Overriding private isMock for branch testing
-      service.isMock = false;
+      stream.emit('data', { transaction: { transaction: { signatures: [] } } });
 
-      const localMintSpy = vi.fn();
-      service.on('mint', localMintSpy);
+      expect(mintSpy).not.toHaveBeenCalled();
+    });
 
-      // @ts-expect-error - Accessing private stream for test emission
-      service.stream.emit('data', {
+    it('should ignore non-Pump.fun transactions', async () => {
+      env.GEYSER_ENDPOINT = REAL_GEYSER_URL;
+      const service = new GeyserService();
+      await service.start();
+      const mintSpy = vi.fn();
+      service.on('mint', mintSpy);
+
+      // Using a valid base58 string instead of '58J123...'
+      const validSig = '58J123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijk';
+
+      const mockGrpcData = {
         transaction: {
           transaction: {
-            signatures: [], // Should not emit because not mock
+            signatures: [bs58.decode(validSig)],
+            message: {
+              accountKeys: [bs58.decode('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')], // Standard SPL
+            },
           },
         },
-      });
+      };
 
-      expect(localMintSpy).not.toHaveBeenCalled();
+      stream.emit('data', mockGrpcData);
+
+      expect(mintSpy).not.toHaveBeenCalled();
     });
 
-    it('should handle zero signatures in Geyser data logic (Branch Coverage)', async () => {
-      env.GEYSER_ENDPOINT = 'https://real-stream-mock';
+    it('should emit error after max retries failing', async () => {
+      env.GEYSER_ENDPOINT = 'https://fail-subscribe';
+      env.GEYSER_TOKEN = 't';
       const service = new GeyserService();
-      await service.start();
+      // @ts-expect-error - Mocking static property
+      GeyserService.MAX_RETRIES = 1;
 
-      // Force mock behavior inside real handler
-      // @ts-expect-error - Overriding private isMock for branch testing
-      service.isMock = true;
-
-      const localMintSpy = vi.fn();
-      service.on('mint', localMintSpy);
-
-      // @ts-expect-error - Accessing private stream for test emission
-      service.stream.emit('data', {
-        transaction: {
-          transaction: {
-            signatures: [],
-          },
-        },
+      let errorEmitted = false;
+      service.on('error', () => {
+        errorEmitted = true;
       });
-
-      expect(localMintSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('GeyserService (Fallback Path)', () => {
-    it('should handle Geyser connection failure and fallback to mock', async () => {
-      env.GEYSER_ENDPOINT = 'https://fail-conn';
-      const service = new GeyserService();
       await service.start();
-      // @ts-expect-error - Accessing private isMock to verify fallback
-      expect(service.isMock).toBe(true);
+      expect(errorEmitted).toBe(true);
     });
   });
 
   describe('RealtimeService', () => {
     it('should broadcast VIP alpha signals', async () => {
       const service = new RealtimeService();
-      const mockSignal = { id: 'test', mint: 'test', score: 95, metadata: {} };
-      const mockReasoning = { rationale: 'test', confidence: 0.9 };
-
-      service.broadcastVipAlpha(mockSignal as any, mockReasoning as any);
+      service.broadcastVipAlpha({ id: 't' } as any, { narrative: 'v' } as any);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(supabase.channel).toHaveBeenCalledWith('vip-alpha');
     });

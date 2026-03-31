@@ -37,7 +37,7 @@ export class GeyserService extends EventEmitter {
     super();
 
     if (env.GEYSER_ENDPOINT && env.GEYSER_TOKEN) {
-      // @ts-ignore
+      // @ts-expect-error - Yellowstone gRPC Client types
       this.client = new Client(env.GEYSER_ENDPOINT, env.GEYSER_TOKEN);
       this.isActive = true;
     } else {
@@ -97,9 +97,7 @@ export class GeyserService extends EventEmitter {
         const PUMP_FUN_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC';
 
         if (accountKeys.includes(PUMP_FUN_ID)) {
-          const detectedMint = accountKeys.find(
-            (k: string) => k !== PUMP_FUN_ID && k.length > 32,
-          );
+          const detectedMint = accountKeys.find((k: string) => k !== PUMP_FUN_ID && k.length > 32);
 
           if (detectedMint) {
             const event: MintEvent = {
