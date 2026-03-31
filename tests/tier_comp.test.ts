@@ -51,6 +51,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
 
   it('should consume AI quota for non-VIP', async () => {
     const mockFrom = supabase.from('profiles');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const mockRpc = supabase.rpc;
 
     // 1. First call: getUserProfile

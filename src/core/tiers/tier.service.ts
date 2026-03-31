@@ -118,6 +118,7 @@ export class TierService {
     }
 
     // Atomic increment via DB RPC to prevent race conditions
+    // @ts-expect-error - RPC exists in db but schema types are not synchronized yet
     const { error } = await supabase.rpc('increment_ai_usage', { wallet: walletAddress });
 
     return !error;
