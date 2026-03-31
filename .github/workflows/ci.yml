@@ -18,13 +18,31 @@ jobs:
           cache: 'npm'
       - name: 📦 Install Dependencies
         run: npm ci
-      - name: 🔍 Lint Check (Polisi: Cek kerapian & security)
+
+      - name: 🔍 The Law (Polisi: Static Analysis & Linting)
         run: npm run lint
-      - name: 🛡️ Type Check (Jaksa: Cek Type-safety TSC)
-        run: npm run build
-      - name: 🧪 Unit Tests (Hakim: Cek Pyramid Test)
-        run: npm test
+
+      - name: 🧪 The Truth (Hakim: Unit & Integration Tests w/ Coverage)
+        run: npm run test:coverage
         env:
           NODE_ENV: test
           SUPABASE_URL: "https://mock.supabase.co"
           SUPABASE_KEY: "mock-key"
+
+      - name: 🔒 The Fortress (Security Audit)
+        run: npm audit --audit-level=high
+
+      - name: 📦 The Integrity (Jaksa: Type Check & Production Build)
+        run: npm run build
+
+      - name: ⚡ The Performance (Smoke Test)
+        run: |
+          if [ -f "./tests/smoke-test.js" ]; then
+            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+            echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+            sudo apt-get update
+            sudo apt-get install k6
+            k6 run ./tests/smoke-test.js
+          else
+            echo "Smoke test not found, skipping."
+          fi
