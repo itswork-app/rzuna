@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GeyserService, type MintEvent } from '../src/infrastructure/solana/geyser.service.js';
 import { ScoringService } from '../src/core/scoring/scoring.service.js';
+import { IntelligenceEngine } from '../src/core/engine.js';
 
 vi.mock('@triton-one/yellowstone-grpc', () => {
   return {
@@ -31,7 +32,7 @@ vi.mock('@triton-one/yellowstone-grpc', () => {
   };
 });
 
-// Mock Env to avoid startup crash in tests
+// Mock Env 
 vi.mock('../src/utils/env.js', () => ({
   env: {
     NODE_ENV: 'test',
@@ -41,7 +42,7 @@ vi.mock('../src/utils/env.js', () => ({
   },
 }));
 
-// Mock Supabase to avoid floating promises issues in tests
+// Mock Supabase 
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
   supabase: {
     from: vi.fn().mockReturnThis(),
@@ -54,13 +55,13 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
   },
 }));
 
-describe('Geyser & Scoring Engine Integration', () => {
+describe('IntelligenceEngine Integration', () => {
   let scoringService: ScoringService;
-  let geyserService: GeyserService;
+  let engine: IntelligenceEngine;
 
   beforeEach(() => {
     scoringService = new ScoringService();
-    geyserService = new GeyserService(scoringService);
+    engine = new IntelligenceEngine();
   });
 
   describe('ScoringService Domain', () => {
@@ -102,11 +103,8 @@ describe('Geyser & Scoring Engine Integration', () => {
     });
   });
 
-  describe('GeyserService Infrastructure', () => {
-    it('should emit an alpha signal when a high-scoring token is detected', () => {
-      const alphaSpy = vi.fn();
-      geyserService.on('alpha', alphaSpy);
-
+  describe('IntelligenceEngine Orchestration', () => {
+    it('should register an alpha signal when Geyser emits a high-scoring token', () => {
       const highScoringEvent: MintEvent = {
         mint: 'alpha_123',
         signature: 'sig_alpha',
@@ -120,12 +118,14 @@ describe('Geyser & Scoring Engine Integration', () => {
         },
       };
 
-      // @ts-expect-error - access private for testing
-      void geyserService.handleMint(highScoringEvent);
+      // @ts-expect-error - Accessing private geyser for test trigger
+      engine.setupPipeline();
+      // @ts-expect-error - Accessing private geyser
+      engine.geyser.emit('mint', highScoringEvent);
 
-      expect(alphaSpy).toHaveBeenCalled();
-      const signal = alphaSpy.mock.calls[0][0] as { score: number };
-      expect(signal.score).toBeGreaterThan(80);
+      // Verify it was saved to the Active Signals map internally
+      // @ts-expect-error - Accessing internal map
+      expect(engine.activeSignals.has('alpha_123')).toBe(true);
     });
   });
 });
