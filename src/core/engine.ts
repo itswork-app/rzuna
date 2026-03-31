@@ -2,6 +2,8 @@ import { GeyserService, type MintEvent } from '../infrastructure/solana/geyser.s
 import { ScoringService, type ScoringResult } from './scoring/scoring.service.js';
 import { UserRank } from './types/user.js';
 import { supabase } from '../infrastructure/supabase/client.js';
+import { ReasoningService, type L2Reasoning } from '../agents/reasoning.service.js';
+import { RealtimeService } from '../infrastructure/supabase/realtime.service.js';
 
 export interface AlphaSignal {
   event: MintEvent;
@@ -9,6 +11,7 @@ export interface AlphaSignal {
   reasoning?: string[];
   latency: number;
   isPremium: boolean;
+  aiReasoning?: L2Reasoning;
 }
 
 export interface EngineHooks {
@@ -30,11 +33,15 @@ export class IntelligenceEngine {
   private hooks: EngineHooks;
   private activeSignals: Map<string, AlphaSignal> = new Map();
   private autoDownInterval?: NodeJS.Timeout;
+  private reasoning: ReasoningService;
+  private realtime: RealtimeService;
 
   constructor(hooks?: EngineHooks) {
     this.hooks = hooks || {};
     this.scorer = new ScoringService();
-    this.geyser = new GeyserService(); // No longer takes a scorer!
+    this.geyser = new GeyserService();
+    this.reasoning = new ReasoningService();
+    this.realtime = new RealtimeService();
   }
 
   async start() {
@@ -62,19 +69,30 @@ export class IntelligenceEngine {
         };
         this.activeSignals.set(event.mint, signal);
 
-        // 3. PERSISTENCE: Upsert to Supabase
-        void this.persistToSupabase(signal);
+        // 3. L2 REASONING: Async AI Analysis (Agent Intelligence)
+        void (async () => {
+          const l2Result = await this.reasoning.analyzeToken(event, result.score);
+          signal.aiReasoning = l2Result;
 
-        // 5. AUDIT TRAIL: Dispatch telemetry to Axiom
-        if (this.hooks.logAudit) {
-          this.hooks.logAudit({
-            type: 'ALPHA_DETECTED',
-            mint: event.mint,
-            score: result.score,
-            reasoning: result.reasoning.join(' | '),
-            latency,
-          });
-        }
+          // 4. PERSISTENCE: Upsert to Supabase with AI Reasoning
+          await this.persistToSupabase(signal);
+
+          // 5. VIP BROADCAST: Realtime delivery for 90+ scores
+          if (signal.isPremium) {
+            this.realtime.broadcastVipAlpha(signal, l2Result);
+          }
+
+          // 6. AUDIT TRAIL: Dispatch telemetry to Axiom
+          if (this.hooks.logAudit) {
+            this.hooks.logAudit({
+              type: 'ALPHA_L2_COMPLETE',
+              mint: event.mint,
+              score: result.score,
+              reasoning: l2Result.narrative,
+              latency: performance.now() - startTime,
+            });
+          }
+        })();
       }
     });
   }
@@ -86,7 +104,7 @@ export class IntelligenceEngine {
         mint_address: event.mint,
         symbol: event.metadata?.symbol ?? 'UNKNOWN',
         base_score: score,
-        ai_reasoning: reasoning ? reasoning.join('\n') : '',
+        ai_reasoning: signal.aiReasoning?.narrative ?? reasoning?.join('\n') ?? '',
         is_active: true,
         is_private: isPremium,
         metadata: event.metadata ? JSON.parse(JSON.stringify(event.metadata)) : null,
@@ -133,16 +151,29 @@ export class IntelligenceEngine {
       .filter((signal) => {
         if (signal.score < 85) return false;
         if (signal.isPremium) {
-          if (isStarlight || rank === UserRank.ELITE) return true;
+          if (isStarlight || isVIP || rank === UserRank.ELITE) return true;
+
+          // SCARCITY ENGINE: Probabilistic access for non-premium
           const prob = Math.random();
-          if (rank === UserRank.PRO) return prob > 0.5;
-          return Math.random() > 0.9;
+          if (rank === UserRank.PRO) return prob > 0.5; // 50% chance
+          return prob > 0.9; // 10% chance for NEWBIE
         }
         return true;
       })
       .map((signal) => {
-        // Obfuscate reasoning if not VIP
-        if (!isVIP) return { ...signal, reasoning: undefined };
+        // Obfuscate AI reasoning if not VIP
+        if (!isVIP) {
+          return {
+            ...signal,
+            reasoning: undefined,
+            aiReasoning: signal.aiReasoning
+              ? {
+                  ...signal.aiReasoning,
+                  narrative: '[HIDDEN] Upgrade to VIP per Eliza OS reasoning',
+                }
+              : undefined,
+          };
+        }
         return signal;
       });
   }
