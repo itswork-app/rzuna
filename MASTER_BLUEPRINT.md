@@ -1,44 +1,91 @@
-🛸 PROJECT ANTIGRAVITY (RZUNA) - MASTER BLUEPRINT v3.0
-Status: CONSTITUTIONAL DOCUMENT
-Author: Bobby (Solo Founder & Auditor)
-Execution Environment: Antigravity IDE (Development) -> Hetzner Dedicated (Production)
+# 🏛️ Canonical Master Blueprint: rzuna (v1.3)
 
-🏗️ 1. TECH STACK & ARCHITECTURE (LOCKED)
-Dilarang keras menggunakan teknologi di luar daftar ini untuk menjaga performa 0ms Latency.
-- API Framework: Fastify (Bukan Express, demi kecepatan serialisasi JSON).
-- Data Feed: Yellowstone Geyser via gRPC (Yellowstone-grpc).
-- AI Engine: ElizaOS (Core Logic) – Harus di-obfuscate sebelum deployment.
-- Database: Supabase (PostgreSQL + Real-time).
-- Infrastructure: Hetzner CCX23 (Dedicated vCPU).
-- Monitoring: Sentry (Error), Axiom (Logs & Dashboard), Checkly (Uptime API).
-- Payment: Solana Pay (SOL/USDC).
+**Project Vision:** The World-Class No-Registration AI DEX & Scouting Infrastructure for Solana.
+**Status:** LOCKED
+**Guiding Principle: No-Drift Policy** — Every line of code must serve the speed, accuracy, and quality of the platform.
 
-⚖️ 2. THE GUARDIAN CONSTITUTION (CI/CD)
-Keamanan dan kualitas adalah harga mati. Tidak ada kode yang boleh di-deploy tanpa melewati:
-- Strict Linting: ESLint tanpa warning.
-- Unit Testing: Vitest dengan coverage minimal 80%.
-- Stress Testing: k6 Smoke Test dengan target P99 Latency < 150ms.
-- Local-First Development: Gunakan Mock Geyser dan Solana Devnet di Antigravity IDE sebelum menyentuh Mainnet atau Hetzner.
+---
 
-💰 3. REVENUE LOGIC & TIERING
-Bot harus memvalidasi kasta user di setiap request eksekusi.
-Tier | Min. Buy (SOL) | Trading Fee | Fitur Unggulan
---- | --- | --- | ---
-Newbie | 0.1 | 3.0% | Manual Trading, Basic Scoring.
-Active | 0.05 | 1.5% | Auto-Sell (TP/SL Dasar).
-Elite | 0.01 | 1.0% | Trailing Stop, API Access.
-VVIP | 0 | 0.5% | Dedicated VPS, Helius-style Metrics.
+## 1. ⚙️ Technical Stack (The Powerhouse)
 
-🛠️ 4. STRATEGI IMPLEMENTASI (PR ROADMAP)
-Eksekusi dilakukan secara modular melalui 6 Pull Request (PR):
-- PR #1: Foundation & CI. Setup Fastify, Guardian Script, Sentry, dan Axiom.
-- PR #2: Nervous System. gRPC Geyser Client & ElizaOS Scoring.
-- PR #3: Executioner. Jupiter Swap & Logika Trailing Stop.
-- PR #4: Economy. Supabase Integration & Solana Pay.
-- PR #5: Fortress. Automasi Provisioning Hetzner & Obfuscation.
-- PR #6: Command Center. Refine.js Dashboard (Grinder vs VVIP View).
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Data Engine** | Solana Geyser (gRPC) | Ultra-low latency raw data streaming (Pump.fun & DEX). |
+| **Execution** | Jito Bundles + Tip | Atomic, anti-MEV transaction delivery. |
+| **Routing** | Jupiter V6 SDK | Best price discovery and swap aggregation. |
+| **Backend/DB** | Supabase (Postgres) | Real-time data persistence & Wallet-based Auth (SIWS). |
+| **AI Agent** | Eliza OS (TypeScript) | Deep reasoning and narrative analysis for VIP tier. |
+| **UI** | UI Refiner Standard | Institutional-grade, sleek, and high-performance interface. |
 
-🔒 5. SECURITY & PRIVACY
-- Black Box: User VVIP menyewa layanan, bukan server. Akses SSH dilarang.
-- IP Protection: Algoritma scoring ElizaOS adalah rahasia perusahaan.
-- No Private Keys: Gunakan environment variables yang aman dan jangan pernah simpan private key user di database (Gunakan delegated wallet atau session signing).
+---
+
+## 2. 👤 Identity & Access (The No-Reg Model)
+
+- **Identity = Wallet Address:** Tidak ada registrasi email/password. Pengguna masuk menggunakan Sign-In with Solana (SIWS).
+- **Profile Persistence:** Semua data volume, rank, dan status langganan diikat ke `wallet_address` di database.
+- **Privacy-First:** Platform tidak menyimpan data pribadi di luar aktivitas on-chain dan profil internal.
+
+---
+
+## 3. 🧠 Intelligence & Auto-Down Logic
+
+Platform ini adalah kurator aktif, bukan sekadar daftar statis.
+
+**Hybrid Scoring (0-100):**
+- **L1 (Rule-base):** Filter matematis cepat (<100ms) berdasarkan likuiditas, mint authority, dan holder distribution.
+- **L2 (AI Reason):** Analisis sentimen dan narasi oleh Eliza OS khusus untuk tier VIP.
+
+**The Auto-Down Trigger:**
+- Jika skor token turun di bawah **85**, sistem secara otomatis mengubah status menjadi `is_active = false`.
+- Token yang tidak aktif akan otomatis "turun" atau hilang dari dashboard pengguna secara real-time via Supabase Broadcast.
+
+---
+
+## 4. 🏆 Rank & Economy (ML-Style)
+
+Sistem peringkat adiktif berbasis volume transaksi bulanan.
+
+### A. The Ranks (Volume Grinders)
+
+| Rank | Requirement | Perk |
+| :--- | :--- | :--- |
+| **Newbie** | Start | Akses scouting standar. |
+| **Pro** | Volume X | Prioritas visibilitas sinyal. |
+| **Elite** | Volume Y | Probabilitas tertinggi mendapatkan token skor 90+. |
+
+- **Monthly Reset:** Rank turun 1 tingkat setiap bulan jika target volume tidak tercapai.
+
+### B. Paid Passes (The Shortcuts)
+
+- **Starlight / Starlight+:** Akses eksklusif ke Private Tokens (Skor 90+) dan fitur Rank Protection.
+- **VIP:** Infrastruktur gRPC khusus, latensi terendah, dan akses penuh ke AI Reasoning.
+
+---
+
+## 5. 💰 Revenue Streams
+
+- **Trading Fees:** Potongan % dari setiap transaksi swap (Launchpad & DEX) yang dilakukan melalui platform.
+- **Subscription Fees:** Pendapatan bulanan dari penjualan Starlight, Starlight+, dan VIP Pass.
+- **Affiliate Rebates:** Pendapatan tambahan dari program rujukan Jupiter.
+
+---
+
+## 6. 🛡️ The Guardians (Quality & Reliability)
+
+- **Guardian CI:** Sistem "Polisi & Hakim" otomatis di GitHub Actions yang menjalankan Lint Check, Type Check, dan Unit Tests sebelum kode boleh di-merge.
+- **Observability Trio:**
+  - **Sentry:** Memantau runtime errors dan performance bottlenecks.
+  - **Axiom:** Mencatat log gRPC masif untuk audit transaksi dan investigasi latensi.
+  - **PostHog:** Mengelola Feature Flags untuk akses tier user dan analitik pertumbuhan.
+
+---
+
+## 7. 🚦 No-Drift Policy
+
+- Setiap fitur baru harus divalidasi terhadap dampaknya pada latensi (<200ms).
+- Setiap perubahan skema database harus mendukung integritas sistem Rank.
+- Tidak ada kode yang boleh di-deploy tanpa melewati audit Guardian CI.
+
+---
+
+**Master Blueprint v1.3 - Finalized & Authorized.**
