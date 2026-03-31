@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { type Client } from '@axiomhq/axiom-node';
+import { type Axiom } from '@axiomhq/js';
 import { monitoringPlugin } from './infrastructure/monitoring/monitoring.plugin.js';
 import { IntelligenceEngine } from './core/engine.js';
 import { feePlugin } from './plugins/fee.plugin.js';
@@ -89,7 +89,7 @@ export const buildApp = async () => {
 
 declare module 'fastify' {
   interface FastifyInstance {
-    axiom?: Client;
+    axiom?: Axiom;
     posthog?: import('posthog-node').PostHog;
     logAlpha?(data: Record<string, unknown>): Promise<void>;
     engine: IntelligenceEngine;
