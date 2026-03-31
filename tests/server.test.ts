@@ -29,12 +29,25 @@ vi.mock('@sentry/node', () => ({
   captureException: vi.fn(),
 }));
 
+// Mock Global Fetch for SOL Price (Jupiter v4)
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockImplementation(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ data: { SOL: { price: 150 } } }),
+    }),
+  ),
+);
+
 // Mock Supabase to align with Database Schema v1.3
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn().mockReturnValue({
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    channel: vi.fn().mockReturnThis(),
+    send: vi.fn().mockResolvedValue('ok'),
     upsert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),

@@ -18,6 +18,7 @@ const envSchema = z.object({
   POSTHOG_HOST: z.string().default('https://app.posthog.com'),
   JITO_BLOCK_ENGINE_URL: z.string().default('https://mainnet.block-engine.jito.wtf'),
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 /**
