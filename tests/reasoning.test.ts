@@ -102,15 +102,18 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
 
   it('obfuscates narrative for non-VIP users', () => {
     const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning';
+    const TEST_MINT = 'mint1';
+    const SECRET_TEXT = 'Secret Alpha';
+
     const mockSignal = {
-      event: { mint: 'mint1' } as any,
+      event: { mint: TEST_MINT } as any,
       score: 95,
       isPremium: true,
-      aiReasoning: { narrative: 'Secret Alpha' } as any,
+      aiReasoning: { narrative: SECRET_TEXT } as any,
     };
 
     // Inject signal manually for testing
-    (engine as any).activeSignals.set('mint1', mockSignal);
+    (engine as any).activeSignals.set(TEST_MINT, mockSignal);
 
     const signals = engine.getTieredSignals(UserRank.NEWBIE, false, false, {
       aiQuotaLimit: 10,
@@ -122,19 +125,22 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
   });
 
   it('allows full access for VIP users', () => {
+    const TEST_MINT = 'mint1';
+    const SECRET_TEXT = 'Secret Alpha';
+
     const mockSignal = {
-      event: { mint: 'mint1' } as any,
+      event: { mint: TEST_MINT } as any,
       score: 95,
       isPremium: true,
-      aiReasoning: { narrative: 'Secret Alpha' } as any,
+      aiReasoning: { narrative: SECRET_TEXT } as any,
     };
 
-    (engine as any).activeSignals.set('mint1', mockSignal);
+    (engine as any).activeSignals.set(TEST_MINT, mockSignal);
 
     const signals = engine.getTieredSignals(UserRank.NEWBIE, false, true, {
       aiQuotaLimit: 999,
       aiQuotaUsed: 0,
     });
-    expect(signals[0].aiReasoning?.narrative).toBe('Secret Alpha');
+    expect(signals[0].aiReasoning?.narrative).toBe(SECRET_TEXT);
   });
 });

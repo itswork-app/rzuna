@@ -73,6 +73,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
 
   it('should allow AI quota for VIP without tracking', async () => {
     const mockFrom = supabase.from('profiles');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const mockRpc = supabase.rpc;
 
     // @ts-expect-error - Internal mock
