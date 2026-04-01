@@ -28,6 +28,8 @@ const envSchema = z.object({
   // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
   ALLOWED_ORIGINS: z.string().optional(),
   PLATFORM_FEE_WALLET: z.string().optional(),
+  SOL_TREASURY_WALLET: z.string().optional(),
+  USDC_TREASURY_WALLET: z.string().optional(),
 });
 
 /**
