@@ -22,8 +22,6 @@ export default function MarketingPage() {
   const { signals } = useSignals();
   const [liveSignals, setLiveSignals] = React.useState<Signal[]>([]);
 
-
-
   // Real-time WebSocket Stream for Marketing Preview
   React.useEffect(() => {
     const wsUrl = getApiUrl().replace('http', 'ws') + '/ws/signals';
@@ -46,7 +44,6 @@ export default function MarketingPage() {
   // Use live signals if available, fallback to static fetch
   const displaySignals = liveSignals.length > 0 ? liveSignals : signals;
   const marketingSignals = displaySignals.slice(0, 2);
-
 
   return (
     <main className="min-h-screen bg-[#050510] text-gray-100 selection:bg-cyan-500/30 overflow-x-hidden">
