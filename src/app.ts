@@ -28,7 +28,8 @@ export const buildApp = async () => {
   // Production: *.aivo.sh only. Dev: all origins allowed.
   // Override with ALLOWED_ORIGINS="https://aivo.sh,https://trade.aivo.sh"
   // ================================================================
-  const AIVO_ORIGIN_PATTERN = /^https:\/\/([a-zA-Z0-9-]+\.)?aivo\.sh$/;
+  // eslint-disable-next-line security/detect-unsafe-regex
+  const AIVO_ORIGIN_PATTERN = /^https:\/\/(?:[a-zA-Z0-9-]+\.)?aivo\.sh$/;
 
   const getAllowedOrigins = (): (string | RegExp)[] => {
     if (env.ALLOWED_ORIGINS) {

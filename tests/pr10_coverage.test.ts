@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IntelligenceEngine } from '../src/core/engine.js';
-import { GeyserService } from '../src/infrastructure/solana/geyser.service.js';
 
 vi.mock('../src/infrastructure/solana/geyser.service.js', () => ({
   GeyserService: class {
     private mode: string;
-    constructor(mode = 'public') { this.mode = mode; }
+    constructor(mode = 'public') {
+      this.mode = mode;
+    }
     on = vi.fn();
     start = vi.fn().mockResolvedValue(undefined);
     removeAllListeners = vi.fn();
@@ -30,18 +32,19 @@ describe('🛡️ PR 10 Coverage Hardening (Branch Infiltration)', () => {
   describe('IntelligenceEngine.ensureVipGeyser()', () => {
     it('should initialize a new GeyserService in vip mode if none exists', async () => {
       await engine.ensureVipGeyser();
-      
+
       // @ts-expect-error - testing private member
       expect(engine.vipGeyser).toBeDefined();
+
       // @ts-expect-error - testing private member
-      expect(engine.vipGeyser.start).toHaveBeenCalled();
+      expect(vi.mocked(engine.vipGeyser!.start)).toHaveBeenCalled();
     });
 
     it('should return immediately if vipGeyser already exists (Branch Coverage)', async () => {
       await engine.ensureVipGeyser();
       // @ts-expect-error - testing private member
       const firstInstance = engine.vipGeyser;
-      
+
       await engine.ensureVipGeyser();
       // @ts-expect-error - testing private member
       expect(engine.vipGeyser).toBe(firstInstance);
@@ -53,14 +56,19 @@ describe('🛡️ PR 10 Coverage Hardening (Branch Infiltration)', () => {
       const signalSpy = vi.fn();
       engine.on('signal', signalSpy);
 
-      const mockEvent = { mint: 'MINT123', signature: 'SIG123', slot: 1, metadata: { symbol: 'TEST' } };
-      
+      const mockEvent = {
+        mint: 'MINT123',
+        signature: 'SIG123',
+        slot: 1,
+        metadata: { symbol: 'TEST' },
+      };
+
       // We need to mock the scorer to return a high score
       // @ts-expect-error - testing private member
       vi.spyOn(engine.scorer, 'calculateScore').mockReturnValue({
         score: 95,
         reasoning: ['Bullish Narrative'],
-        isPremium: true
+        isPremium: true,
       });
 
       // @ts-expect-error - testing private member
@@ -76,12 +84,12 @@ describe('🛡️ PR 10 Coverage Hardening (Branch Infiltration)', () => {
       engine.on('signal', signalSpy);
 
       const mockEvent = { mint: 'MINT_LOW', signature: 'SIG456', slot: 1 };
-      
+
       // @ts-expect-error - testing private member
       vi.spyOn(engine.scorer, 'calculateScore').mockReturnValue({
         score: 50,
         reasoning: ['Bearish'],
-        isPremium: false
+        isPremium: false,
       });
 
       // @ts-expect-error - testing private member

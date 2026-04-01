@@ -49,8 +49,8 @@ describe('🛡️ FeePlugin Coverage Hardening', () => {
           signature: 'SIG_OK',
           status: 'success',
           tokenMint: 'MINT',
-          feeAmountLamports: 1000
-        }
+          feeAmountLamports: 1000,
+        },
       });
       expect(response.statusCode).toBe(200);
     });
@@ -64,8 +64,8 @@ describe('🛡️ FeePlugin Coverage Hardening', () => {
           amountUSD: 100,
           platform: 'RAYDIUM',
           signature: 'SIG_FAIL',
-          status: 'failed'
-        }
+          status: 'failed',
+        },
       });
       expect(response.statusCode).toBe(200);
     });
@@ -76,7 +76,7 @@ describe('🛡️ FeePlugin Coverage Hardening', () => {
       // Mock global fetch to fail
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockRejectedValue(new Error('Network Fail'));
-      
+
       const response = await app.inject({
         method: 'POST',
         url: '/trade',
@@ -84,10 +84,10 @@ describe('🛡️ FeePlugin Coverage Hardening', () => {
           walletAddress: '0x123',
           amountUSD: 100,
           platform: 'RAYDIUM',
-          signature: 'SIG_OK'
-        }
+          signature: 'SIG_OK',
+        },
       });
-      
+
       expect(response.statusCode).toBe(200);
       global.fetch = originalFetch;
     });
