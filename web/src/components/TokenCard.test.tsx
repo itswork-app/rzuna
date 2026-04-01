@@ -139,6 +139,25 @@ describe('TokenCard Component (Institutional)', () => {
     window.alert = oldAlert;
   });
 
+  it('handles trade errors with standard Error object', async () => {
+    vi.mocked(useTrade).mockReturnValue({
+      executeTrade: vi.fn().mockRejectedValue(new Error('System Overload')),
+      isExecuting: false
+    } as unknown as ReturnType<typeof useTrade>);
+
+    const oldAlert = window.alert;
+    window.alert = vi.fn();
+
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    fireEvent.click(buyBtn);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('Trade failed: System Overload');
+    });
+    window.alert = oldAlert;
+  });
+
   it('renders fallback name for missing metadata', () => {
     const signalNoMeta = { ...mockSignal, event: { ...mockSignal.event, metadata: undefined } };
     render(<TokenCard signal={signalNoMeta} onConsumeQuota={mockOnConsumeQuota} />);

@@ -19,8 +19,28 @@ export const buildApp = async () => {
     logger: env.NODE_ENV === 'development',
   });
 
-  // Core Infrastructure Plugins
-  await fastify.register(cors);
+  // ================================================================
+  // CORS: Institutional Origin Whitelist (Blueprint v1.6)
+  // Production: *.aivo.sh only. Dev: all origins allowed.
+  // Override with ALLOWED_ORIGINS="https://aivo.sh,https://trade.aivo.sh"
+  // ================================================================
+  const AIVO_ORIGIN_PATTERN = /^https:\/\/([\w-]+\.)?aivo\.sh$/;
+
+  const getAllowedOrigins = (): string[] | RegExp => {
+    if (env.ALLOWED_ORIGINS) {
+      return env.ALLOWED_ORIGINS.split(',').map((o) => o.trim());
+    }
+    if (env.NODE_ENV === 'production') {
+      return AIVO_ORIGIN_PATTERN;
+    }
+    return ['http://localhost:3000', 'http://localhost:3001'];
+  };
+
+  await fastify.register(cors, {
+    origin: getAllowedOrigins(),
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+  });
   await fastify.register(helmet);
   await fastify.register(monitoringPlugin);
 

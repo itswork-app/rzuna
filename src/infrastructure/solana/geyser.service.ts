@@ -20,29 +20,46 @@ export interface MintEvent {
   socialScore?: number;
 }
 
+/** Minimal structural interface for Yellowstone gRPC client (no official types). */
+interface GrpcClient {
+  subscribe(): Promise<{
+    on(event: string, listener: (data: unknown) => void): void;
+    write(req: unknown, cb: (err: Error | null) => void): void;
+  }>;
+}
+
 /**
  * GeyserService: YellowStone gRPC Stream (Production Only)
- * Standar: Canonical Master Blueprint v1.5 (Institutional Uptime)
+ * Standar: Canonical Master Blueprint v1.6 (Dual-Mode: Public + VIP Dedicated)
  *
- * No mock fallback — requires real GEYSER_ENDPOINT & GEYSER_TOKEN.
- * If credentials are missing, the service runs in no-op mode (no signals emitted).
+ * Mode 'public' — uses GEYSER_ENDPOINT + GEYSER_TOKEN (shared infrastructure).
+ * Mode 'vip'    — uses VIP_GEYSER_ENDPOINT + VIP_GEYSER_TOKEN (dedicated node for vip.aivo.sh).
+ * Falls back to no-op if the relevant credentials are missing.
  */
 export class GeyserService extends EventEmitter {
-  private client: any = null;
+  private client: GrpcClient | null = null;
   private isActive: boolean = false;
   private retryCount: number = 0;
   private static readonly MAX_RETRIES = 5;
+  private readonly mode: 'public' | 'vip';
 
-  constructor() {
+  constructor(mode: 'public' | 'vip' = 'public') {
     super();
+    this.mode = mode;
 
-    if (env.GEYSER_ENDPOINT && env.GEYSER_TOKEN) {
+    const endpoint =
+      mode === 'vip' ? env.VIP_GEYSER_ENDPOINT : env.GEYSER_ENDPOINT;
+    const token =
+      mode === 'vip' ? env.VIP_GEYSER_TOKEN : env.GEYSER_TOKEN;
+
+    if (endpoint && token) {
       // @ts-expect-error - Yellowstone gRPC Client types
-      this.client = new Client(env.GEYSER_ENDPOINT, env.GEYSER_TOKEN);
+      this.client = new Client(endpoint, token);
       this.isActive = true;
     } else {
+      const label = mode === 'vip' ? 'VIP_GEYSER_ENDPOINT / VIP_GEYSER_TOKEN' : 'GEYSER_ENDPOINT / GEYSER_TOKEN';
       console.warn(
-        '[GeyserService] GEYSER_ENDPOINT / GEYSER_TOKEN not configured. ' +
+        `[GeyserService:${mode}] ${label} not configured. ` +
           'Running in NO-OP mode — no live signals will be emitted.',
       );
     }
@@ -89,11 +106,14 @@ export class GeyserService extends EventEmitter {
 
     const stream = await this.client.subscribe();
 
-    stream.on('data', (data: any) => {
-      if (data?.transaction?.transaction) {
-        const tx = data.transaction.transaction;
+    stream.on('data', (data: unknown) => {
+      const payload = data as {
+        transaction?: { transaction?: { signatures: Uint8Array[]; message: { accountKeys: Uint8Array[] } } };
+      };
+      if (payload?.transaction?.transaction) {
+        const tx = payload.transaction.transaction;
         const signature = bs58.encode(tx.signatures[0]);
-        const accountKeys = tx.message.accountKeys.map((k: any) => bs58.encode(k));
+        const accountKeys = tx.message.accountKeys.map((k: Uint8Array) => bs58.encode(k));
         const PUMP_FUN_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC';
 
         if (accountKeys.includes(PUMP_FUN_ID)) {
@@ -128,7 +148,7 @@ export class GeyserService extends EventEmitter {
       });
     });
 
-    stream.on('error', (err: any) => {
+    stream.on('error', (err: unknown) => {
       console.error('[GeyserService] Stream error:', err);
       void this.connectWithRetry();
     });

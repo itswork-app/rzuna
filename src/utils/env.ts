@@ -13,6 +13,9 @@ const envSchema = z.object({
   WALLET_PRIVATE_KEY: z.string().optional(),
   GEYSER_ENDPOINT: z.string().optional(),
   GEYSER_TOKEN: z.string().optional(),
+  // VIP Dedicated gRPC Node (Blueprint v1.6 — vip.aivo.sh)
+  VIP_GEYSER_ENDPOINT: z.string().optional(),
+  VIP_GEYSER_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   AXIOM_TOKEN: z.string().optional(),
   AXIOM_DATASET: z.string().optional(),
@@ -22,6 +25,8 @@ const envSchema = z.object({
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
   EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
+  // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 /**
