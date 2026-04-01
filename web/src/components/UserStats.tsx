@@ -5,16 +5,26 @@ import { Activity, Zap, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useWallet } from '@solana/wallet-adapter-react';
 
+interface UserProfile {
+  id: string;
+  wallet_address: string;
+  rank: string;
+  rank_level: number;
+  subscription_status: string;
+  ai_quota_used: number;
+  ai_quota_limit: number;
+}
+
 export function UserStats() {
   const { publicKey } = useWallet();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     if (!publicKey) return;
 
     const fetchProfile = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('wallet_address', publicKey.toBase58())
@@ -31,7 +41,7 @@ export function UserStats() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `wallet_address=eq.${publicKey.toBase58()}` },
-        (payload: any) => {
+        (payload: { new: UserProfile }) => {
           setProfile(payload.new);
         }
       )

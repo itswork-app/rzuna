@@ -1,29 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { TokenSignal as Signal } from '@/types';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-interface Signal {
-  id: string;
-  score: number;
-  aiReasoning?: {
-    narrative: string;
-    confident: 'LOW' | 'MEDIUM' | 'HIGH';
-  };
-  event: {
-    mint: string;
-    signature: string;
-    timestamp: string;
-    initialLiquidity: number;
-    socialScore: number;
-    metadata?: {
-      name: string;
-      symbol: string;
-    };
-  };
-}
+
 
 interface UseSignalsReturn {
   signals: Signal[];
@@ -41,7 +25,7 @@ export function useSignals(): UseSignalsReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSignals = async () => {
+  const fetchSignals = useCallback(async () => {
     if (!publicKey) return;
 
     setIsLoading(true);
@@ -60,11 +44,11 @@ export function useSignals(): UseSignalsReturn {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [publicKey]);
 
   useEffect(() => {
     void fetchSignals();
-  }, [publicKey]);
+  }, [publicKey, fetchSignals]);
 
   return { signals, isLoading, error, refetch: fetchSignals };
 }

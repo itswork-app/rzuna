@@ -42,3 +42,23 @@ export interface AlphaSignal {
     generatedByAI: boolean;
   };
 }
+
+export interface TokenSignal {
+  id: string;
+  score: number;
+  aiReasoning?: {
+    narrative: string;
+    confident: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  event: {
+    mint: string;
+    signature: string;
+    timestamp: string;
+    initialLiquidity: number;
+    socialScore: number;
+    metadata?: {
+      name: string;
+      symbol: string;
+    };
+  };
+}

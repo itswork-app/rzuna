@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ShieldCheck, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSignals } from '@/hooks/useSignals';
@@ -14,16 +14,9 @@ export default function Dashboard() {
   const { connected, publicKey } = useWallet();
   const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
-  const [activeSignals, setActiveSignals] = useState<any[]>([]);
   const supabase = createClient();
 
-  useEffect(() => {
-    if (signals) {
-      setActiveSignals(signals);
-    }
-  }, [signals]);
-
-  const handleConsumeQuota = async (tokenMint: string) => {
+  const handleConsumeQuota = async () => {
     if (!publicKey) return;
     
     // Decrement quota in DB atomically
@@ -111,7 +104,7 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold flex items-center gap-3">
             Alpha Signal Feed
             <span className="text-xs font-mono bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">
-              {activeSignals.length} Active
+              {signals.length} Active
             </span>
           </h2>
         </div>
@@ -123,17 +116,17 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeSignals.map((signal) => (
+            {signals.map((signal) => (
               <TokenCard 
                 key={signal.id} 
                 signal={signal} 
-                onConsumeQuota={() => handleConsumeQuota(signal.event.mint)} 
+                onConsumeQuota={() => handleConsumeQuota()} 
               />
             ))}
           </div>
         )}
 
-        {activeSignals.length === 0 && !signalsLoading && (
+        {signals.length === 0 && !signalsLoading && (
           <div className="text-center py-24 bg-[#1a1a2e]/50 rounded-2xl border border-dashed border-white/10">
             <p className="text-gray-500 font-medium">No high-conviction signals detected currently.</p>
             <p className="text-gray-600 text-sm mt-1">System is idling, waiting for the next narrative arc.</p>

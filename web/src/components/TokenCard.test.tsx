@@ -1,98 +1,147 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TokenCard } from './TokenCard';
-import { AlphaSignal } from '@/types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useTrade } from '@/hooks/useTrade';
 
-// Mock the Supabase client before any module import resolves it
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    channel: vi.fn().mockReturnValue({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockReturnThis(),
-    }),
-    removeChannel: vi.fn(),
-  },
+// Mock the wallet adapter hook
+vi.mock('@solana/wallet-adapter-react', () => ({
+  useWallet: vi.fn().mockReturnValue({ connected: true }),
 }));
 
-// Mock consumeQuota so tests don't make real fetch() calls
-vi.mock('@/hooks/useSignals', async (original) => {
-  const mod = await original<typeof import('@/hooks/useSignals')>();
-  return { ...mod, consumeQuota: vi.fn().mockResolvedValue(true) };
-});
+// Mock the trade hook
+vi.mock('@/hooks/useTrade', () => ({
+  useTrade: vi.fn().mockReturnValue({ executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }), isExecuting: false }),
+}));
 
-describe('TokenCard Component', () => {
-  const mockSignal: AlphaSignal = {
-    mint: 'So11111111111111111111111111111111111111112',
-    symbol: 'SOL',
+describe('TokenCard Component (Institutional)', () => {
+  const mockSignal = {
+    id: '1',
     score: 95,
-    isPremium: true,
-    isNew: true,
-    timestamp: Date.now(),
     aiReasoning: {
-      narrative: 'AI Narrative Logic',
-      riskFactors: ['Risk 1'],
-      catalysts: ['Catalyst 1'],
-      generatedByAI: true,
+      narrative: 'High-conviction alpha detected in the Solana mempool.',
+      confident: 'HIGH' as const,
+    },
+    event: {
+      mint: 'So11111111111111111111111111111111111111112',
+      signature: 'TRADEXY123',
+      timestamp: new Date().toISOString(),
+      initialLiquidity: 1250.50,
+      socialScore: 88,
+      metadata: {
+        name: 'Solana Coin',
+        symbol: 'SOL',
+      },
     },
   };
 
+  const mockOnConsumeQuota = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useWallet).mockReturnValue({ connected: true } as unknown as ReturnType<typeof useWallet>);
+    vi.mocked(useTrade).mockReturnValue({ 
+      executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }), 
+      isExecuting: false 
+    } as unknown as ReturnType<typeof useTrade>);
   });
 
-  it('renders token symbol and score', () => {
-    render(<TokenCard signal={mockSignal} isVIP={true} />);
-    expect(screen.getByText('SOL')).toBeInTheDocument();
-    expect(screen.getByText('95')).toBeInTheDocument();
+  it('renders token metadata and score correctly', () => {
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    expect(screen.getByText('Solana Coin')).toBeInTheDocument();
+    expect(screen.getByText('Score: 95')).toBeInTheDocument();
+    expect(screen.getByText('88%')).toBeInTheDocument();
+    expect(screen.getByText('$1250.50')).toBeInTheDocument();
   });
 
-  it('AI Reasoning section is collapsed by default', () => {
-    render(<TokenCard signal={mockSignal} isVIP={true} />);
-    // Narrative is hidden until button is clicked
-    expect(screen.queryByText('AI Narrative Logic')).not.toBeInTheDocument();
-    expect(screen.getByText('AI Reasoning Oracle')).toBeInTheDocument();
+  it('AI Reasoning section is hidden initially and requires quota reveal', () => {
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    expect(screen.queryByText(/High-conviction alpha/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Reveal AI Reasoning \(-1 Quota\)/i)).toBeInTheDocument();
   });
 
-  it('expands AI narrative when reveal button is clicked (no wallet)', async () => {
-    render(<TokenCard signal={mockSignal} isVIP={true} />);
-    const revealBtn = screen.getByRole('button', { name: /AI Reasoning Oracle/i });
+  it('reveals AI reasoning and calls onConsumeQuota when button is clicked', async () => {
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const revealBtn = screen.getByText(/Reveal AI Reasoning \(-1 Quota\)/i);
     fireEvent.click(revealBtn);
-    await waitFor(() => expect(screen.getByText('AI Narrative Logic')).toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(screen.getByText(/High-conviction alpha/i)).toBeInTheDocument();
+    });
+    expect(mockOnConsumeQuota).toHaveBeenCalledTimes(1);
   });
 
-  it('calls consumeQuota when AI section is expanded with a walletAddress', async () => {
-    const { consumeQuota } = await import('@/hooks/useSignals');
-    render(<TokenCard signal={mockSignal} walletAddress="rzun...7p2v" />);
-    const revealBtn = screen.getByRole('button', { name: /AI Reasoning Oracle/i });
-    fireEvent.click(revealBtn);
-    await waitFor(() => expect(consumeQuota).toHaveBeenCalledWith('rzun...7p2v'));
+  it('calls buy function when institutional buy button is clicked', async () => {
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    fireEvent.click(buyBtn);
+    
+    // Check if it renders properly as part of handleBuy trace log or similar logic
+    // Actually the handleBuy uses alert, so we might need to mock alert or rely on interaction
+    const oldAlert = window.alert;
+    window.alert = vi.fn();
+    fireEvent.click(buyBtn);
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Institutional Trade Initialized'));
+    });
+    window.alert = oldAlert;
   });
 
-  it('renders fallback for missing aiReasoning (after expand)', async () => {
-    const basicSignal: AlphaSignal = { ...mockSignal, aiReasoning: undefined };
-    render(<TokenCard signal={basicSignal} isVIP={false} />);
-    fireEvent.click(screen.getByRole('button', { name: /AI Reasoning Oracle/i }));
-    await waitFor(() =>
-      expect(screen.getByText('Analyzing token narrative and social sentiment...')).toBeInTheDocument(),
-    );
+  it('prevents buy action if wallet is not connected', async () => {
+    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<typeof useWallet>);
+    
+    const oldAlert = window.alert;
+    window.alert = vi.fn();
+    
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    fireEvent.click(buyBtn);
+    
+    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Please connect wallet first'));
+    window.alert = oldAlert;
   });
 
-  it('renders obfuscated narrative content after expand', async () => {
-    const obfuscatedSignal: AlphaSignal = {
-      ...mockSignal,
-      aiReasoning: { ...mockSignal.aiReasoning!, narrative: '[HIDDEN] Upgrade to VIP' },
-    };
-    render(<TokenCard signal={obfuscatedSignal} isVIP={false} />);
-    fireEvent.click(screen.getByRole('button', { name: /AI Reasoning Oracle/i }));
-    await waitFor(() => expect(screen.getByText('[HIDDEN] Upgrade to VIP')).toBeInTheDocument());
+  it('handles trade errors that are not instances of Error', async () => {
+    vi.mocked(useTrade).mockReturnValue({
+      executeTrade: vi.fn().mockRejectedValue('Fatal Error String'),
+      isExecuting: false
+    } as unknown as ReturnType<typeof useTrade>);
+
+    const oldAlert = window.alert;
+    window.alert = vi.fn();
+
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    fireEvent.click(buyBtn);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('Trade failed: Fatal Error String');
+    });
+    window.alert = oldAlert;
   });
 
-  it('renders without catalysts and risks', () => {
-    const emptySignal: AlphaSignal = {
-      ...mockSignal,
-      aiReasoning: { narrative: 'None', generatedByAI: true, catalysts: [], riskFactors: [] },
-    };
-    render(<TokenCard signal={emptySignal} isVIP={true} />);
-    expect(screen.getByText('SOL')).toBeInTheDocument();
+  it('handles objects that are neither Error nor string', async () => {
+    vi.mocked(useTrade).mockReturnValue({
+      executeTrade: vi.fn().mockRejectedValue({ something: 'else' }),
+      isExecuting: false
+    } as unknown as ReturnType<typeof useTrade>);
+
+    const oldAlert = window.alert;
+    window.alert = vi.fn();
+
+    render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
+    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    fireEvent.click(buyBtn);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('Trade failed: Unknown error');
+    });
+    window.alert = oldAlert;
+  });
+
+  it('renders fallback name for missing metadata', () => {
+    const signalNoMeta = { ...mockSignal, event: { ...mockSignal.event, metadata: undefined } };
+    render(<TokenCard signal={signalNoMeta} onConsumeQuota={mockOnConsumeQuota} />);
+    expect(screen.getByText('Unknown Token')).toBeInTheDocument();
   });
 });

@@ -36,8 +36,9 @@ export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onC
       const result = await executeTrade(signal);
       console.log('Trade result:', result);
       alert(`Institutional Trade Initialized: ${result.signature?.slice(0, 8)}...`);
-    } catch (err: any) {
-      alert(`Trade failed: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error');
+      alert(`Trade failed: ${message}`);
     }
   };
 
@@ -69,7 +70,7 @@ export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onC
       {isReasoningVisible ? (
         <div className="mb-6 p-4 bg-black/40 rounded-lg border border-cyan-500/10 animate-in fade-in slide-in-from-top-2 duration-300">
           <p className="text-gray-300 text-sm italic leading-relaxed">
-            "{signal.aiReasoning?.narrative}"
+            &quot;{signal.aiReasoning?.narrative}&quot;
           </p>
         </div>
       ) : (

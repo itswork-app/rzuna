@@ -2,28 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import { TokenCard } from '@/components/TokenCard';
-import { AlphaSignal } from '@/types';
+import { TokenSignal } from '@/types';
 import { AnimatePresence } from 'framer-motion';
 import { Crown, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function VIPChannel() {
-  const [signals, setSignals] = useState<AlphaSignal[]>([]);
+  const [signals, setSignals] = useState<TokenSignal[]>([]);
   
   useEffect(() => {
     const fetchVIPSignals = () => {
-      const vipSignals: AlphaSignal[] = [
+      const vipSignals: TokenSignal[] = [
         {
-          mint: 'DezXAZ8z7Pnrn9vzct2PrfLvWzoZOAP89TO86UVHjm6',
-          symbol: 'BONK',
+          id: 'vip-1',
           score: 98,
-          isPremium: true,
-          isNew: true,
-          timestamp: Date.now(),
           aiReasoning: {
             narrative: 'Deep institutional liquidity depth and high directional conviction from top-tier traders.',
-            riskFactors: ['High concentration in whale wallets'],
-            catalysts: ['Major CEX listing pending', 'DEX volume spike (+400%)'],
-            generatedByAI: true
+            confident: 'HIGH'
+          },
+          event: {
+            mint: 'DezXAZ8z7Pnrn9vzct2PrfLvWzoZOAP89TO86UVHjm6',
+            signature: 'VIP-SIG-001',
+            timestamp: new Date().toISOString(),
+            initialLiquidity: 500000,
+            socialScore: 99,
+            metadata: {
+              name: 'BONK',
+              symbol: 'BONK'
+            }
           }
         }
       ];
@@ -81,7 +86,11 @@ export default function VIPChannel() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '32px' }}>
         <AnimatePresence>
           {signals.map((signal) => (
-            <TokenCard key={signal.mint} signal={signal} isVIP={true} />
+            <TokenCard 
+              key={signal.id} 
+              signal={signal} 
+              onConsumeQuota={() => {}} 
+            />
           ))}
         </AnimatePresence>
       </div>
