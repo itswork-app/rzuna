@@ -32,6 +32,10 @@ interface GrpcClient {
 /**
  * GeyserService: YellowStone gRPC Stream (Production Only)
  * Standar: Canonical Master Blueprint v1.6 (Dual-Mode: Public + VIP Dedicated)
+ *
+ * Mode 'public' — uses GEYSER_ENDPOINT + GEYSER_TOKEN (shared infrastructure).
+ * Mode 'vip'    — uses VIP_GEYSER_ENDPOINT + VIP_GEYSER_TOKEN (dedicated node for vip.aivo.sh).
+ * Falls back to no-op if the relevant credentials are missing.
  */
 export class GeyserService extends EventEmitter {
   private client: GrpcClient | null = null;
