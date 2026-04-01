@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useSignals } from '@/hooks/useSignals';
 import { TokenCard } from '@/components/TokenCard';
 import { RankWidget } from '@/components/RankWidget';
@@ -9,16 +10,28 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Dashboard() {
   const { signals, isLoading: signalsLoading } = useSignals();
   const { isAuthenticated, isAuthenticating, login } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
+  const supabase = createClient();
   
   const handleConsumeQuota = async () => {
-    // Implementasi consume quota (atomic via Supabase RPC)
+    if (!publicKey) return;
+    const { error } = await supabase.rpc('increment_ai_usage', { wallet: publicKey.toBase58() });
+    if (error) console.error('[Quota] Failed to consume:', error);
   };
+
+  // 🏛️ Battle Tested: Dynamic Threshold Calculation
+  const nextThreshold = useMemo(() => {
+    if (profile?.rank === UserRank.NEWBIE) return 1000;
+    if (profile?.rank === UserRank.PRO) return 5000;
+    if (profile?.rank === UserRank.ELITE) return 25000;
+    return 100000;
+  }, [profile?.rank]);
 
   return (
     <main className="min-h-screen bg-black text-white p-6 font-sans">
@@ -30,7 +43,7 @@ export default function Dashboard() {
             rank={profile?.rank || UserRank.NEWBIE}
             status={profile?.subscription_status || SubscriptionStatus.NONE}
             currentVolume={profile?.total_volume_usd || 0}
-            nextThreshold={1000} // Dynamic threshold logic would go here
+            nextThreshold={nextThreshold}
           />
           {!connected ? (
             <WalletMultiButton className="!bg-white !text-black !px-4 !py-2 !rounded-full !text-sm !font-bold !shadow-md hover:!bg-zinc-200 !transition-colors" />

@@ -129,8 +129,16 @@ export class GeyserService extends EventEmitter {
         // Check if Pump.fun program is involved
         if (accountKeys.includes(PUMP_FUN_ID)) {
           // Hardened Extraction: Identify the mint address (usually the last or unique key)
+          // Precision Extraction: Skip system programs and bonding curve to find the unique Mint Address
           const signature = bs58.encode(tx.signatures[0]);
-          const detectedMint = accountKeys.find((k: string) => k !== PUMP_FUN_ID && k.length > 32);
+          const detectedMint = accountKeys.find(
+            (k: string) =>
+              k !== PUMP_FUN_ID &&
+              k !== '11111111111111111111111111111111' && // System
+              k !== 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' && // Token Program
+              k !== 'SysvarRent111111111111111111111111111111111' && // Rent
+              k.length > 32,
+          );
 
           if (detectedMint) {
             const event: MintEvent = {
