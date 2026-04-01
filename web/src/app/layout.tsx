@@ -5,6 +5,10 @@ import { WalletContextProvider } from '@/components/WalletContextProvider';
 import { PostHogProvider } from '@/components/PostHogProvider';
 import { AxiomWebVitals } from 'next-axiom';
 
+import { AuthProvider } from '@/components/AuthProvider';
+
+import { Toaster } from 'react-hot-toast';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -22,7 +26,21 @@ export default function RootLayout({
       <body className={inter.className}>
         <WalletContextProvider>
           <PostHogProvider>
-            {children}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+            <Toaster 
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: '#0a0a18',
+                  color: '#fff',
+                  border: '1px solid rgba(6,182,212,0.2)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '14px',
+                },
+              }}
+            />
             <AxiomWebVitals />
           </PostHogProvider>
         </WalletContextProvider>
