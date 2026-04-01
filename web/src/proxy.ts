@@ -2,24 +2,52 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 /**
  * Next.js Edge Middleware — aivo.sh Network Subdomain Router
- * Blueprint v1.6: Routes each subdomain to the correct Next.js route.
+ * Blueprint v1.6: Routes each subdomain and enforces subscription guards.
  *
- *  vip.aivo.sh   → /vip    (adds x-tier: vip header for downstream components)
+ *  vip.aivo.sh   → /vip    (Subscription Guard: VIP Only)
  *  trade.aivo.sh → /dashboard
- *  aivo.sh       → /       (marketing & SIWS landing, no rewrite needed)
- *
- * Works transparently in Vercel Edge — no redirect visible to the user.
+ *  aivo.sh       → /       (Default Entry)
  */
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Strip port for local dev: trade.localhost:3000 → trade.localhost
   const hostname = host.split(':')[0];
 
-  // VIP Dedicated Lounge
+  // VIP Dedicated Lounge — Subscription Guarded
   if (hostname === 'vip.aivo.sh' || hostname === 'vip.localhost') {
-    // Only rewrite if not already on /vip to avoid infinite loops
+    // 1. Check for Supabase Auth Cookie (Simplified Edge Extraction)
+    const token = request.cookies.get('sb-access-token')?.value;
+    let isVip = false;
+
+    if (token && supabaseUrl && supabaseAnonKey) {
+      try {
+        // Edge-compatible fetch to verify subscription status
+        const res = await fetch(`${supabaseUrl}/rest/v1/profiles?select=subscription_status`, {
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        isVip = data?.[0]?.subscription_status === 'VIP';
+      } catch (err) {
+        console.error('[Middleware] Subscription check failed:', err);
+      }
+    }
+
+    // 2. Enforce Access Control
+    if (!isVip) {
+      // Downgrade non-VIPs to standard trade dashboard
+      const url = request.nextUrl.clone();
+      url.hostname = hostname === 'vip.localhost' ? 'trade.localhost' : 'trade.aivo.sh';
+      return NextResponse.redirect(url);
+    }
+
+    // 3. Authorized Routing
     if (!pathname.startsWith('/vip')) {
       const url = request.nextUrl.clone();
       url.pathname = `/vip${pathname === '/' ? '' : pathname}`;

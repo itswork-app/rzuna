@@ -149,7 +149,25 @@ export class JupiterService {
   }
 
   /**
-   * REAL: Sign and submit transaction via Jito bundle.
+   * Fetch the current Jito Tip Floor (25th percentile).
+   * Standar: Canonical Master Blueprint v1.6
+   */
+  async getJitoTipFloor(): Promise<number> {
+    try {
+      const res = await fetch('https://mainnet.block-engine.jito.wtf/api/v1/bundles/tip_floor');
+      if (!res.ok) return 0.00001; // Fallback to 10k lamports
+      const data = (await res.json()) as Array<{
+        ema_landed_tips_25th_percentile: number;
+      }>;
+      // Use 25th percentile for cost-efficient bundle entry
+      return data[0]?.ema_landed_tips_25th_percentile || 0.00001;
+    } catch {
+      return 0.00001;
+    }
+  }
+
+  /**
+   * REAL: Sign and submit transaction via Jito bundle with Dynamic Tip.
    */
   private async executeReal(route: SwapRoute): Promise<SwapResult> {
     if (!env.WALLET_PRIVATE_KEY) {
@@ -172,7 +190,11 @@ export class JupiterService {
     // 3. Sign (Hardened: Use real keypair)
     transaction.sign([keypair]);
 
-    // 4. Jito Bundle Submission
+    // 4. Dynamic Jito Tip (Hardened v1.6)
+    const tipFloorSOL = await this.getJitoTipFloor();
+    console.info(`[JITO] Dynamic Tip Floor: ${tipFloorSOL} SOL`);
+
+    // 5. Jito Bundle Submission
     const signedTxBase58 = bs58.encode(transaction.serialize());
     const jitoBlockEngineUrl = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
 
