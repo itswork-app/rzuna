@@ -30,6 +30,11 @@ const envSchema = z.object({
   PLATFORM_FEE_WALLET: z.string().optional(),
   SOL_TREASURY_WALLET: z.string().optional(),
   USDC_TREASURY_WALLET: z.string().optional(),
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  DATABASE_URL: z
+    .string()
+    .regex(/^postgresql?:\/\/.+/i, 'Invalid Database URL')
+    .optional(),
 });
 
 /**

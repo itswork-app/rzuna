@@ -10,12 +10,13 @@ import { TokenCard } from '@/components/TokenCard';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { UserStats } from '@/components/UserStats';
+import { TelegramSettings } from '@/components/TelegramSettings';
 
 export default function DashboardPage() {
   const { connected, publicKey } = useWallet();
   const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
-  const { profile, isLoading: profileLoading } = useProfile();
+  const { profile, isLoading: profileLoading, mutate } = useProfile();
   const supabase = createClient();
 
   const handleConsumeQuota = async () => {
@@ -102,6 +103,10 @@ export default function DashboardPage() {
  
         <UserStats profile={profile} isLoading={profileLoading} />
  
+        <div className="mb-8">
+          <TelegramSettings profile={profile} onUpdate={mutate} />
+        </div>
+
         <div className="mb-8 flex justify-between items-end">
           <h2 className="text-2xl font-bold flex items-center gap-3">
             Alpha Signal Feed

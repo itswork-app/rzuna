@@ -5,6 +5,7 @@ import { UserRank } from './types/user.js';
 import { supabase } from '../infrastructure/supabase/client.js';
 import { ReasoningService, type L2Reasoning } from '../agents/reasoning.service.js';
 import { RealtimeService } from '../infrastructure/supabase/realtime.service.js';
+import { TelegramService } from '../infrastructure/telegram/telegram.service.js';
 
 export interface AlphaSignal {
   event: MintEvent;
@@ -37,6 +38,7 @@ export class IntelligenceEngine extends EventEmitter {
   private autoDownInterval?: NodeJS.Timeout;
   private reasoning: ReasoningService;
   private realtime: RealtimeService;
+  private telegram: TelegramService;
 
   constructor(hooks?: EngineHooks) {
     super();
@@ -45,6 +47,7 @@ export class IntelligenceEngine extends EventEmitter {
     this.geyser = new GeyserService();
     this.reasoning = new ReasoningService();
     this.realtime = new RealtimeService();
+    this.telegram = new TelegramService();
   }
 
   async start() {
@@ -87,6 +90,11 @@ export class IntelligenceEngine extends EventEmitter {
           if (signal.isPremium) {
             this.realtime.broadcastVipAlpha(signal, l2Result);
           }
+
+          // 6. TELEGRAM DISPATCH: Send to premium subscribers
+          void this.telegram.broadcastAlpha(signal).catch((err) => {
+            console.error('[Engine] Telegram broadcast failed:', err);
+          });
 
           // 6. AUDIT TRAIL: Dispatch telemetry to Axiom
           if (this.hooks.logAudit) {

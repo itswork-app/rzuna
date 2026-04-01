@@ -160,6 +160,27 @@ export const buildApp = async () => {
     }
   });
 
+  /**
+   * Telegram Dispatcher: Test Connection (PR 12)
+   */
+  fastify.post('/telegram/test', async (request, reply) => {
+    try {
+      const { chatId } = request.body as { chatId?: string };
+      if (!chatId) {
+        return await reply.status(400).send({ error: 'chatId is required' });
+      }
+
+      const { TelegramService } = await import('./infrastructure/telegram/telegram.service.js');
+      const tg = new TelegramService();
+      await tg.sendTestPing(chatId);
+
+      return await reply.send({ success: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return await reply.status(500).send({ error: message });
+    }
+  });
+
   return fastify;
 };
 
