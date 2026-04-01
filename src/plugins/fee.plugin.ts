@@ -1,11 +1,8 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { TierService } from '../core/tiers/tier.service.js';
 import { supabase } from '../infrastructure/supabase/client.js';
-import { JupiterService } from '../infrastructure/jupiter/jupiter.service.js';
-<<<<<<< HEAD
+import { JupiterService, type SwapRoute } from '../infrastructure/jupiter/jupiter.service.js';
 import { env } from '../utils/env.js';
-=======
->>>>>>> origin/main
 
 interface TradeBody {
   walletAddress: string;
