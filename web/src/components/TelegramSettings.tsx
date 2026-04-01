@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Send, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { UserProfile } from '@/types';
 
 interface TelegramSettingsProps {
