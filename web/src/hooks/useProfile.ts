@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createClient } from '@/lib/supabase/client';
-import { UserRank, SubscriptionStatus, UserProfile } from '@/types';
+import { UserProfile } from '@/types';
 
 /**
  * useProfile: Reactive Supabase User Profile Hook

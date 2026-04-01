@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { TokenCard } from '@/components/TokenCard';
-import { TokenSignal, SubscriptionStatus } from '@/types';
+import { TokenSignal } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Crown, Sparkles, ShieldCheck, Zap, Star, Shield } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -10,7 +10,7 @@ import { useProfile } from '@/hooks/useProfile';
 
 export default function VIPChannel() {
   const [signals, setSignals] = useState<TokenSignal[]>([]);
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey } = useWallet();
   const { profile, mutate } = useProfile();
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
 
