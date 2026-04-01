@@ -2,9 +2,12 @@ name: 🛡️ The Constitutional CI
 
 on:
   push:
-    branches: [ main, pr-* ]
+    branches: [ main, ready-live-* ]
   pull_request:
     branches: [ main ]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   audit:
@@ -14,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: 
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: 📦 Install Dependencies
@@ -48,7 +51,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: 📦 Install Frontend Dependencies
         working-directory: ./web
