@@ -18,7 +18,6 @@ export default function Dashboard() {
   const { profile, isLoading: profileLoading } = useProfile();
   const { connected, publicKey } = useWallet();
   const supabase = createClient();
-
   // 🏛️ Battle Tested: Auto-trigger login if connected but not authenticated
   useEffect(() => {
     if (connected && !isAuthenticated && !isAuthenticating) {
