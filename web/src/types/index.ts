@@ -20,6 +20,8 @@ export interface UserProfile {
   ai_quota_limit: number;
   ai_quota_used: number;
   total_volume_usd: number;
+  tg_chat_id?: string;
+  is_tg_enabled?: boolean;
 }
 
 export interface AlphaSignal {
