@@ -9,6 +9,7 @@ interface TradeBody {
   signature: string;
   jitoTipSOL?: number; // External Jito tip (in SOL)
   networkFeeSOL?: number; // Solana network fee (in SOL)
+  status?: 'success' | 'failed';
 }
 
 /** Fetch live SOL/USD price from Jupiter Price API v4 */
@@ -47,6 +48,7 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
       signature,
       jitoTipSOL = 0,
       networkFeeSOL = 0.000005,
+      status = 'success',
     } = request.body;
 
     try {
@@ -76,7 +78,11 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
       const totalBundledCostUSD = tradingFeeUSD + jitoTipUSD + networkFeeUSD;
 
       // 6. Update trading volume, rank, AND total_fees_paid (revenue accumulation)
-      const newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
+      // Only add volume if trade was successful
+      let newRank = profile.rank;
+      if (status === 'success') {
+        newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
+      }
 
       // 7. Fetch updated profile (for ID)
       const updatedProfile = await tierService.getUserProfile(walletAddress);
@@ -88,9 +94,9 @@ export const feePlugin: FastifyPluginAsync = (fastify) => {
             profile_id: updatedProfile.id,
             tx_hash: signature,
             amount_usd: amountUSD,
-            fee_collected: tradingFeeUSD, // Platform revenue only
+            fee_collected: status === 'success' ? tradingFeeUSD : 0, // Platform revenue only
             platform,
-            status: 'success',
+            status, // success | failed
           } as unknown as never);
           if (insertError) fastify.log.error(insertError, 'Failed to log transaction audit trail');
         })();
