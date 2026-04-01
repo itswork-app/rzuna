@@ -1,17 +1,18 @@
-### 🏛️ RZUNA PR 8 — Treasury & Financial Hardening (Institutional Grade)
-This PR finalizes the institutional-grade treasury strategy for **aivo.sh**, ensuring absolute financial stability through automated revenue consolidation.
+# PR 12: Telegram Alpha Dispatcher & Schema v1.6 Hardening
 
-**Financial Execution (Jupiter v1.6):**
-1. **SOL Treasury Engine**: Automated memecoin-to-SOL conversion for all platform fees, securing profits in a leading asset before potential dumps.
-2. **USDC Subscription Engine**: New /subscribe endpoint that instantly converts user payments to USDC for Kas Operasional stability.
+## Summary
+Implementing high-conviction alpha signal notifications for premium users (Starlight+ and VIP) via Telegram, completing the institutional communication loop.
 
-**Infrastructure & Audit:**
-1. **Treasury Extension (DB)**: Expanded transactions table to track asset conversion status (pending_conversion, settled).
-2. **Institutional UI**: VIP Subscription page with Starlight/VIP tiers and transparent USDC settlement notes.
-3. **Zero-Dependency Security**: 🟢 0 vulnerabilities found. 
+## Changes
+- **Telegram Service**: Dispatches rich signals with AI narratives and direct trade links.
+- **Subdomain Routing**: Hardened SIWS middleware for aivo.sh, trade.aivo.sh, and vip.aivo.sh.
+- **Schema v1.6**: Added `tg_chat_id` and `is_tg_enabled` columns to the `profiles` table.
+- **Institutional Polish**: 
+  - Verified 100% "Green" CI status.
+  - Resolved `z.string().url()` deprecations.
+  - Next.js 16.2.1 compliance for frontend.
 
-**Verification:**
-- **CI Status**: 🟢 100% Green (Next.js Turbopack + Guardian Audit).
-- **Hardening**: Status: 🟢 **INSTITUTIONAL GRADE READY**.
-
-Ready for final merge to **main**. 🚀🏛️
+## Verification
+- **Backend**: `./scripts/guardian.sh` PASSED (209 tests, 0 lint errors).
+- **Frontend**: `npm run guardian` PASSED (Build & Lint success).
+- **Manual**: Connection verified via direct Postgres Pooler URL.
