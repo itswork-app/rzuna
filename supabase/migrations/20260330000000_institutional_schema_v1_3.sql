@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.scouted_tokens (
     mint_address TEXT UNIQUE NOT NULL,
     symbol TEXT,
     base_score INTEGER CHECK (base_score >= 0 AND base_score <= 100),
-    ai_reasoning TEXT, -- Diisi oleh Eliza OS untuk VIP
+    ai_reasoning TEXT, -- Diisi oleh AIVO OS untuk VIP
     
     -- Auto-Down Logic
     is_active BOOLEAN DEFAULT TRUE, -- Polisi "Auto-Down" mengubah ini jadi FALSE

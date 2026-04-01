@@ -2,7 +2,7 @@
  * rzuna AI Character: The On-Chain Oracle
  * Standar: Canonical Master Blueprint v1.3 (PR 5 — Agent Intelligence)
  *
- * Modeled after Eliza OS character format.
+ * Modeled after AIVO OS character format.
  * Pluggable into full @elizaos/core runtime when deployed.
  */
 export const rzunaCharacter = {

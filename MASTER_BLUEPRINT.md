@@ -14,7 +14,7 @@
 | **Execution** | Jito Bundles + Tip | Atomic, anti-MEV transaction delivery. |
 | **Routing** | Jupiter V6 SDK | Best price discovery and swap aggregation. |
 | **Backend/DB** | Supabase (Postgres) | Real-time data persistence & Wallet-based Auth (SIWS). |
-| **AI Agent** | Eliza OS (Pattern) | Lightweight narrative analysis & L2 reasoning pipeline. |
+| **AI Agent** | AIVO OS (Pattern) | Lightweight narrative analysis & L2 reasoning pipeline. |
 | **UI Framework** | Next.js + Tailwind | Institutional-grade, sleek, and high-performance interface. |
 | **Deployment** | Vercel (Edge) | Global UI hosting with Edge Functions for maximum speed. |
 
@@ -34,7 +34,7 @@ Platform ini adalah kurator aktif, bukan sekadar daftar statis.
 
 **Hybrid Scoring (0-100)**:
 - **L1 (Rule-base)**: Filter matematis cepat (<100ms) berdasarkan likuiditas, mint authority, dan holder distribution.
-- **L2 (AI Reason)**: Analisis narasi berbasis Eliza OS Pattern. Tersedia untuk semua tier berbayar dengan sistem kuota harian.
+- **L2 (AI Reason)**: Analisis narasi berbasis AIVO OS Pattern. Tersedia untuk semua tier berbayar dengan sistem kuota harian.
 
 **The Auto-Down Trigger**:
 - Jika skor token turun di bawah 85, sistem secara otomatis mengubah status menjadi `is_active = false`.
