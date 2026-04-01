@@ -7,13 +7,15 @@ import { useSignals } from '@/hooks/useSignals';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { TokenCard } from '@/components/TokenCard';
-import { UserStats } from '@/components/UserStats';
 import { createClient } from '@/lib/supabase/client';
+import { useProfile } from '@/hooks/useProfile';
+import { UserStats } from '@/components/UserStats';
 
 export default function Dashboard() {
   const { connected, publicKey } = useWallet();
   const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
+  const { profile, isLoading: profileLoading } = useProfile();
   const supabase = createClient();
 
   const handleConsumeQuota = async () => {
@@ -97,9 +99,9 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
-
-        <UserStats />
-
+ 
+        <UserStats profile={profile} isLoading={profileLoading} />
+ 
         <div className="mb-8 flex justify-between items-end">
           <h2 className="text-2xl font-bold flex items-center gap-3">
             Alpha Signal Feed

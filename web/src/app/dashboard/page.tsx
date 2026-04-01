@@ -5,13 +5,19 @@ import { TokenCard } from '@/components/TokenCard';
 import { RankWidget } from '@/components/RankWidget';
 import { UserStats } from '@/components/UserStats';
 import { UserRank, SubscriptionStatus } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export default function Dashboard() {
-  const { signals, isLoading } = useSignals();
+  const { signals, isLoading: signalsLoading } = useSignals();
+  const { isAuthenticated, isAuthenticating, login } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
+  const { connected } = useWallet();
   
   const handleConsumeQuota = async () => {
     // Implementasi consume quota (atomic via Supabase RPC)
-    // Placeholder untuk Institutional CI/CD
   };
 
   return (
@@ -21,14 +27,27 @@ export default function Dashboard() {
         <div className="flex gap-4 items-center">
           {/* Rank ala Mobile Legends akan muncul di sini */}
           <RankWidget
-            rank={UserRank.NEWBIE}
-            status={SubscriptionStatus.NONE}
-            currentVolume={0}
-            nextThreshold={1000}
+            rank={profile?.rank || UserRank.NEWBIE}
+            status={profile?.subscription_status || SubscriptionStatus.NONE}
+            currentVolume={profile?.total_volume_usd || 0}
+            nextThreshold={1000} // Dynamic threshold logic would go here
           />
-          <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-bold shadow-md hover:bg-zinc-200 transition-colors">
-            Connect Wallet
-          </button>
+          {!connected ? (
+            <WalletMultiButton className="!bg-white !text-black !px-4 !py-2 !rounded-full !text-sm !font-bold !shadow-md hover:!bg-zinc-200 !transition-colors" />
+          ) : !isAuthenticated ? (
+            <button 
+              onClick={login}
+              disabled={isAuthenticating}
+              className="bg-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all animate-pulse"
+            >
+              {isAuthenticating ? 'Authorizing...' : 'Sign In With Solana'}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-full">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+              <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">Secured</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -36,7 +55,7 @@ export default function Dashboard() {
         {/* Token Scouting Stream */}
         <div className="md:col-span-2 space-y-4">
           <h2 className="text-zinc-400 text-xs uppercase tracking-widest font-bold">Live Alpha Signals</h2>
-          {isLoading ? (
+          {signalsLoading ? (
             <p className="text-zinc-500 text-sm font-medium animate-pulse">Initializing AI tracking module...</p>
           ) : signals.length === 0 ? (
             <p className="text-zinc-500 text-sm">No signals currently meet the Institutional grade threshold (Score &gt; 85).</p>
@@ -55,7 +74,7 @@ export default function Dashboard() {
 
         {/* AI Reasoning & Quota Sidebar */}
         <aside className="space-y-6">
-          <UserStats />
+          <UserStats profile={profile} isLoading={profileLoading} />
         </aside>
       </section>
     </main>
