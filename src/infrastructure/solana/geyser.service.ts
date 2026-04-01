@@ -65,16 +65,19 @@ export class GeyserService extends EventEmitter {
 
   async start(): Promise<void> {
     this.retryCount = 0;
-    if (!this.isActive) return;
+    if (!this.isActive) {
+      console.warn('[GeyserService] No-op mode active. Skipping stream connection.');
+      return;
+    }
 
-    await this.connectWithBackoff();
+    await this.connectWithRetry();
   }
 
   /**
    * Hardened Reconnect Logic (Blueprint v1.5)
    * Tries 5 times with increasing interval (2s, 4s, 8s, 16s, 32s).
    */
-  private async connectWithBackoff(): Promise<void> {
+  private async connectWithRetry(): Promise<void> {
     try {
       console.info(`📡 [Geyser:${this.mode}] Connecting (Attempt ${this.retryCount + 1})...`);
       await this.startRealStream();
@@ -89,7 +92,7 @@ export class GeyserService extends EventEmitter {
           error instanceof Error ? error.message : error,
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.connectWithBackoff();
+        return this.connectWithRetry();
       } else {
         console.error(`🛑 [Geyser:${this.mode}] Max retries reached. Switching to safe NO-OP.`);
         this.isActive = false;
@@ -158,7 +161,7 @@ export class GeyserService extends EventEmitter {
 
     stream.on('error', (err: unknown) => {
       console.error(`[Geyser:${this.mode}] Stream error:`, err);
-      void this.connectWithBackoff();
+      void this.connectWithRetry();
     });
   }
 }
