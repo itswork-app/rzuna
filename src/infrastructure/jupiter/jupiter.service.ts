@@ -139,6 +139,50 @@ export class JupiterService {
   }
 
   /**
+   * Auto-convert Token Fees to SOL for Treasury Consolidation.
+   * Strategi: Berhenti memegang token meme yang volatil, langsung konversi ke SOL.
+   * Standar: Canonical Master Blueprint v1.6
+   */
+  async autoConvertFeeToSOL(tokenMint: string, amountLamports: number): Promise<SwapResult> {
+    const SOL_MINT = 'So11111111111111111111111111111111111111112';
+    if (tokenMint === SOL_MINT) {
+      console.info('[Treasury] Fee is already in SOL. Skipping conversion.');
+      return {
+        signature: 'SKIPPED',
+        inAmount: amountLamports,
+        outAmount: amountLamports,
+        fee: 0,
+        dryRun: false,
+        status: 'success',
+      };
+    }
+
+    console.info(`[Treasury] 🔄 Auto-converting ${amountLamports} of ${tokenMint} to SOL...`);
+
+    try {
+      const route = await this.getBestRoute(
+        tokenMint,
+        SOL_MINT,
+        amountLamports,
+        0, // No fee on internal treasury swaps
+        env.SOL_TREASURY_WALLET || '',
+      );
+
+      return await this.executeSwap(route);
+    } catch (err) {
+      console.error('[Treasury] ❌ Auto-conversion failed:', err);
+      return {
+        signature: 'FAILED',
+        inAmount: amountLamports,
+        outAmount: 0,
+        fee: 0,
+        dryRun: false,
+        status: 'failed',
+      };
+    }
+  }
+
+  /**
    * Execute swap — behavior depends on EXECUTION_MODE.
    *
    * dry_run: Validates route, logs the would-be trade, returns simulated result.

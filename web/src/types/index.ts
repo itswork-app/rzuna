@@ -12,15 +12,14 @@ export enum SubscriptionStatus {
 }
 
 export interface UserProfile {
-  walletAddress: string;
+  id: string;
+  wallet_address: string;
   rank: UserRank;
-  status: SubscriptionStatus;
-  aiQuotaLimit: number;
-  aiQuotaUsed: number;
-  volume: {
-    currentMonthVolume: number;
-    totalFeesPaid: number;
-  };
+  rank_level: number;
+  subscription_status: SubscriptionStatus;
+  ai_quota_limit: number;
+  ai_quota_used: number;
+  total_volume_usd: number;
 }
 
 export interface AlphaSignal {

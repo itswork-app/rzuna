@@ -1,22 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createClient } from '@/lib/supabase/client';
-import { UserRank, SubscriptionStatus } from '@/types';
-
-export interface UserProfile {
-  id: string;
-  wallet_address: string;
-  rank: UserRank;
-  rank_level: number;
-  subscription_status: SubscriptionStatus;
-  ai_quota_used: number;
-  ai_quota_limit: number;
-  total_volume_usd: number;
-}
+import { UserRank, SubscriptionStatus, UserProfile } from '@/types';
 
 /**
  * useProfile: Reactive Supabase User Profile Hook
- * Optimized: Prevents cascading renders by avoiding synchronous setState in useEffect.
+ * Optimized: Prevents cascading renders and provides manual refresh (mutate) support.
  * Standar: Canonical Master Blueprint v1.6
  */
 export function useProfile() {
@@ -24,33 +13,37 @@ export function useProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Use a stable supabase client instance to avoid effect re-triggers
+  // Use a stable supabase client instance
   const supabase = useMemo(() => createClient(), []);
 
+  const fetchProfile = useCallback(async () => {
+    if (!publicKey) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('wallet_address', publicKey.toBase58())
+        .single();
+      
+      if (data && !error) {
+        setProfile(data as UserProfile);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicKey, supabase]);
+
+  const mutate = useCallback(async () => {
+    await fetchProfile();
+  }, [fetchProfile]);
+
   useEffect(() => {
-    // If no wallet is connected, just reset the state (Safe for initial render)
     if (!publicKey) {
       setProfile(null);
       setIsLoading(false);
-      return () => {}; // No cleanup needed
+      return () => {};
     }
-
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('wallet_address', publicKey.toBase58())
-          .single();
-        
-        if (data && !error) {
-          setProfile(data as UserProfile);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     fetchProfile();
 
@@ -74,7 +67,7 @@ export function useProfile() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [publicKey, supabase]); // Supabase is now stable via useMemo
+  }, [publicKey, supabase, fetchProfile]);
 
-  return { profile, isLoading };
+  return { profile, isLoading, mutate };
 }

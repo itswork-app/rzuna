@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Zap, Shield } from 'lucide-react';
-import { UserProfile } from '@/hooks/useProfile';
+import { UserProfile } from '@/types';
 
 interface UserStatsProps {
   profile: UserProfile | null;
