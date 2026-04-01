@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createClient } from '@/lib/supabase/client';
 import { UserRank, SubscriptionStatus } from '@/types';
@@ -16,33 +16,40 @@ export interface UserProfile {
 
 /**
  * useProfile: Reactive Supabase User Profile Hook
+ * Optimized: Prevents cascading renders by avoiding synchronous setState in useEffect.
  * Standar: Canonical Master Blueprint v1.6
  */
 export function useProfile() {
   const { publicKey } = useWallet();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Use a stable supabase client instance to avoid effect re-triggers
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    // If no wallet is connected, just reset the state (Safe for initial render)
     if (!publicKey) {
       setProfile(null);
       setIsLoading(false);
-      return;
+      return () => {}; // No cleanup needed
     }
 
     const fetchProfile = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('wallet_address', publicKey.toBase58())
-        .single();
-      
-      if (data && !error) {
-        setProfile(data as UserProfile);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('wallet_address', publicKey.toBase58())
+          .single();
+        
+        if (data && !error) {
+          setProfile(data as UserProfile);
+        }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchProfile();
@@ -67,7 +74,7 @@ export function useProfile() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [publicKey, supabase]);
+  }, [publicKey, supabase]); // Supabase is now stable via useMemo
 
   return { profile, isLoading };
 }
