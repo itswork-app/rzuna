@@ -20,6 +20,7 @@ export interface SwapResult {
   fee: number;
   jitoBundle?: boolean;
   dryRun: boolean;
+  status: 'success' | 'failed';
 }
 
 interface JupiterQuoteResponse {
@@ -40,7 +41,7 @@ const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6';
 
 /**
  * Jupiter V6 Swap Service with Jito MEV Protection
- * Standar: Canonical Master Blueprint v1.5 (Institutional Live Ready)
+ * Standar: Canonical Master Blueprint v1.6 (Institutional Live Ready)
  *
  * Supports two execution modes:
  * - dry_run: Simulates everything, logs, but does NOT submit transactions
@@ -143,6 +144,7 @@ export class JupiterService {
       fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
       jitoBundle: false,
       dryRun: true,
+      status: 'success',
     };
   }
 
@@ -167,7 +169,7 @@ export class JupiterService {
     const swapTransactionBuf = Buffer.from(route.swapTransaction, 'base64');
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
 
-    // 3. Sign
+    // 3. Sign (Hardened: Use real keypair)
     transaction.sign([keypair]);
 
     // 4. Jito Bundle Submission
@@ -203,21 +205,37 @@ export class JupiterService {
         fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
         jitoBundle: true,
         dryRun: false,
+        status: 'success',
       };
     } catch (err) {
       console.warn('Jito submission failed, falling back to standard RPC:', err);
-      const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
-        skipPreflight: true,
-        maxRetries: 3,
-      });
-      return {
-        signature,
-        inAmount: route.inAmount,
-        outAmount: route.outAmount,
-        fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
-        jitoBundle: false,
-        dryRun: false,
-      };
+      try {
+        const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
+          skipPreflight: true,
+          maxRetries: 3,
+        });
+
+        return {
+          signature,
+          inAmount: route.inAmount,
+          outAmount: route.outAmount,
+          fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
+          jitoBundle: false,
+          dryRun: false,
+          status: 'success',
+        };
+      } catch (fallbackErr) {
+        console.error('Standard RPC fallback also failed:', fallbackErr);
+        return {
+          signature: 'FAILED',
+          inAmount: route.inAmount,
+          outAmount: route.outAmount,
+          fee: 0,
+          jitoBundle: false,
+          dryRun: false,
+          status: 'failed',
+        };
+      }
     }
   }
 

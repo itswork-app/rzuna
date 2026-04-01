@@ -25,6 +25,7 @@ interface GrpcClient {
   subscribe(): Promise<{
     on(event: string, listener: (data: unknown) => void): void;
     write(req: unknown, cb: (err: Error | null) => void): void;
+    end(): void;
   }>;
 }
 
@@ -68,7 +69,6 @@ export class GeyserService extends EventEmitter {
 
   async start(): Promise<void> {
     this.retryCount = 0;
-
     if (!this.isActive) {
       console.warn('[GeyserService] No-op mode active. Skipping stream connection.');
       return;
@@ -77,27 +77,30 @@ export class GeyserService extends EventEmitter {
     await this.connectWithRetry();
   }
 
+  /**
+   * Hardened Reconnect Logic (Blueprint v1.5)
+   * Tries 5 times with increasing interval (2s, 4s, 8s, 16s, 32s).
+   */
   private async connectWithRetry(): Promise<void> {
     try {
-      console.info(`📡 Connecting to Geyser (Attempt ${this.retryCount + 1})...`);
+      console.info(`📡 [Geyser:${this.mode}] Connecting (Attempt ${this.retryCount + 1})...`);
       await this.startRealStream();
       this.retryCount = 0;
-      console.info('✅ Geyser stream connected successfully.');
+      console.info(`✅ [Geyser:${this.mode}] Stream connected.`);
     } catch (error) {
       this.retryCount++;
-      const delay = Math.min(1000 * Math.pow(2, this.retryCount), 30000);
-      console.error(`❌ Geyser connection failed. Retrying in ${delay}ms...`, error);
-
-      if (this.retryCount < GeyserService.MAX_RETRIES) {
+      if (this.retryCount <= GeyserService.MAX_RETRIES) {
+        const delay = Math.pow(2, this.retryCount) * 1000;
+        console.error(
+          `❌ [Geyser:${this.mode}] Connection failed. Retrying in ${delay / 1000}s...`,
+          error instanceof Error ? error.message : error,
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
         return this.connectWithRetry();
       } else {
-        console.error(
-          `[GeyserService] Max retries (${GeyserService.MAX_RETRIES}) reached. ` +
-            'Stream is offline. No signals will be emitted until restart.',
-        );
+        console.error(`🛑 [Geyser:${this.mode}] Max retries reached. Switching to safe NO-OP.`);
         this.isActive = false;
-        this.emit('error', new Error('Geyser max retries reached. Stream offline.'));
+        this.emit('error', new Error('Geyser max retries reached.'));
       }
     }
   }
@@ -108,18 +111,25 @@ export class GeyserService extends EventEmitter {
     const stream = await this.client.subscribe();
 
     stream.on('data', (data: unknown) => {
+      // Robust Parsing: Dissecting Yellowstone gRPC SubscribeUpdate
       const payload = data as {
         transaction?: {
-          transaction?: { signatures: Uint8Array[]; message: { accountKeys: Uint8Array[] } };
+          transaction?: {
+            signatures: Uint8Array[];
+            message: { accountKeys: Uint8Array[] };
+          };
         };
       };
+
       if (payload?.transaction?.transaction) {
         const tx = payload.transaction.transaction;
-        const signature = bs58.encode(tx.signatures[0]);
         const accountKeys = tx.message.accountKeys.map((k: Uint8Array) => bs58.encode(k));
         const PUMP_FUN_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC';
 
+        // Check if Pump.fun program is involved
         if (accountKeys.includes(PUMP_FUN_ID)) {
+          // Hardened Extraction: Identify the mint address (usually the last or unique key)
+          const signature = bs58.encode(tx.signatures[0]);
           const detectedMint = accountKeys.find((k: string) => k !== PUMP_FUN_ID && k.length > 32);
 
           if (detectedMint) {
@@ -127,7 +137,6 @@ export class GeyserService extends EventEmitter {
               mint: detectedMint,
               signature,
               timestamp: new Date().toISOString(),
-              // Real data provided by upstream or left undefined
             };
             this.emit('mint', event);
           }
@@ -145,14 +154,17 @@ export class GeyserService extends EventEmitter {
     };
 
     await new Promise<void>((resolve, reject) => {
+      // Timeout to prevent hanging on initial write
+      const timeout = setTimeout(() => reject(new Error('Geyser write timeout')), 5000);
       stream.write(request, (err: Error | null) => {
+        clearTimeout(timeout);
         if (err) reject(err);
         else resolve();
       });
     });
 
     stream.on('error', (err: unknown) => {
-      console.error('[GeyserService] Stream error:', err);
+      console.error(`[Geyser:${this.mode}] Stream error:`, err);
       void this.connectWithRetry();
     });
   }
