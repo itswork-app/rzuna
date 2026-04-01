@@ -23,6 +23,21 @@ vi.mock('@solana/web3.js', async (importOriginal) => {
         serialize: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
       }),
     },
+    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
+      this.toBase58 = () => key;
+      this.toBuffer = () => Buffer.alloc(32);
+      this.equals = () => true;
+    }),
+    Transaction: vi.fn().mockImplementation(function (this: any) {
+      this.add = vi.fn().mockReturnThis();
+      this.sign = vi.fn();
+      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      this.recentBlockhash = '';
+      this.feePayer = null;
+    }),
+    SystemProgram: {
+      transfer: vi.fn(),
+    },
   };
 });
 
@@ -146,11 +161,21 @@ describe('🛡️ JupiterService Institutional Coverage', () => {
       swapTransaction: 'AQID',
     };
 
+    // Mock Jito Tip Floor Fetch
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+    });
+
     // Mock Jito 403 Forbidden
     (global.fetch as any).mockResolvedValueOnce({
       ok: false,
       statusText: 'Forbidden',
     });
+
+    // Mock connection.getLatestBlockhash
+    // @ts-expect-error - Accessing private
+    realService.connection.getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
 
     // Mock connection.sendRawTransaction for fallback
     // @ts-expect-error - Accessing private
@@ -174,8 +199,18 @@ describe('🛡️ JupiterService Institutional Coverage', () => {
       swapTransaction: 'AQID',
     };
 
+    // Mock Jito Tip Floor Fetch
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+    });
+
     // Mock fetch to crash
     (global.fetch as any).mockRejectedValueOnce(new Error('Network Crash'));
+
+    // Mock connection.getLatestBlockhash
+    // @ts-expect-error - Accessing private
+    realService.connection.getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
 
     // @ts-expect-error - Accessing private
     realService.connection.sendRawTransaction = vi.fn().mockResolvedValue('crash_fallback_sig');

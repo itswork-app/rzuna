@@ -20,6 +20,38 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 vi.mock('@sentry/node', () => ({ init: vi.fn(), captureException: vi.fn() }));
+vi.mock('@solana/web3.js', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    Keypair: {
+      ...actual.Keypair,
+      fromSecretKey: vi.fn().mockReturnValue({
+        publicKey: { toBase58: () => 'mock_pub' },
+        secretKey: new Uint8Array(64),
+      }),
+    },
+    VersionedTransaction: {
+      ...actual.VersionedTransaction,
+      deserialize: vi.fn().mockReturnValue({
+        sign: vi.fn(),
+        serialize: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
+      }),
+    },
+    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
+      this.toBase58 = () => key;
+      this.toBuffer = () => Buffer.alloc(32);
+      this.equals = () => true;
+    }),
+    Transaction: vi.fn().mockImplementation(function (this: any) {
+      this.add = vi.fn().mockReturnThis();
+      this.sign = vi.fn();
+      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      this.recentBlockhash = '';
+      this.feePayer = null;
+    }),
+  };
+});
 
 describe('☢️ Final Branch Infiltration (Target: 80% Absolute)', () => {
   describe('🛡️ app.ts Surgical Coverage (Line 36-38, 98, 111)', () => {
@@ -75,35 +107,44 @@ describe('☢️ Final Branch Infiltration (Target: 80% Absolute)', () => {
     });
   });
 
-  describe('🛡️ jupiter.service.ts Surgical Coverage (Line 157, 200, 217)', () => {
-    it('should hit branch 157 (Missing swapTransaction in real mode)', async () => {
+  describe('🛡️ jupiter.service.ts Surgical Coverage (Line 251, 255, 298)', () => {
+    it('should hit branch 251 (Missing WALLET_PRIVATE_KEY in real mode)', async () => {
       const service = new JupiterService('real');
+      env.WALLET_PRIVATE_KEY = undefined;
+      await expect(service.executeSwap({ swapTransaction: 'tx' } as any)).rejects.toThrow(
+        'WALLET_PRIVATE_KEY missing',
+      );
       env.WALLET_PRIVATE_KEY = '58J123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijk';
+    });
+
+    it('should hit branch 255 (Missing swapTransaction in real mode)', async () => {
+      const service = new JupiterService('real');
       await expect(service.executeSwap({ swapTransaction: undefined } as any)).rejects.toThrow(
         'Swap transaction missing',
       );
     });
 
-    it('should hit branch 200 (Success path with default signature)', async () => {
+    it('should hit branch 298 (Success path with default signature)', async () => {
       const service = new JupiterService('real');
-      // Mock Jito response without result property
+
+      // Mock Jito Tip Floor Fetch
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockResolvedValue({
+        vi.fn().mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({ something_else: 'no_result' }),
+          json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
         }),
       );
 
-      // Mock Signers
-      const { Keypair, VersionedTransaction } = await import('@solana/web3.js');
-      vi.spyOn(Keypair, 'fromSecretKey').mockReturnValue({
-        publicKey: { toAscii: () => 'A' },
-      } as any);
-      vi.spyOn(VersionedTransaction, 'deserialize').mockReturnValue({
-        sign: vi.fn(),
-        serialize: () => new Uint8Array(),
-      } as any);
+      // Mock Jito response without result property
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ something_else: 'no_result' }),
+      });
+
+      // Mock getLatestBlockhash
+      // @ts-expect-error - Accessing private
+      service.connection.getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
 
       const result = await service.executeSwap({ swapTransaction: 'AQID', inAmount: 1 } as any);
       expect(result.signature).toContain('SIGNATURE_PENDING_');
