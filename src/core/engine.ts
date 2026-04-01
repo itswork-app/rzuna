@@ -195,7 +195,7 @@ export class IntelligenceEngine {
                 : s.aiReasoning
                   ? {
                       ...s.aiReasoning,
-                      narrative: '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning',
+                      narrative: '[HIDDEN] Upgrade to VIP or check quota per AIVO OS reasoning',
                     }
                   : undefined,
         }));

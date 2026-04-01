@@ -101,7 +101,7 @@ describe('IntelligenceEngine — Scarcity Engine', () => {
   });
 
   it('obfuscates narrative for non-VIP users', () => {
-    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP or check quota per Eliza OS reasoning';
+    const HIDDEN_MSG = '[HIDDEN] Upgrade to VIP or check quota per AIVO OS reasoning';
     const TEST_MINT = 'mint1';
     const SECRET_TEXT = 'Secret Alpha';
 
