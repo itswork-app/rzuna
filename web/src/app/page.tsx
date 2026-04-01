@@ -11,6 +11,7 @@ import { TokenCard } from '@/components/TokenCard';
 import { TierCards } from '@/components/TierCards';
 import { FeatureShowcase } from '@/components/FeatureShowcase';
 import Link from 'next/link';
+import posthog from 'posthog-js';
 
 export default function MarketingPage() {
   const { connected } = useWallet();
@@ -111,7 +112,11 @@ export default function MarketingPage() {
                     <Lock size={48} className="text-cyan-400 mx-auto mb-6" />
                     <h3 className="text-2xl font-black mb-2 uppercase">Deep Narrative Locked</h3>
                     <p className="text-zinc-500 text-sm mb-8 font-medium italic">Subscription required for L2 AI reasoning and real-time execution.</p>
-                    <Link href="#pricing" className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 px-6 py-3 rounded-xl font-bold uppercase tracking-widest transition-all">
+                    <Link 
+                      href="#pricing" 
+                      onClick={() => posthog.capture('PRICING_VIEW_CLICK', { source: 'signal_blur' })}
+                      className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 px-6 py-3 rounded-xl font-bold uppercase tracking-widest transition-all"
+                    >
                        See Pricing <ArrowRight size={16} />
                     </Link>
                  </div>

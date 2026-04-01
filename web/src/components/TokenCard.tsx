@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { useTrade } from '@/hooks/useTrade';
 import { useWallet } from '@solana/wallet-adapter-react';
+import posthog from 'posthog-js';
 
 interface TokenSignal {
   id: string;
@@ -33,6 +34,7 @@ export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onC
   const handleBuy = async () => {
     if (!connected) return alert('Please connect wallet first.');
     try {
+      posthog.capture('INSTITUTIONAL_BUY_CLICK', { mint: signal.event.mint, symbol: signal.event.metadata?.symbol });
       const result = await executeTrade(signal);
       console.log('Trade result:', result);
       alert(`Institutional Trade Initialized: ${result.signature?.slice(0, 8)}...`);
@@ -76,6 +78,7 @@ export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onC
       ) : (
         <button
           onClick={() => {
+            posthog.capture('REVEAL_REASONING_CLICK', { mint: signal.event.mint });
             onConsumeQuota();
             setIsReasoningVisible(true);
           }}

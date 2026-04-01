@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { WalletContextProvider } from '@/components/WalletContextProvider';
+import { PostHogProvider } from '@/components/PostHogProvider';
+import { AxiomWebVitals } from 'next-axiom';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,7 +21,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <WalletContextProvider>
-          {children}
+          <PostHogProvider>
+            {children}
+            <AxiomWebVitals />
+          </PostHogProvider>
         </WalletContextProvider>
       </body>
     </html>

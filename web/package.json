@@ -12,6 +12,7 @@
     "guardian": "bash scripts/guardian.sh"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.47.0",
     "@solana/wallet-adapter-base": "^0.9.24",
     "@solana/wallet-adapter-react": "^0.15.37",
     "@solana/wallet-adapter-react-ui": "^0.9.36",
@@ -21,6 +22,8 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.511.0",
     "next": "16.2.1",
+    "next-axiom": "^1.10.0",
+    "posthog-js": "^1.364.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "swr": "^2.4.1"
@@ -43,5 +46,11 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5",
     "vitest": "^4.1.2"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom",
+    "@types/react": "$@types/react",
+    "@types/react-dom": "$@types/react-dom"
   }
 }
