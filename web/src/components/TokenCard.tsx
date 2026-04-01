@@ -26,7 +26,15 @@ interface TokenSignal {
   };
 }
 
-export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onConsumeQuota: () => void }) {
+export function TokenCard({ 
+  signal, 
+  onConsumeQuota,
+  sensorMode = false
+}: { 
+  signal: TokenSignal, 
+  onConsumeQuota: () => void,
+  sensorMode?: boolean
+}) {
   const [isReasoningVisible, setIsReasoningVisible] = useState(false);
   const { executeTrade, isExecuting } = useTrade();
   const { connected } = useWallet();
@@ -45,18 +53,25 @@ export function TokenCard({ signal, onConsumeQuota }: { signal: TokenSignal, onC
   };
 
   return (
-    <div className="bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/50 transition-all group">
+    <div className={`bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/50 transition-all group ${sensorMode ? 'opacity-70 grayscale-[0.5]' : ''}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
             {signal.event.metadata?.name || 'Unknown Token'}
           </h3>
-          <p className="text-gray-400 text-sm font-mono">{signal.event.mint.slice(0, 6)}...{signal.event.mint.slice(-4)}</p>
+          {sensorMode ? (
+            <div className="flex items-center gap-2 text-cyan-400/60 font-mono text-xs mt-1">
+              <span className="bg-cyan-400/20 px-2 py-0.5 rounded italic">Institutional Mint Hidden</span>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm font-mono">{signal.event.mint.slice(0, 6)}...{signal.event.mint.slice(-4)}</p>
+          )}
         </div>
         <div className="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full text-sm font-bold border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
           Score: {signal.score}
         </div>
       </div>
+
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-black/30 p-3 rounded-lg border border-white/5">

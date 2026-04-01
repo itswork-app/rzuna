@@ -11,15 +11,42 @@ import { TokenCard } from '@/components/TokenCard';
 import { TierCards } from '@/components/TierCards';
 import { FeatureShowcase } from '@/components/FeatureShowcase';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/env';
 import posthog from 'posthog-js';
+
+import { TokenSignal as Signal } from '@/types';
 
 export default function MarketingPage() {
   const { connected } = useWallet();
   const { isAuthenticated, isAuthenticating, login } = useAuth();
   const { signals } = useSignals();
+  const [liveSignals, setLiveSignals] = React.useState<Signal[]>([]);
 
-  // Limited stream for marketing: Only show top 2 signals and blur them slightly
-  const marketingSignals = signals.slice(0, 2);
+
+
+  // Real-time WebSocket Stream for Marketing Preview
+  React.useEffect(() => {
+    const wsUrl = getApiUrl().replace('http', 'ws') + '/ws/signals';
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const { type, payload } = JSON.parse(event.data);
+        if (type === 'ALPHA_SIGNAL') {
+          setLiveSignals(prev => [payload, ...prev].slice(0, 4));
+        }
+      } catch (err) {
+        console.error('[WS_MARKETING] Failed to parse signal:', err);
+      }
+    };
+
+    return () => socket.close();
+  }, []);
+
+  // Use live signals if available, fallback to static fetch
+  const displaySignals = liveSignals.length > 0 ? liveSignals : signals;
+  const marketingSignals = displaySignals.slice(0, 2);
+
 
   return (
     <main className="min-h-screen bg-[#050510] text-gray-100 selection:bg-cyan-500/30 overflow-x-hidden">
@@ -125,9 +152,10 @@ export default function MarketingPage() {
 
             {marketingSignals.map((signal) => (
               <TokenCard 
-                key={signal.id} 
+                key={signal.id || signal.event.mint} 
                 signal={signal} 
                 onConsumeQuota={() => {}} 
+                sensorMode={!isAuthenticated}
               />
             ))}
           </div>

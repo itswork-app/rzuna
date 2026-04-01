@@ -6,6 +6,7 @@ import { monitoringPlugin } from './infrastructure/monitoring/monitoring.plugin.
 import { IntelligenceEngine } from './core/engine.js';
 import { feePlugin } from './plugins/fee.plugin.js';
 import { TierService } from './core/tiers/tier.service.js';
+import websocket from '@fastify/websocket';
 import { env } from './utils/env.js';
 import { SubscriptionStatus } from './core/types/user.js';
 import { JupiterService } from './infrastructure/jupiter/jupiter.service.js';
@@ -19,12 +20,15 @@ export const buildApp = async () => {
     logger: env.NODE_ENV === 'development',
   });
 
+  // Register modern WebSocket plugin
+  await fastify.register(websocket);
+
   // ================================================================
   // CORS: Institutional Origin Whitelist (Blueprint v1.6)
   // Production: *.aivo.sh only. Dev: all origins allowed.
   // Override with ALLOWED_ORIGINS="https://aivo.sh,https://trade.aivo.sh"
   // ================================================================
-  const AIVO_ORIGIN_PATTERN = /^https:\/\/([\w-]+\.)?aivo\.sh$/;
+  const AIVO_ORIGIN_PATTERN = /^https:\/\/([a-zA-Z0-9-]+\.)?aivo\.sh$/;
 
   const getAllowedOrigins = (): (string | RegExp)[] => {
     if (env.ALLOWED_ORIGINS) {
@@ -64,6 +68,29 @@ export const buildApp = async () => {
 
   fastify.decorate('engine', engine);
   fastify.decorate('jupiter', jupiterService);
+
+  // VIP Infrastructure Activation: Blueprint v1.6
+  fastify.addHook('onRequest', async (request) => {
+    if (request.headers['x-rzuna-vip-mode'] === 'true') {
+      await engine.ensureVipGeyser();
+    }
+  });
+
+  // WebSocket Route: Real-time Alpha Signals
+  fastify.get('/ws/signals', { websocket: true }, (connection, req) => {
+    const isVip = req.headers['x-rzuna-vip-mode'] === 'true';
+    console.info(`[WS] Client connected. VIP Mode: ${isVip} | Host: ${req.headers.host}`);
+
+    const onSignal = (signal: any) => {
+      connection.send(JSON.stringify({ type: 'ALPHA_SIGNAL', payload: signal }));
+    };
+
+    engine.on('signal', onSignal);
+
+    connection.on('close', () => {
+      engine.off('signal', onSignal);
+    });
+  });
 
   // Health check for Checkly/Guardian
   fastify.get('/health', async (_request, reply) => {
