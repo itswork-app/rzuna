@@ -1,4 +1,11 @@
-import { Connection, Keypair, VersionedTransaction, PublicKey } from '@solana/web3.js';
+import {
+  Connection,
+  Keypair,
+  VersionedTransaction,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from '@solana/web3.js';
 import bs58 from 'bs58';
 import { env } from '../../utils/env.js';
 
@@ -76,6 +83,7 @@ export class JupiterService {
     amountLamports: number,
     platformFeeBps: number,
     userPublicKey: string,
+    destinationWallet?: string,
   ): Promise<SwapRoute> {
     const quoteParams = new URLSearchParams({
       inputMint,
@@ -121,6 +129,7 @@ export class JupiterService {
         userPublicKey,
         wrapAndUnwrapSol: true,
         feeAccount, // PR 7 Hardening: Automatic On-Chain Fee Capture
+        destinationWallet, // PR 8: Direct Treasury Routing
       }),
     });
     if (!swapRes.ok) throw new Error(`Jupiter swap assembly failed: ${swapRes.statusText}`);
@@ -259,38 +268,34 @@ export class JupiterService {
     // 3. Sign (Hardened: Use real keypair)
     transaction.sign([keypair]);
 
-    // 4. Dynamic Jito Tip (PR 7 Hardening: getRecentJitoTip)
-    const tipFloorSOL = await this.getRecentJitoTip();
-    console.info(`[JITO] Recommended Tip: ${tipFloorSOL} SOL`);
+    // 4. Dynamic Jito Tip (PR 8 Hardening: 2-TX Bundle + getRecentJitoTip)
+    const tipAmountSOL = await this.getRecentJitoTip();
+    const tipAmountLamports = Math.floor(tipAmountSOL * 1e9);
+    console.info(`[JITO] Optimal Tip: ${tipAmountSOL} SOL (${tipAmountLamports} lamports)`);
 
-    // 5. Jito Bundle Submission
-    const signedTxBase58 = bs58.encode(transaction.serialize());
-    const jitoBlockEngineUrl = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
+    // 5. Create Jito Tip Transaction (Standard Transaction for Tip)
+    const tipInstruction = SystemProgram.transfer({
+      fromPubkey: keypair.publicKey,
+      toPubkey: new PublicKey(
+        env.JITO_TIP_PAYMENT_ADDRESS || 'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY',
+      ),
+      lamports: tipAmountLamports,
+    });
 
-    const bundle: JitoBundle = {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'sendBundle',
-      params: [[signedTxBase58]],
-    };
+    const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+    const tipTransaction = new Transaction().add(tipInstruction);
+    tipTransaction.recentBlockhash = blockhash;
+    tipTransaction.feePayer = keypair.publicKey;
+    tipTransaction.sign(keypair);
 
-    console.info(`[JITO] Submitting bundle to ${jitoBlockEngineUrl}`);
+    const signedTipTxBase58 = bs58.encode(tipTransaction.serialize());
+    const signedSwapTxBase58 = bs58.encode(transaction.serialize());
 
+    // 6. Jito Bundle Submission (Swap + Tip)
     try {
-      const res = await fetch(`${jitoBlockEngineUrl}/api/v1/bundles`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bundle),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Jito bundle submission failed: ${res.statusText}`);
-      }
-
-      const result = (await res.json()) as { result: string };
-
+      const result = await this.submitJitoBundle(signedSwapTxBase58, signedTipTxBase58);
       return {
-        signature: result.result || `SIGNATURE_PENDING_${Date.now()}`,
+        signature: result || `SIGNATURE_PENDING_${Date.now()}`,
         inAmount: route.inAmount,
         outAmount: route.outAmount,
         fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
@@ -300,33 +305,66 @@ export class JupiterService {
       };
     } catch (err) {
       console.warn('Jito submission failed, falling back to standard RPC:', err);
-      try {
-        const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
-          skipPreflight: true,
-          maxRetries: 3,
-        });
+      return this.executeStandardFallback(transaction, route);
+    }
+  }
 
-        return {
-          signature,
-          inAmount: route.inAmount,
-          outAmount: route.outAmount,
-          fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
-          jitoBundle: false,
-          dryRun: false,
-          status: 'success',
-        };
-      } catch (fallbackErr) {
-        console.error('Standard RPC fallback also failed:', fallbackErr);
-        return {
-          signature: 'FAILED',
-          inAmount: route.inAmount,
-          outAmount: route.outAmount,
-          fee: 0,
-          jitoBundle: false,
-          dryRun: false,
-          status: 'failed',
-        };
-      }
+  /**
+   * Submit Jito Bundle (Swap + Tip) to Jito Block Engine.
+   */
+  private async submitJitoBundle(swapTx: string, tipTx: string): Promise<string> {
+    const jitoBlockEngineUrl = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
+    const bundle: JitoBundle = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'sendBundle',
+      params: [[swapTx, tipTx]],
+    };
+
+    const res = await fetch(`${jitoBlockEngineUrl}/api/v1/bundles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bundle),
+    });
+
+    if (!res.ok) throw new Error(`Jito bundle submission failed: ${res.statusText}`);
+    const { result } = (await res.json()) as { result: string };
+    return result;
+  }
+
+  /**
+   * Standard RPC Fallback if Jito fails.
+   */
+  private async executeStandardFallback(
+    transaction: VersionedTransaction,
+    route: SwapRoute,
+  ): Promise<SwapResult> {
+    try {
+      const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
+        skipPreflight: true,
+        maxRetries: 3,
+      });
+
+      return {
+        signature,
+        inAmount: route.inAmount,
+        outAmount: route.outAmount,
+        fee: Math.floor(route.inAmount * ((route.platformFeeBps ?? 0) / 10000)),
+        jitoBundle: false,
+        dryRun: false,
+        status: 'success',
+      };
+    } catch (fallbackErr) {
+      console.error('Standard RPC fallback also failed:', fallbackErr);
+      return {
+        signature: 'FAILED',
+        inAmount: route.inAmount,
+        outAmount: route.outAmount,
+        fee: 0,
+        jitoBundle: false,
+        dryRun: false,
+        status: 'failed',
+      };
     }
   }
 

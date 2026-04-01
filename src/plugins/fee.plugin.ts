@@ -2,6 +2,7 @@ import { type FastifyPluginAsync } from 'fastify';
 import { TierService } from '../core/tiers/tier.service.js';
 import { supabase } from '../infrastructure/supabase/client.js';
 import { JupiterService } from '../infrastructure/jupiter/jupiter.service.js';
+import { env } from '../utils/env.js';
 
 interface TradeBody {
   walletAddress: string;
@@ -192,6 +193,7 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
         amountLamports,
         0, // No fee on internal subscription routing
         walletAddress,
+        env.USDC_TREASURY_WALLET, // 🏛️ PR 8: Direct Treasury Routing
       );
 
       const swapResult = await jupiterService.executeSwap(route);

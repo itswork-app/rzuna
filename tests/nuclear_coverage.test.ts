@@ -45,6 +45,42 @@ vi.mock('openai', () => ({
   },
 }));
 
+vi.mock('@solana/web3.js', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    Keypair: {
+      ...actual.Keypair,
+      fromSecretKey: vi.fn().mockReturnValue({
+        publicKey: { toBase58: () => 'mock_pub' },
+        secretKey: new Uint8Array(64),
+      }),
+    },
+    VersionedTransaction: {
+      ...actual.VersionedTransaction,
+      deserialize: vi.fn().mockReturnValue({
+        sign: vi.fn(),
+        serialize: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
+      }),
+    },
+    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
+      this.toBase58 = () => key;
+      this.toBuffer = () => Buffer.alloc(32);
+      this.equals = () => true;
+    }),
+    Transaction: vi.fn().mockImplementation(function (this: any) {
+      this.add = vi.fn().mockReturnThis();
+      this.sign = vi.fn();
+      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      this.recentBlockhash = '';
+      this.feePayer = null;
+    }),
+    SystemProgram: {
+      transfer: vi.fn(),
+    },
+  };
+});
+
 describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
   let service: ReasoningService;
 
@@ -263,10 +299,20 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
 
       // 3. Mock Supabase error (Line 95)
       const { supabase } = await import('../src/infrastructure/supabase/client.js');
-      const supabaseFromSpy = vi.spyOn(supabase, 'from');
-      supabaseFromSpy.mockReturnValue({
-        insert: vi.fn().mockResolvedValue({ error: new Error('DB Fail') }),
-      } as any);
+      const mockSupabase = {
+        from: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: '1', rank: 'NEWBIE' } }),
+      };
+      (mockSupabase.insert as any).mockResolvedValue({ error: new Error('DB Fail') });
+      (mockSupabase.update as any).mockResolvedValue({ error: null });
+
+      const supabaseFromSpy = vi
+        .spyOn(supabase, 'from')
+        .mockImplementation(mockSupabase.from as any);
 
       await handler(
         { body: { walletAddress: 'w', amountUSD: 100, platform: 'RAYDIUM', signature: 's' } },

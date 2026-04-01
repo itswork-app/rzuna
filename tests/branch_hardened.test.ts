@@ -29,11 +29,26 @@ vi.mock('@solana/web3.js', async () => {
     VersionedTransaction: {
       deserialize: vi.fn().mockReturnValue({ sign: vi.fn(), serialize: () => new Uint8Array() }),
     },
+    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
+      this.toBase58 = () => key;
+      this.toBuffer = () => Buffer.alloc(32);
+      this.equals = () => true;
+    }),
     Connection: class {
       sendRawTransaction = vi.fn().mockResolvedValue('MOCK_SIG');
       getLatestBlockhash = vi
         .fn()
         .mockResolvedValue({ blockhash: 'MOCK_HASH', lastValidBlockHeight: 100 });
+    },
+    Transaction: vi.fn().mockImplementation(function (this: any) {
+      this.add = vi.fn().mockReturnThis();
+      this.sign = vi.fn();
+      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      this.recentBlockhash = '';
+      this.feePayer = null;
+    }),
+    SystemProgram: {
+      transfer: vi.fn(),
     },
   };
 });
@@ -107,38 +122,48 @@ describe('🛡️ Institutional Infrastructure Hardening (80% Branches)', () => 
   });
 
   describe('🛡️ jupiter.service.ts Surgical Coverage (Target: 100% Branches)', () => {
-    it('should hit Jito Fallback Branches (Lines 188, 192, 200, 203)', async () => {
+    it('should hit Jito Fallback Branches (Lines 298, 308, 321)', async () => {
       const service = new JupiterService('real');
       env.JITO_BLOCK_ENGINE_URL = 'https://jito';
 
-      // 1. Jito: !res.ok (Line 188)
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, statusText: 'Jito Down' }));
+      // 1. Jito Tip Floor Fetch (Standard start for all real trades)
+      const mockTipFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+      });
+      vi.stubGlobal('fetch', mockTipFetch);
+
+      // 2. Jito: !res.ok (Line 321 in submitJitoBundle)
+      mockTipFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+      });
+      mockTipFetch.mockResolvedValueOnce({ ok: false, statusText: 'Jito Down' });
       await service.executeSwap({ swapTransaction: 'tx' } as any).catch(() => {});
 
-      // 2. Jito: result.error (Line 192)
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: true,
-          json: () => Promise.resolve({ error: { message: 'Quota' } }),
-        }),
-      );
-      await service.executeSwap({ swapTransaction: 'tx' } as any).catch(() => {});
-
-      // 3. Jito: result.result skip (Line 200)
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ result: null }) }),
-      );
+      // 3. Jito: result.result fallback (Line 298 in executeReal)
+      mockTipFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+      });
+      mockTipFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ result: null }),
+      });
       const res3 = await service.executeSwap({ swapTransaction: 'tx' } as any);
       expect(res3.signature).toContain('SIGNATURE_PENDING_');
 
-      // 4. Fee Fallback (Line 203)
+      // 4. Jito Fallback (Line 308 in executeReal)
+      mockTipFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+      });
+      mockTipFetch.mockRejectedValueOnce(new Error('Crash'));
       const res4 = await service.executeSwap({
         swapTransaction: 'tx',
         platformFeeBps: undefined,
       } as any);
-      expect(res4).toBeDefined();
+      expect(res4.signature).toBe('MOCK_SIG');
 
       vi.unstubAllGlobals();
     });
