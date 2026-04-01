@@ -6,7 +6,6 @@ import { TokenSignal as Signal } from '@/types';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import { getApiUrl } from '@/lib/env';
 
-
 interface UseSignalsReturn {
   signals: Signal[];
   isLoading: boolean;
