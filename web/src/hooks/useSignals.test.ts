@@ -1,185 +1,127 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSignals } from './useSignals';
-import { supabase } from '@/lib/supabase';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Supabase
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    channel: vi.fn(),
-    removeChannel: vi.fn()
-  }
+// Mock the wallet adapter hook
+vi.mock('@solana/wallet-adapter-react', () => ({
+  useWallet: vi.fn(),
 }));
 
 // Mock Fetch
 global.fetch = vi.fn();
 
-describe('useSignals Hook Institutional Siege', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let subCallback: (payload: { eventType: string; new: any }) => void;
+describe('useSignals Hook (Institutional)', () => {
+  const mockSignals = [
+    {
+      id: '1',
+      score: 95,
+      aiReasoning: { narrative: 'Test alpha', confident: 'HIGH' },
+      event: {
+        mint: 'So11...112',
+        signature: 'SIG123',
+        timestamp: new Date().toISOString(),
+        initialLiquidity: 1000,
+        socialScore: 90,
+        metadata: { name: 'Solana Coin', symbol: 'SOL' }
+      }
+    }
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    subCallback = () => {};
+    vi.mocked(useWallet).mockReturnValue({ publicKey: { toBase58: () => 'rzun...7p2v' }, connected: true } as unknown as ReturnType<typeof useWallet>);
+  });
+
+  it('initially has empty signals and starts loading', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ signals: [] })
+    } as Response);
+
+    const { result } = renderHook(() => useSignals());
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.signals).toEqual([]);
+  });
+
+  it('fetches signals correctly for a connected wallet', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ signals: mockSignals })
+    } as Response);
+
+    const { result } = renderHook(() => useSignals());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(supabase.channel as any).mockReturnValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      on: vi.fn().mockImplementation((_event: string, _filter: any, cb: any) => {
-        subCallback = cb;
-        return { on: vi.fn().mockReturnThis(), subscribe: vi.fn().mockReturnThis() };
-      }),
-      subscribe: vi.fn().mockReturnThis()
-    });
+    expect(result.current.signals).toHaveLength(1);
+    expect(result.current.signals[0].event.mint).toBe('So11...112');
   });
 
-  it('initially has empty signals and is loading', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
+  it('handles API fetch failure gracefully', async () => {
+    vi.mocked(global.fetch).mockRejectedValue(new Error('Network Crash'));
+
+    const { result } = renderHook(() => useSignals());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    
+    expect(result.current.error).toBe('Network Crash');
+    expect(result.current.signals).toEqual([]);
+  });
+
+  it('provides a refetch function to manually refresh', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ signals: [] })
-    });
+    } as Response);
 
     const { result } = renderHook(() => useSignals());
-    expect(result.current.loading).toBe(true);
-    await waitFor(() => expect(result.current.loading).toBe(false));
-  });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-  it('handles supabase UPDATE event (Auto-Down)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: [{ mint: '0x1', score: 90, symbol: 'S', isPremium: true, isNew: false, timestamp: Date.now() }] })
-    });
+      json: () => Promise.resolve({ signals: mockSignals })
+    } as Response);
 
-    const { result } = renderHook(() => useSignals());
+    await act(async () => {
+      await result.current.refetch();
+    });
     await waitFor(() => expect(result.current.signals).toHaveLength(1));
-
-    act(() => {
-      subCallback({
-        eventType: 'UPDATE',
-        new: { mint_address: '0x1', base_score: 50, is_active: false }
-      });
-    });
-
-    await waitFor(() => expect(result.current.signals).toHaveLength(0));
   });
 
-  it('handles supabase INSERT event (Valid)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
+  it('returns immediately if publicKey is missing', async () => {
+    vi.mocked(useWallet).mockReturnValue({ publicKey: null, connected: false } as unknown as ReturnType<typeof useWallet>);
+    const { result } = renderHook(() => useSignals());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('handles signals payload with missing signals array', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: [] })
-    });
+      json: () => Promise.resolve({}) // Missing signals array
+    } as Response);
 
     const { result } = renderHook(() => useSignals());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    act(() => {
-      subCallback({
-        eventType: 'INSERT',
-        new: { mint_address: '0x2', base_score: 85, is_active: true, id: '2' }
-      });
-    });
-
-    await waitFor(() => expect(result.current.signals).toHaveLength(1));
-    expect(result.current.signals[0].mint).toBe('0x2');
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.signals).toEqual([]);
   });
 
-  it('handles supabase INSERT event (Invalid < 85 or inactive)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ signals: [] })
-    });
+  it('handles API failure with non-OK status code', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      statusText: 'Forbidden'
+    } as Response);
 
     const { result } = renderHook(() => useSignals());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    act(() => {
-      subCallback({
-        eventType: 'INSERT',
-        new: { mint_address: '0x3', base_score: 84, is_active: true }
-      });
-    });
-
-    expect(result.current.signals).toHaveLength(0);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe('Signal fetch failed: Forbidden');
   });
 
-  it('handles API failure gracefully (Branch Coverage Line 21)', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockRejectedValue(new Error('API Crash'));
+  it('handles API failure with non-Error object during fetch', async () => {
+    vi.mocked(global.fetch).mockRejectedValue('String Error'); // Not an Instance of Error
 
     const { result } = renderHook(() => useSignals());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch signals:'), expect.any(Error));
-    expect(result.current.signals).toHaveLength(0);
-  });
-
-  it('handles supabase UPDATE event (Score/Reasoning Update - Line 40)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ 
-        signals: [{ mint: '0x1', score: 90, symbol: 'S', isPremium: true, isNew: false, timestamp: Date.now() }] 
-      })
-    });
-
-    const { result } = renderHook(() => useSignals());
-    await waitFor(() => expect(result.current.signals).toHaveLength(1));
-
-    act(() => {
-      subCallback({
-        eventType: 'UPDATE',
-        new: { 
-          mint_address: '0x1', 
-          base_score: 95, 
-          is_active: true, 
-          ai_reasoning: JSON.stringify({ narrative: 'Upgraded Alpha' }) 
-        }
-      });
-    });
-
-    await waitFor(() => expect(result.current.signals[0].score).toBe(95));
-    expect(result.current.signals[0].aiReasoning?.narrative).toBe('Upgraded Alpha');
-  });
-
-  it('handles invalid JSON reasoning gracefully (Line 43)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ 
-        signals: [{ 
-          mint: '0x1', 
-          score: 90, 
-          symbol: 'S', 
-          isPremium: true, 
-          isNew: false, 
-          timestamp: Date.now(),
-          aiReasoning: { narrative: 'Old' }
-        }] 
-      })
-    });
-
-    const { result } = renderHook(() => useSignals());
-    await waitFor(() => expect(result.current.signals).toHaveLength(1));
-
-    act(() => {
-      subCallback({
-        eventType: 'UPDATE',
-        new: { 
-          mint_address: '0x1', 
-          base_score: 90, 
-          is_active: true, 
-          ai_reasoning: '{ invalid json }' // Should fallback to old value
-        }
-      });
-    });
-
-    await waitFor(() => {
-      expect(result.current.signals[0].aiReasoning?.narrative).toBe('Old');
-    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe('Unknown error');
   });
 });

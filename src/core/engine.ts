@@ -95,24 +95,36 @@ export class IntelligenceEngine {
         })();
       }
     });
+
+    // 1b. GEYSER ERROR HANDLING: Handle stream failures gracefully
+    this.geyser.on('error', (error: Error) => {
+      console.error('[IntelligenceEngine] Geyser stream error:', error);
+      // In a real institutional setup, we might trigger a circuit breaker or alert here.
+    });
   }
 
   private async persistToSupabase(signal: AlphaSignal) {
-    const { event, score, reasoning, isPremium } = signal;
-    const { error } = await supabase.from('scouted_tokens').upsert(
-      {
-        mint_address: event.mint,
-        symbol: event.metadata?.symbol ?? 'UNKNOWN',
-        base_score: score,
-        ai_reasoning: signal.aiReasoning?.narrative ?? reasoning?.join('\n') ?? '',
-        is_active: true,
-        is_private: isPremium,
-        metadata: event.metadata ? JSON.parse(JSON.stringify(event.metadata)) : null,
-      } as unknown as never,
-      { onConflict: 'mint_address' },
-    );
+    const data = this.preparePersistData(signal);
+    const response = await supabase
+      .from('scouted_tokens')
+      .upsert(data, { onConflict: 'mint_address' });
 
-    if (error) console.error('[Engine] Failed to persist token:', error);
+    if (!response || response.error) {
+      console.error('[Engine] Failed to persist token:', response?.error || 'No response');
+    }
+  }
+
+  private preparePersistData(signal: AlphaSignal) {
+    const { event, score, reasoning, isPremium } = signal;
+    return {
+      mint_address: event.mint,
+      symbol: event.metadata?.symbol ?? 'UNKNOWN',
+      base_score: score,
+      ai_reasoning: signal.aiReasoning?.narrative ?? reasoning?.join('\n') ?? '',
+      is_active: true,
+      is_private: isPremium,
+      metadata: event.metadata ? JSON.parse(JSON.stringify(event.metadata)) : null,
+    } as unknown as never;
   }
 
   private startAutoDownExecution() {
@@ -120,21 +132,24 @@ export class IntelligenceEngine {
       for (const [mint, signal] of this.activeSignals.entries()) {
         const currentResult: ScoringResult = this.scorer.calculateScore(signal.event);
 
-        // Randomly simulate score decay for demonstration
-        const finalScore = Math.random() > 0.95 ? 80 : currentResult.score;
-
-        // 4. AUTO-DOWN EXECUTION
-        if (this.scorer.shouldDelist(finalScore)) {
+        if (this.scorer.shouldDelist(currentResult.score)) {
           this.activeSignals.delete(mint);
-          console.warn(`[AUTO-DOWN] Mint ${mint} score dropped to ${finalScore}.`);
+          console.warn(
+            `[AUTO-DOWN] Mint ${mint} score dropped to ${currentResult.score}. Delisted.`,
+          );
 
           void (async () => {
-            const { error } = await supabase
+            const response = await supabase
               .from('scouted_tokens')
               .update({ is_active: false } as unknown as never)
               .eq('mint_address', mint);
 
-            if (error) console.error('[Engine] Failed to Auto-Down token:', error);
+            if (!response || response.error) {
+              console.error(
+                '[Engine] Failed to Auto-Down token:',
+                response?.error || 'No response',
+              );
+            }
           })();
         }
       }
@@ -153,6 +168,8 @@ export class IntelligenceEngine {
     profile: { aiQuotaLimit: number; aiQuotaUsed: number },
   ): AlphaSignal[] {
     try {
+      if (!this.activeSignals) return [];
+
       const access = {
         hasPrivateTokenAccess: isStarlight || isVIP,
         hasAiReasoning: isStarlight || isVIP,
@@ -174,7 +191,7 @@ export class IntelligenceEngine {
             access.hasAiReasoning && access.aiReasoningQuota > 0
               ? s.aiReasoning
               : isVIP
-                ? s.aiReasoning // VIP bypasses quota for dedicated infrastructure
+                ? s.aiReasoning
                 : s.aiReasoning
                   ? {
                       ...s.aiReasoning,

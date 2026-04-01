@@ -43,6 +43,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
               wallet: (request.query as { wallet?: string })?.wallet,
             },
           ]);
+          await axiom.flush();
         } catch (error) {
           fastify.log.error(error, 'Axiom ingestion failed');
         }
@@ -60,6 +61,7 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
             _time: new Date().toISOString(),
           },
         ]);
+        await axiom.flush();
       } catch (error) {
         fastify.log.error(error, 'Axiom alpha log failed');
       }

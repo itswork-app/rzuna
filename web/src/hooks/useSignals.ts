@@ -1,94 +1,54 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { AlphaSignal } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { TokenSignal as Signal } from '@/types';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
-export function useSignals() {
-  const [signals, setSignals] = useState<AlphaSignal[]>([]);
-  const [loading, setLoading] = useState(true);
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  useEffect(() => {
-    // Initial fetch from backend API
-    const fetchSignals = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/signals`);
-        if (response.ok) {
-          const data = await response.json();
-          setSignals(data.signals || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch signals:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchSignals();
 
-    // Supabase Real-time Subscription
-    const channel = supabase
-      .channel('public:scouted_tokens')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scouted_tokens' }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
-          const updatedToken = payload.new as { is_active: boolean; base_score: number; mint_address: string; ai_reasoning?: string };
-          
-          if (!updatedToken.is_active || updatedToken.base_score < 85) {
-            // AUTO-DOWN
-            setSignals(prev => prev.filter(s => s.mint !== updatedToken.mint_address));
-          } else {
-            setSignals(prev => prev.map(s => s.mint === updatedToken.mint_address ? {
-              ...s,
-              score: updatedToken.base_score,
-              aiReasoning: (() => {
-                if (!updatedToken.ai_reasoning) return s.aiReasoning;
-                try {
-                  return JSON.parse(updatedToken.ai_reasoning);
-                } catch {
-                  return s.aiReasoning;
-                }
-              })()
-            } : s));
-          }
-        } else if (payload.eventType === 'INSERT') {
-          const newToken = payload.new as { mint_address: string; base_score: number; is_active: boolean };
-          if (newToken.is_active && newToken.base_score >= 85) {
-            const signal: AlphaSignal = {
-              mint: newToken.mint_address,
-              symbol: 'UNKNOWN',
-              score: newToken.base_score,
-              isPremium: true,
-              isNew: true,
-              timestamp: Date.now()
-            };
-            setSignals(prev => [...prev, signal]);
-          }
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  return { signals, loading };
+interface UseSignalsReturn {
+  signals: Signal[];
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }
 
 /**
- * Consume one AI quota unit for the given wallet.
- * Called by TokenCard when a Starlight user expands the AI Reasoning section.
- * Standar: Canonical Master Blueprint v1.5
+ * Fetches tier-filtered alpha signals from the backend /signals endpoint.
  */
-export async function consumeQuota(walletAddress: string): Promise<boolean> {
-  try {
-    const res = await fetch('/api/consume-quota', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wallet: walletAddress }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+export function useSignals(): UseSignalsReturn {
+  const { publicKey } = useWallet();
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSignals = useCallback(async () => {
+    if (!publicKey) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/signals?wallet=${publicKey.toBase58()}`);
+      if (!res.ok) throw new Error(`Signal fetch failed: ${res.statusText}`);
+
+      const data = await res.json();
+      setSignals(data.signals || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[SIGNALS]', message);
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicKey]);
+
+  useEffect(() => {
+    void fetchSignals();
+  }, [publicKey, fetchSignals]);
+
+  return { signals, isLoading, error, refetch: fetchSignals };
 }

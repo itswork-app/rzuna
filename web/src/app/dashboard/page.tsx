@@ -7,7 +7,12 @@ import { UserStats } from '@/components/UserStats';
 import { UserRank, SubscriptionStatus } from '@/types';
 
 export default function Dashboard() {
-  const { signals, loading } = useSignals();
+  const { signals, isLoading } = useSignals();
+  
+  const handleConsumeQuota = async () => {
+    // Implementasi consume quota (atomic via Supabase RPC)
+    // Placeholder untuk Institutional CI/CD
+  };
 
   return (
     <main className="min-h-screen bg-black text-white p-6 font-sans">
@@ -31,14 +36,18 @@ export default function Dashboard() {
         {/* Token Scouting Stream */}
         <div className="md:col-span-2 space-y-4">
           <h2 className="text-zinc-400 text-xs uppercase tracking-widest font-bold">Live Alpha Signals</h2>
-          {loading ? (
+          {isLoading ? (
             <p className="text-zinc-500 text-sm font-medium animate-pulse">Initializing AI tracking module...</p>
           ) : signals.length === 0 ? (
             <p className="text-zinc-500 text-sm">No signals currently meet the Institutional grade threshold (Score &gt; 85).</p>
           ) : (
             <div className="grid gap-4">
               {signals.map((signal) => (
-                <TokenCard key={signal.mint} signal={signal} />
+                <TokenCard 
+                  key={signal.id} 
+                  signal={signal} 
+                  onConsumeQuota={() => handleConsumeQuota()} 
+                />
               ))}
             </div>
           )}
@@ -46,10 +55,7 @@ export default function Dashboard() {
 
         {/* AI Reasoning & Quota Sidebar */}
         <aside className="space-y-6">
-          <UserStats 
-            quotaUsed={4} 
-            quotaLimit={20} 
-          />
+          <UserStats />
         </aside>
       </section>
     </main>

@@ -76,7 +76,8 @@ export class ScoringService {
 
   private calculateSocialScore(providedScore?: number): number {
     if (providedScore !== undefined) return providedScore;
-    return Math.floor(Math.random() * 30);
+    // No social data available — contribute 0 to scoring
+    return 0;
   }
 
   shouldSignal(score: number): boolean {

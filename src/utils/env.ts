@@ -9,6 +9,8 @@ const envSchema = z.object({
   PORT: z.string().default('3000'),
   SUPABASE_URL: z.string(),
   SUPABASE_KEY: z.string(),
+  SOLANA_RPC_URL: z.string().default('https://api.mainnet-beta.solana.com'),
+  WALLET_PRIVATE_KEY: z.string().optional(),
   GEYSER_ENDPOINT: z.string().optional(),
   GEYSER_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
@@ -19,6 +21,7 @@ const envSchema = z.object({
   JITO_BLOCK_ENGINE_URL: z.string().default('https://mainnet.block-engine.jito.wtf'),
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
+  EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
 });
 
 /**

@@ -10,23 +10,12 @@ vi.mock('@triton-one/yellowstone-grpc', () => {
       constructor(endpoint: string) {
         this.endpoint = endpoint;
       }
-      connect = vi.fn().mockImplementation(() => {
-        if (this.endpoint.includes('fail-connect')) {
-          return Promise.reject(new Error('Connection failed'));
-        }
-        return Promise.resolve();
-      });
-      subscribe = vi.fn().mockImplementation(() => {
-        return Promise.resolve({
-          on: vi.fn(),
-          write: vi.fn().mockImplementation((req: any, cb: (err: Error | null) => void) => {
-            if (this.endpoint.includes('fail-write')) {
-              cb(new Error('Write Failure'));
-            } else {
-              cb(null);
-            }
-          }),
-        });
+      connect = vi.fn().mockResolvedValue(undefined);
+      subscribe = vi.fn().mockResolvedValue({
+        on: vi.fn(),
+        write: vi.fn().mockImplementation((req: any, cb: (err: Error | null) => void) => {
+          cb(null);
+        }),
       });
     },
   };
@@ -42,7 +31,7 @@ vi.mock('../src/utils/env.js', () => ({
   },
 }));
 
-// Mock Global Fetch for SOL Price (Jupiter v4)
+// Mock Global Fetch for SOL Price
 vi.stubGlobal(
   'fetch',
   vi.fn().mockImplementation(() =>
@@ -118,7 +107,7 @@ describe('IntelligenceEngine Integration', () => {
   });
 
   describe('IntelligenceEngine Orchestration', () => {
-    it('should register an alpha signal when Geyser emits a high-scoring token', () => {
+    it('should register an alpha signal when Geyser emits a high-scoring token', async () => {
       const highScoringEvent: MintEvent = {
         mint: 'alpha_123',
         signature: 'sig_alpha',
@@ -132,29 +121,35 @@ describe('IntelligenceEngine Integration', () => {
         },
       };
 
-      // @ts-expect-error - Accessing private geyser for test trigger
-      engine.setupPipeline();
+      // Call start instead of internal setupPipeline
+      await engine.start();
+
       // @ts-expect-error - Accessing private geyser
       engine.geyser.emit('mint', highScoringEvent);
 
       // Verify it was saved to the Active Signals map internally
       // @ts-expect-error - Accessing internal map
       expect(engine.activeSignals.has('alpha_123')).toBe(true);
+
+      engine.stop();
     });
 
-    it('should handle stream error gracefully', async () => {
-      // @ts-expect-error - Accessing private
-      await engine.geyser.start();
+    it('should handle Geyser error gracefully', async () => {
       const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      // Simulate stream error on the stored private stream
+      // Call start to initialize pipeline error listeners
+      await engine.start();
+
+      // Simulate Geyser emitting an error
       // @ts-expect-error - Accessing private
-      engine.geyser.stream.emit('error', new Error('Stream Break'));
+      engine.geyser.emit('error', new Error('Geyser Failure'));
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('stream error'),
+        expect.stringContaining('Geyser stream error'),
         expect.any(Error),
       );
+
+      engine.stop();
     });
   });
 });
