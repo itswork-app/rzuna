@@ -1,4 +1,4 @@
-import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, VersionedTransaction, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { env } from '../../utils/env.js';
 
@@ -89,6 +89,29 @@ export class JupiterService {
     if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.statusText}`);
     const quoteData = (await quoteRes.json()) as JupiterQuoteResponse;
 
+    // Derive Fee Account (ATA) for on-chain fee collection (Blueprint v1.6)
+    let feeAccount: string | undefined;
+    if (env.PLATFORM_FEE_WALLET) {
+      const feeOwner = new PublicKey(env.PLATFORM_FEE_WALLET);
+      const mint = new PublicKey(outputMint);
+
+      // If output is SOL (So111...), keep it as the wallet address
+      if (outputMint === 'So11111111111111111111111111111111111111112') {
+        feeAccount = env.PLATFORM_FEE_WALLET;
+      } else {
+        // [Zero-Dependency] Derive ATA manually (pda: owner, token_program, mint)
+        const [ata] = PublicKey.findProgramAddressSync(
+          [
+            feeOwner.toBuffer(),
+            new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), // Token Program
+            mint.toBuffer(),
+          ],
+          new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'), // Associated Token Program
+        );
+        feeAccount = ata.toBase58();
+      }
+    }
+
     // Fetch serialized transaction
     const swapRes = await fetch(`${JUPITER_QUOTE_API}/swap`, {
       method: 'POST',
@@ -97,6 +120,7 @@ export class JupiterService {
         quoteResponse: quoteData,
         userPublicKey,
         wrapAndUnwrapSol: true,
+        feeAccount, // PR 7 Hardening: Automatic On-Chain Fee Capture
       }),
     });
     if (!swapRes.ok) throw new Error(`Jupiter swap assembly failed: ${swapRes.statusText}`);
@@ -149,10 +173,11 @@ export class JupiterService {
   }
 
   /**
-   * Fetch the current Jito Tip Floor (25th percentile).
+   * Fetch Recent Jito Tip (Median/50th Percentile).
+   * Renamed from getJitoTipFloor() for institutional precision.
    * Standar: Canonical Master Blueprint v1.6
    */
-  async getJitoTipFloor(): Promise<number> {
+  async getRecentJitoTip(): Promise<number> {
     try {
       const res = await fetch('https://mainnet.block-engine.jito.wtf/api/v1/bundles/tip_floor');
       if (!res.ok) return 0.00001; // Fallback to 10k lamports
@@ -190,9 +215,9 @@ export class JupiterService {
     // 3. Sign (Hardened: Use real keypair)
     transaction.sign([keypair]);
 
-    // 4. Dynamic Jito Tip (Hardened v1.6)
-    const tipFloorSOL = await this.getJitoTipFloor();
-    console.info(`[JITO] Dynamic Tip Floor: ${tipFloorSOL} SOL`);
+    // 4. Dynamic Jito Tip (PR 7 Hardening: getRecentJitoTip)
+    const tipFloorSOL = await this.getRecentJitoTip();
+    console.info(`[JITO] Recommended Tip: ${tipFloorSOL} SOL`);
 
     // 5. Jito Bundle Submission
     const signedTxBase58 = bs58.encode(transaction.serialize());
