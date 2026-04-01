@@ -8,7 +8,7 @@ const Features = [
   {
     icon: Brain,
     title: 'L2 AI Reasoning',
-    desc: 'Deep neural analysis of token narratives using the ElizaOS Scoring Engine for high-conviction alph.',
+    desc: 'Deep neural analysis of token narratives using the AIVO OS Scoring Engine for high-conviction alpha.',
     color: 'purple'
   },
   {
