@@ -27,6 +27,7 @@ const envSchema = z.object({
   EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
   // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
   ALLOWED_ORIGINS: z.string().optional(),
+  PLATFORM_FEE_WALLET: z.string().optional(),
 });
 
 /**

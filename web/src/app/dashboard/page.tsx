@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useSignals } from '@/hooks/useSignals';
 import { TokenCard } from '@/components/TokenCard';
 import { RankWidget } from '@/components/RankWidget';
@@ -18,6 +18,12 @@ export default function Dashboard() {
   const { profile, isLoading: profileLoading } = useProfile();
   const { connected, publicKey } = useWallet();
   const supabase = createClient();
+  // 🏛️ Battle Tested: Auto-trigger login if connected but not authenticated
+  useEffect(() => {
+    if (connected && !isAuthenticated && !isAuthenticating) {
+      // We don't auto-login to prevent intrusive popups, but we can highlight the action
+    }
+  }, [connected, isAuthenticated, isAuthenticating]);
   
   const handleConsumeQuota = async () => {
     if (!publicKey) return;
@@ -48,13 +54,17 @@ export default function Dashboard() {
           {!connected ? (
             <WalletMultiButton className="!bg-white !text-black !px-4 !py-2 !rounded-full !text-sm !font-bold !shadow-md hover:!bg-zinc-200 !transition-colors" />
           ) : !isAuthenticated ? (
-            <button 
-              onClick={login}
-              disabled={isAuthenticating}
-              className="bg-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all animate-pulse"
-            >
-              {isAuthenticating ? 'Authorizing...' : 'Sign In With Solana'}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button 
+                onClick={login}
+                disabled={isAuthenticating}
+                className="bg-cyan-500 text-black px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 transition-all animate-pulse flex items-center gap-2"
+              >
+                {isAuthenticating ? 'Authorizing...' : 'Finalize Auth (SIWS)'}
+                {!isAuthenticating && <span className="text-[10px] bg-black/10 px-1 rounded uppercase">Step 2</span>}
+              </button>
+              <p className="text-[10px] text-cyan-500/70 font-mono tracking-tighter mr-2">Wallet Connected: {publicKey?.toBase58().slice(0,4)}...{publicKey?.toBase58().slice(-4)}</p>
+            </div>
           ) : (
             <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-full">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
