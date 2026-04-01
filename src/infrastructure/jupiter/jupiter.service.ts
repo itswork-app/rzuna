@@ -157,10 +157,10 @@ export class JupiterService {
       const res = await fetch('https://mainnet.block-engine.jito.wtf/api/v1/bundles/tip_floor');
       if (!res.ok) return 0.00001; // Fallback to 10k lamports
       const data = (await res.json()) as Array<{
-        ema_landed_tips_25th_percentile: number;
+        ema_landed_tips_50th_percentile: number;
       }>;
-      // Use 25th percentile for cost-efficient bundle entry
-      return data[0]?.ema_landed_tips_25th_percentile || 0.00001;
+      // Use 50th percentile (Median) for "Recommended" reliability
+      return data[0]?.ema_landed_tips_50th_percentile || 0.00001;
     } catch {
       return 0.00001;
     }
