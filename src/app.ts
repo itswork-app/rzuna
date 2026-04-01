@@ -26,12 +26,12 @@ export const buildApp = async () => {
   // ================================================================
   const AIVO_ORIGIN_PATTERN = /^https:\/\/([\w-]+\.)?aivo\.sh$/;
 
-  const getAllowedOrigins = (): string[] | RegExp => {
+  const getAllowedOrigins = (): (string | RegExp)[] => {
     if (env.ALLOWED_ORIGINS) {
       return env.ALLOWED_ORIGINS.split(',').map((o) => o.trim());
     }
     if (env.NODE_ENV === 'production') {
-      return AIVO_ORIGIN_PATTERN;
+      return [AIVO_ORIGIN_PATTERN];
     }
     return ['http://localhost:3000', 'http://localhost:3001'];
   };

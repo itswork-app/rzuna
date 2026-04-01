@@ -47,17 +47,18 @@ export class GeyserService extends EventEmitter {
     super();
     this.mode = mode;
 
-    const endpoint =
-      mode === 'vip' ? env.VIP_GEYSER_ENDPOINT : env.GEYSER_ENDPOINT;
-    const token =
-      mode === 'vip' ? env.VIP_GEYSER_TOKEN : env.GEYSER_TOKEN;
+    const endpoint = mode === 'vip' ? env.VIP_GEYSER_ENDPOINT : env.GEYSER_ENDPOINT;
+    const token = mode === 'vip' ? env.VIP_GEYSER_TOKEN : env.GEYSER_TOKEN;
 
     if (endpoint && token) {
       // @ts-expect-error - Yellowstone gRPC Client types
       this.client = new Client(endpoint, token);
       this.isActive = true;
     } else {
-      const label = mode === 'vip' ? 'VIP_GEYSER_ENDPOINT / VIP_GEYSER_TOKEN' : 'GEYSER_ENDPOINT / GEYSER_TOKEN';
+      const label =
+        mode === 'vip'
+          ? 'VIP_GEYSER_ENDPOINT / VIP_GEYSER_TOKEN'
+          : 'GEYSER_ENDPOINT / GEYSER_TOKEN';
       console.warn(
         `[GeyserService:${mode}] ${label} not configured. ` +
           'Running in NO-OP mode — no live signals will be emitted.',
@@ -108,7 +109,9 @@ export class GeyserService extends EventEmitter {
 
     stream.on('data', (data: unknown) => {
       const payload = data as {
-        transaction?: { transaction?: { signatures: Uint8Array[]; message: { accountKeys: Uint8Array[] } } };
+        transaction?: {
+          transaction?: { signatures: Uint8Array[]; message: { accountKeys: Uint8Array[] } };
+        };
       };
       if (payload?.transaction?.transaction) {
         const tx = payload.transaction.transaction;

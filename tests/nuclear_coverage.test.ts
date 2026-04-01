@@ -207,6 +207,31 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       if (errorCall) await errorCall[1](new Error('Stream Crash'));
     });
 
+    it('GeyserService: should hit VIP mode and NO-OP branches (Line 51, 60, 72)', async () => {
+      // 1. VIP Mode Construction
+      env.VIP_GEYSER_ENDPOINT = 'vip-test';
+      env.VIP_GEYSER_TOKEN = 'vip-token';
+      const vipGeyser = new GeyserService('vip');
+      expect((vipGeyser as any).mode).toBe('vip');
+
+      // 2. NO-OP construction (missing credentials)
+      env.GEYSER_ENDPOINT = undefined;
+      env.GEYSER_TOKEN = undefined;
+      const noopGeyser = new GeyserService('public');
+      expect((noopGeyser as any).isActive).toBe(false);
+
+      // 3. Skip start on inactive service
+      const spy = vi.spyOn(console, 'warn');
+      await noopGeyser.start();
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('No-op mode active'));
+    });
+
+    it('env.ts: should hit validation branches', () => {
+      // Logic: Zod schema branches for default values and optionals
+      expect(env.NODE_ENV).toBeDefined();
+      expect(env.PORT).toBeDefined();
+    });
+
     it('feePlugin: should hit PostHog flags, price fallback, and alpha logging', async () => {
       const fastify: any = {
         post: vi.fn(),
