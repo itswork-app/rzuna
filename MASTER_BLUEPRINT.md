@@ -1,4 +1,4 @@
-# 🏛️ Canonical Master Blueprint: rzuna (v1.5)
+# 🏛️ Canonical Master Blueprint: rzuna (v1.6)
 
 **Project Vision**: The World-Class No-Registration AI DEX & Scouting Infrastructure for Solana.
 **Status**: LOCKED
@@ -88,4 +88,55 @@ Sistem peringkat adiktif berbasis volume transaksi bulanan.
 
 ---
 
-**Master Blueprint v1.5 - Finalized with Vercel & AI Quota Access.**
+## 8. 🌐 Domain & Routing Strategy (The aivo.sh Network)
+
+| Service | Domain | Target | Stack |
+| :--- | :--- | :--- | :--- |
+| **Marketing** | `aivo.sh` | Landing Page & SIWS | Vercel (Static) |
+| **Normal Trade** | `trade.aivo.sh` | Dashboard Public/Starlight | Vercel (Edge) |
+| **VIP / Dedicated** | `vip.aivo.sh` | Dedicated Infra Dashboard | Vercel + Dedicated gRPC |
+| **Backend / API** | `api.aivo.sh` | Fastify Core & WebSocket | Supabase / Private VPS |
+
+- **Marketing (`aivo.sh`)**: Pusat edukasi dan pintu masuk utama.
+- **Trade Dash (`trade.aivo.sh`)**: Performa tinggi untuk tier Newbie hingga Starlight+.
+- **VIP Lounge (`vip.aivo.sh`)**: Jalur khusus VIP dengan koneksi dedicated gRPC ke Solana Mainnet.
+- **API Engine (`api.aivo.sh`)**: Backbone pengolahan data dan scoring rzuna.
+
+Routing dikendalikan oleh **Next.js Edge Middleware** yang membaca header `Host` dan merewrite request ke route yang sesuai secara transparan:
+- `vip.aivo.sh` → `/vip` + header `x-tier: vip`
+- `trade.aivo.sh` → `/dashboard`
+- `aivo.sh` → `/` (marketing / SIWS landing)
+
+---
+
+## 9. 🛠️ Infrastructure Hardening (PR 7)
+
+### A. Terraform & Dedicated Infrastructure
+
+**Fase: Live Deployment** — Segera setelah PR 6 (UI Foundation) tuntas.
+
+`vip.aivo.sh` diarahkan ke dedicated node gRPC (Yellowstone) untuk memastikan user VIP tidak berbagi bandwidth data dengan user gratisan. Ini adalah kunci untuk memenangkan race transaksi di Solana.
+
+**Fase: Infrastructure Hardening** — Setelah semua servis stabil berjalan secara manual (Live Beta).
+
+Terraform akan mengunci konfigurasi DNS (Cloudflare/Vercel) dan provisioning server untuk `api.aivo.sh`. Jika sistem crash, seluruh ekosistem aivo.sh dapat dibangkitkan kembali dengan satu perintah `terraform apply`.
+
+### B. Dedicated gRPC Routing
+
+- `GeyserService` mendukung dua mode: `public` (GEYSER_ENDPOINT) dan `vip` (VIP_GEYSER_ENDPOINT).
+- VIP mode diaktifkan dari backend ketika user tier terdeteksi sebagai `SubscriptionStatus.VIP`.
+- Fallback ke no-op mode jika credentials tidak tersedia — tidak ada error, tidak ada sinyal.
+
+### C. CORS Hardening
+
+- Backend Fastify (`api.aivo.sh`) hanya menerima request dari `*.aivo.sh` dan `localhost` (dev).
+- Dikonfigurasi via `ALLOWED_ORIGINS` env var untuk fleksibilitas deployment.
+
+### D. Load Balancing Target
+
+- Distribusi traffic antara `trade` dan `vip` untuk menjaga latensi **< 200ms**.
+- **IaC (Terraform)**: Otomatisasi deployment untuk memastikan konsistensi antar subdomain.
+
+---
+
+**Master Blueprint v1.6 - Finalized with aivo.sh Network & Routing Layer.**

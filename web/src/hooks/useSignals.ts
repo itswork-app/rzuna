@@ -4,10 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { TokenSignal as Signal } from '@/types';
 import '@solana/wallet-adapter-react-ui/styles.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-
+import { getApiUrl } from '@/lib/env';
 
 interface UseSignalsReturn {
   signals: Signal[];
@@ -32,7 +29,7 @@ export function useSignals(): UseSignalsReturn {
     setError(null);
 
     try {
-      const res = await fetch(`${API_URL}/signals?wallet=${publicKey.toBase58()}`);
+      const res = await fetch(`${getApiUrl()}/signals?wallet=${publicKey.toBase58()}`);
       if (!res.ok) throw new Error(`Signal fetch failed: ${res.statusText}`);
 
       const data = await res.json();
