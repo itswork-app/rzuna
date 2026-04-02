@@ -49,9 +49,12 @@ export class TelegramService {
       // 2. Format message
       const message = this.formatAlphaMessage(signal);
 
-      // 3. Dispatch concurrently
-      const promises = users.map((user) =>
-        this.bot!.telegram.sendMessage(user.tg_chat_id, message, {
+      // 3. Dispatch concurrently with tier-aware links
+      const promises = users.map((user) => {
+        const isVip = user.subscription_status === 'VIP';
+        const baseUrl = isVip ? 'https://vip.aivo.sh' : 'https://trade.aivo.sh';
+
+        return this.bot!.telegram.sendMessage(user.tg_chat_id, message, {
           parse_mode: 'MarkdownV2',
           link_preview_options: { is_disabled: false },
           reply_markup: {
@@ -59,15 +62,15 @@ export class TelegramService {
               [
                 {
                   text: '🚀 Trade Institutional',
-                  url: `https://trade.aivo.sh/token/${signal.event.mint}`,
+                  url: `${baseUrl}/token/${signal.event.mint}`,
                 },
               ],
             ],
           },
         }).catch((err) => {
           console.error(`[TelegramService] Failed to send to ${user.tg_chat_id}:`, err);
-        }),
-      );
+        });
+      });
 
       await Promise.all(promises);
       console.info(`📢 [TelegramService] Broadcasted signal to ${users.length} users.`);
