@@ -29,13 +29,13 @@ export async function middleware(request: NextRequest) {
       if (isAuthenticated) {
         url.searchParams.set('error', 'vip_tier_required');
       }
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(url.toString());
     }
 
     if (pathname === '/') {
        const url = request.nextUrl.clone();
        url.pathname = '/dashboard';
-       const res = NextResponse.redirect(url);
+       const res = NextResponse.redirect(url.toString());
        res.headers.set('X-RZUNA-VIP-MODE', 'true');
        return res;
     }
@@ -50,13 +50,13 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.hostname = hostname.replace('trade', 'vip');
       url.pathname = pathname === '/' ? '/dashboard' : pathname;
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(url.toString());
     }
 
     if (pathname === '/') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(url.toString());
     }
   }
 
