@@ -148,9 +148,13 @@ describe('☢️ Final Stand: Branch Infiltration Suite', () => {
     expect((app as any).logAlpha).toHaveBeenCalled();
 
     // Case 3: insertError log (Line 95)
-    const spyFrom = vi.spyOn(supabase, 'from').mockReturnValue({
+    const mockChain = {
       insert: vi.fn().mockResolvedValue({ error: new Error('Insert Fail') }),
-    } as any);
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'u1' } }),
+    };
+    const spyFrom = vi.spyOn(supabase, 'from').mockReturnValue(mockChain as any);
     await app.inject({
       method: 'POST',
       url: '/trade',
