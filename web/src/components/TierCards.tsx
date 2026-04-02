@@ -18,7 +18,7 @@ const Tiers: Tier[] = [
   { 
     id: 'STARLIGHT', 
     name: 'Starlight', 
-    price: 0.1, 
+    price: 19, 
     icon: Star, 
     color: 'zinc', 
     perks: ['85+ Signal Access', 'Standard Detection', 'Basic Analytics'] 
@@ -26,7 +26,7 @@ const Tiers: Tier[] = [
   { 
     id: 'STARLIGHT_PLUS', 
     name: 'Starlight+', 
-    price: 0.25, 
+    price: 49, 
     icon: Shield, 
     color: 'blue', 
     perks: ['90+ Signal Access', 'Priority Notifications', '2x Rank Multiplier', 'Early Alpha Access'] 
@@ -34,7 +34,7 @@ const Tiers: Tier[] = [
   { 
     id: 'VIP', 
     name: 'VIP Alliance', 
-    price: 1.0, 
+    price: 149, 
     icon: Crown, 
     color: 'purple', 
     perks: ['L2 AI Reasoning', 'Instant Jito Swaps', 'Private Alpha Channel', 'Direct Dev Support'] 
@@ -66,7 +66,7 @@ export function TierCards({ onUpgrade }: { onUpgrade: (id: string, price: number
 
           <h3 className="text-2xl font-bold mb-2 text-white">{tier.name}</h3>
           <div className="text-4xl font-black mb-6 flex items-baseline gap-1 text-white">
-            {tier.price} <span className="text-sm font-bold text-zinc-500">SOL/MO</span>
+            {tier.price} <span className="text-sm font-bold text-zinc-500">USDC/MO</span>
           </div>
 
           <ul className="space-y-4 mb-10 flex-grow">

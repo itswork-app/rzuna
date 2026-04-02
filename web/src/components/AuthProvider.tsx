@@ -56,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         posthog.capture('SIWS_SIGN_SUCCESS', { wallet: publicKey.toBase58() });
         // Sync to cookie for Middleware
         document.cookie = `x-rzuna-authenticated=true; path=/; domain=.aivo.sh; max-age=3600; Secure; SameSite=Strict`;
-        document.cookie = `x-rzuna-authenticated=true; path=/; max-age=3600; Secure; SameSite=Strict`;
         return true;
       }
       return false;
