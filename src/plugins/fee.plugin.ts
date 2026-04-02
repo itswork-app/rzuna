@@ -2,6 +2,8 @@ import { type FastifyPluginAsync } from 'fastify';
 import { TierService } from '../core/tiers/tier.service.js';
 import { supabase } from '../infrastructure/supabase/client.js';
 import { JupiterService } from '../infrastructure/jupiter/jupiter.service.js';
+import { Connection } from '@solana/web3.js';
+import { env } from '../utils/env.js';
 
 interface TradeBody {
   walletAddress: string;
@@ -30,26 +32,71 @@ async function getLiveSOLPrice(): Promise<number> {
     const json = (await res.json()) as { data: { SOL: { price: number } } };
     return json.data.SOL.price;
   } catch {
-    // Fallback to approximate value if feed is unavailable
     return 150;
   }
 }
 
 /**
+ * On-Chain Verification Engine (Blueprint v1.6 Hardening)
+ */
+async function verifyOnChainPayment(
+  signature: string,
+  expectedReceiver: string,
+  expectedSender: string,
+  expectedAmount: number,
+  asset: 'SOL' | 'USDC' = 'SOL',
+): Promise<boolean> {
+  try {
+    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const tx = await connection.getParsedTransaction(signature, {
+      maxSupportedTransactionVersion: 0,
+    });
+
+    if (!tx || !tx.meta || tx.meta.err) return false;
+
+    // 1. Verify Sender (the first account in the transaction is usually the fee payer/sender)
+    const sender = tx.transaction.message.accountKeys[0].pubkey.toBase58();
+    if (sender !== expectedSender) return false;
+
+    // 2. Verify Receiver & Amount
+    if (asset === 'SOL') {
+      const lamports = expectedAmount * 1e9;
+      // In a simple transfer, we look for instructions targeting the expectedReceiver
+      const hasTransfer = tx.transaction.message.instructions.some((ix: any) => {
+        if (ix.program === 'system' && ix.parsed?.type === 'transfer') {
+          return (
+            ix.parsed.info.destination === expectedReceiver &&
+            Number(ix.parsed.info.lamports) >= lamports * 0.99 // 1% tolerance for slippage/rounding
+          );
+        }
+        return false;
+      });
+      return hasTransfer;
+    } else {
+      // USDC (SPL Token) logic
+      const amountUnits = expectedAmount * 1e6; // USDC has 6 decimals
+      const hasTokenTransfer = tx.meta.postTokenBalances?.some((balance: any) => {
+        return (
+          balance.owner === expectedReceiver &&
+          balance.mint === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' && // USDC mainnet mint
+          Number(balance.uiTokenAmount.amount) >= amountUnits * 0.99
+        );
+      });
+      return !!hasTokenTransfer;
+    }
+  } catch (error) {
+    console.error('[Verification] Error:', error);
+    return false;
+  }
+}
+
+/**
  * FeePlugin: Dynamic Trading Fee Engine
- * Standar: Canonical Master Blueprint v1.3 (PR 4 — Rank & Economy)
- *
- * Fee Structure:
- *   VIP:          0.75%  (Dedicated Infrastructure)
- *   STARLIGHT+:   1.0%
- *   STARLIGHT:    1.25%
- *   NONE+ELITE:   1.5%
- *   NONE+PRO:     1.75%
- *   NONE+NEWBIE:  2.0%
+ * Standar: Canonical Master Blueprint v1.6 (Institutional Grade)
  */
 export const feePlugin: FastifyPluginAsync = async (fastify) => {
   const tierService = new TierService();
-  const jupiterService = new JupiterService(); // 🏛️ PR 8 Treasury Engine
+  const jupiterService = new JupiterService();
 
   fastify.post<{ Body: TradeBody }>('/trade', async (request, reply) => {
     const {
@@ -60,81 +107,38 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
       jitoTipSOL = 0,
       networkFeeSOL = 0.000005,
       status = 'success',
-      tokenMint, // 🏛️ PR 8: Required for fee auto-swap
-      feeAmountLamports, // 🏛️ PR 8: Raw fee collected
+      tokenMint,
+      feeAmountLamports,
     } = request.body;
 
     try {
-      // 1. Fetch profile to determine dynamic fee
-      const profile = await tierService.getUserProfile(walletAddress);
-
-      // 2. PostHog Gatekeeping — check jupiter_swap_enabled flag
-      if (fastify.posthog) {
-        const flags = await fastify.posthog.getAllFlags(walletAddress);
-        if (flags['jupiter_swap_enabled'] === false) {
-          return await reply.status(403).send({
-            error: 'Jupiter swap is not enabled for your account tier.',
-          });
-        }
+      if (status === 'success' && signature) {
+        await verifySignatureStatus(signature);
       }
 
-      // 3. Dynamic Fee Calculation (Platform Revenue)
+      const profile = await tierService.getUserProfile(walletAddress);
+      await checkPostHogFlags(fastify, walletAddress);
+
       const feeRate = tierService.getTradingFeePercentage(profile);
       const tradingFeeUSD = amountUSD * feeRate;
-
-      // 4. Live SOL price for accurate Jito + Network fee bundling
       const solPrice = await getLiveSOLPrice();
+      const costs = calculateCosts(tradingFeeUSD, jitoTipSOL, networkFeeSOL, solPrice);
 
-      // 5. External Cost Bundling (Jito + Network)
-      const jitoTipUSD = jitoTipSOL * solPrice;
-      const networkFeeUSD = networkFeeSOL * solPrice;
-      const totalBundledCostUSD = tradingFeeUSD + jitoTipUSD + networkFeeUSD;
+      const { newRank, updatedProfile } = await updateProfileAndLogAudit(
+        walletAddress,
+        amountUSD,
+        tradingFeeUSD,
+        signature,
+        platform,
+        status,
+        tokenMint,
+        feeAmountLamports,
+        profile,
+        tierService,
+        jupiterService,
+        fastify,
+      );
 
-      // 6. Update trading volume, rank, AND total_fees_paid (revenue accumulation)
-      // Only add volume if trade was successful
-      let newRank = profile.rank;
-      if (status === 'success') {
-        newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
-      }
-
-      // 7. Fetch updated profile (for ID)
-      const updatedProfile = await tierService.getUserProfile(walletAddress);
-
-      // 8. Audit Trail: Insert to transactions table
-      if (updatedProfile.id) {
-        void (async () => {
-          // 🏛️ PR 8: Audit Trail Extension
-          const { error: insertError } = await supabase.from('transactions').insert({
-            profile_id: updatedProfile.id,
-            tx_hash: signature,
-            amount_usd: amountUSD,
-            fee_collected: status === 'success' ? tradingFeeUSD : 0,
-            platform,
-            status,
-            type: 'trading_fee',
-            treasury_asset: 'SOL', // All trading fees consolidated to SOL
-            treasury_status: status === 'success' ? 'pending_conversion' : 'settled',
-          } as unknown as never);
-
-          if (insertError) fastify.log.error(insertError, 'Failed to log transaction audit trail');
-
-          // 🏛️ PR 8: Trigger Treasury Auto-Swap (SOL Consolidation)
-          if (status === 'success' && tokenMint && feeAmountLamports) {
-            const swapResult = await jupiterService.autoConvertFeeToSOL(
-              tokenMint,
-              feeAmountLamports,
-            );
-            if (swapResult.status === 'success') {
-              await supabase
-                .from('transactions')
-                .update({ treasury_status: 'settled' } as unknown as never)
-                .eq('tx_hash', signature);
-            }
-          }
-        })();
-      }
-
-      // 9. Axiom Revenue Audit Log
       if (fastify.logAlpha) {
         void fastify.logAlpha({
           type: 'TRADE_FEE_COLLECTED',
@@ -143,9 +147,7 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
           amountUSD,
           feeRate: `${(feeRate * 100).toFixed(2)}%`,
           tradingFeeUSD,
-          jitoTipUSD,
-          networkFeeUSD,
-          totalBundledCostUSD,
+          ...costs,
           rank: updatedProfile.rank,
           status: updatedProfile.status,
           newRank,
@@ -161,34 +163,161 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
         status: 'success',
         tradingFeeUSD,
         feeRate: `${(feeRate * 100).toFixed(2)}%`,
-        jitoTipUSD,
-        networkFeeUSD,
-        totalBundledCostUSD,
+        ...costs,
         currentRank: newRank,
         signature,
       });
-    } catch (error) {
+    } catch (error: any) {
       fastify.log.error(error);
-      return await reply.status(500).send({ error: 'Failed to record trade volume' });
+      const statusCode = error.statusCode || 500;
+      return await reply
+        .status(statusCode)
+        .send({ error: error.message || 'Failed to record trade volume' });
     }
   });
 
-  /**
-   * 🏛️ PR 18: Institutional USDC Subscription Engine
-   * Settlement: Direct USDC transfer verified via SPL signature.
-   */
+  async function updateProfileAndLogAudit(
+    walletAddress: string,
+    amountUSD: number,
+    tradingFeeUSD: number,
+    signature: string,
+    platform: string,
+    status: string,
+    tokenMint?: string,
+    feeAmountLamports?: number,
+    profile?: any,
+    tierService?: any,
+    jupiterService?: any,
+    fastify?: any,
+  ) {
+    let newRank = profile.rank;
+    if (status === 'success') {
+      newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
+    }
+
+    const updatedProfile = await tierService.getUserProfile(walletAddress);
+    await logTradeAudit(
+      updatedProfile,
+      signature,
+      amountUSD,
+      tradingFeeUSD,
+      platform,
+      status,
+      tokenMint,
+      feeAmountLamports,
+      jupiterService,
+      fastify,
+    );
+
+    return { newRank, updatedProfile };
+  }
+
+  async function verifySignatureStatus(signature: string) {
+    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const tx = await connection.getSignatureStatus(signature);
+    if (!tx.value || tx.value.err) {
+      const error = new Error('Invalid or failed trade signature') as any;
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  async function checkPostHogFlags(fastify: any, walletAddress: string) {
+    if (fastify.posthog) {
+      const flags = await fastify.posthog.getAllFlags(walletAddress);
+      if (flags['jupiter_swap_enabled'] === false) {
+        const error = new Error('Jupiter swap is not enabled for your account tier.') as any;
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+  }
+
+  function calculateCosts(
+    tradingFeeUSD: number,
+    jitoTipSOL: number,
+    networkFeeSOL: number,
+    solPrice: number,
+  ) {
+    const jitoTipUSD = jitoTipSOL * solPrice;
+    const networkFeeUSD = networkFeeSOL * solPrice;
+    return {
+      jitoTipUSD,
+      networkFeeUSD,
+      totalBundledCostUSD: tradingFeeUSD + jitoTipUSD + networkFeeUSD,
+    };
+  }
+
+  async function logTradeAudit(
+    profile: any,
+    signature: string,
+    amountUSD: number,
+    tradingFeeUSD: number,
+    platform: string,
+    status: string,
+    tokenMint?: string,
+    feeAmountLamports?: number,
+    jupiterService?: any,
+    fastify?: any,
+  ) {
+    if (!profile.id) return;
+
+    const { error: insertError } = await supabase.from('transactions').insert({
+      profile_id: profile.id,
+      tx_hash: signature,
+      amount_usd: amountUSD,
+      fee_collected: status === 'success' ? tradingFeeUSD : 0,
+      platform,
+      status,
+      type: 'trading_fee',
+      treasury_asset: 'SOL',
+      treasury_status: status === 'success' ? 'pending_conversion' : 'settled',
+    } as unknown as never);
+
+    if (insertError) {
+      fastify.log.error(insertError);
+      console.error(insertError, 'Failed to log transaction audit trail');
+    }
+
+    if (status === 'success' && tokenMint && feeAmountLamports) {
+      const swapResult = await jupiterService.autoConvertFeeToSOL(tokenMint, feeAmountLamports);
+      if (swapResult.status === 'success') {
+        await supabase
+          .from('transactions')
+          .update({ treasury_status: 'settled' } as unknown as never)
+          .eq('tx_hash', signature);
+      }
+    }
+  }
+
   fastify.post<{ Body: SubscribeBody }>('/subscribe', async (request, reply) => {
     const { walletAddress, tier, amountSOL, paymentSignature } = request.body;
-    const amountUSDC = amountSOL; // Frontend sends USDC price in amountSOL field for legacy compatibility
+    const amountUSDC = amountSOL;
 
     try {
-      // 1. Verify SPL Transfer (Basic check for demonstration, production would fetch tx from RPC)
-      // For PR 18, we proceed to update profile once signature is provided.
+      // 🏛️ PR 22: Hardened Verification (On-Chain)
+      const treasuryAddress = env.USDC_TREASURY_WALLET || env.SOL_TREASURY_WALLET;
+
+      if (!treasuryAddress) {
+        throw new Error('Treasury wallet not configured');
+      }
+
       fastify.log.info(
         `[Subscription] Verifying $${amountUSDC} USDC transfer for ${walletAddress} (Tier: ${tier})...`,
       );
 
-      // 2. Update User Profile Subscription
+      const isValid = await verifyOnChainPayment(
+        paymentSignature,
+        treasuryAddress,
+        walletAddress,
+        amountUSDC,
+        'USDC',
+      );
+
+      if (!isValid && env.NODE_ENV === 'production') {
+        return await reply.status(403).send({ error: 'Subscription payment verification failed' });
+      }
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ subscription_status: tier } as unknown as never)
@@ -196,7 +325,6 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
 
       if (updateError) throw updateError;
 
-      // 3. Log Institutional Audit Trail
       const profile = await tierService.getUserProfile(walletAddress);
 
       await supabase.from('transactions').insert({

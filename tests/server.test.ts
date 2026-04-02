@@ -10,6 +10,17 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
   },
 }));
 
+// Mock Solana
+vi.mock('@solana/web3.js', () => ({
+  Connection: vi.fn().mockImplementation(() => ({
+    getSignatureStatus: vi.fn().mockResolvedValue({ value: { err: null } }),
+    getParsedTransaction: vi.fn().mockResolvedValue({ meta: { err: null } }),
+  })),
+  PublicKey: vi.fn().mockImplementation((key: string) => ({
+    toBase58: () => key,
+  })),
+}));
+
 // Mock Axiom
 vi.mock('@axiomhq/js', () => ({
   Axiom: vi.fn().mockImplementation(function (this: any) {
@@ -56,6 +67,7 @@ vi.mock('@supabase/supabase-js', () => ({
     upsert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
     single: vi.fn().mockResolvedValue({
       data: {
         id: 'test-uuid',

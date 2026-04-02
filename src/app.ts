@@ -108,6 +108,15 @@ export const buildApp = async () => {
   });
 
   /**
+   * 🏛️ PR 22: Prometheus Metrics Endpoint
+   */
+  fastify.get('/metrics', async (_request, reply) => {
+    const { metricsRegistry } = await import('./core/engine.js');
+    reply.header('Content-Type', metricsRegistry.contentType);
+    return await reply.send(await metricsRegistry.metrics());
+  });
+
+  /**
    * Probability Engine Dashboard Integration
    * Standar: Canonical Master Blueprint v1.3 (Tier-based Filtering)
    */

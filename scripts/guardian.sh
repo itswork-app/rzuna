@@ -24,9 +24,8 @@ npm run test:coverage || { echo -e "${RED}❌ TESTS FAILED or Coverage < 80%. Lo
 
 # 3. THE FORTRESS (Security Audit)
 echo -e "\n🔒 [STAGE 3] Scanning for Vulnerabilities (NPM Audit)..."
-# In a monorepo with multiple wallet adapters, we ignore transitive high-severity
-# vulnerabilities to favor compatibility, while strictly blocking CRITICAL ones.
-npm audit --audit-level=critical || { echo -e "${RED}❌ CRITICAL SECURITY VULNERABILITY FOUND. Audit your dependencies!${NC}"; exit 1; }
+# Institutional Grade Policy: Zero High-Severity Vulnerabilities.
+npm audit --audit-level=high || { echo -e "${RED}❌ SECURITY VULNERABILITY FOUND. Audit your dependencies!${NC}"; exit 1; }
 
 # 4. THE INTEGRITY (Production Build Check)
 echo -e "\n📦 [STAGE 4] Building Production Bundle..."

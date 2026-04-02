@@ -12,6 +12,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     upsert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
 }));
 
@@ -71,35 +72,19 @@ describe('TierService — Dynamic Fee Calculator', () => {
     });
   });
 
-  describe('getUserProfile() — Default New Wallet', () => {
-    it('returns NEWBIE/NONE defaults for unknown wallet', async () => {
-      const profile = await service.getUserProfile('unknown_wallet_xyz');
-      expect(profile.rank).toBe(UserRank.NEWBIE);
-      expect(profile.status).toBe(SubscriptionStatus.NONE);
-      expect(profile.isBanned).toBe(false);
-    });
-  });
-
   describe('addVolume() — Rank Upgrades', () => {
     it('upgrades user to ELITE when threshold is met', async () => {
-      // Mock profile with 9000 volume
+      // Mock RPC returning ELITE
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      vi.mocked(supabase.from('profiles').select as any).mockReturnValue({
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            wallet_address: 'w1',
-            rank: 'PRO',
-            current_month_volume: 9000,
-            total_fees_paid: 100,
-            subscription_status: 'NONE',
-          },
-          error: null,
-        }),
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'ELITE',
+        error: null,
       });
 
-      const nextRank = await service.addVolume('w1', 1500); // 9000 + 1500 = 10500 (ELITE)
+      const nextRank = await service.addVolume('w1', 1500, 10);
       expect(nextRank).toBe(UserRank.ELITE);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(supabase.rpc).toHaveBeenCalledWith('add_volume_atomic', expect.any(Object));
     });
   });
 

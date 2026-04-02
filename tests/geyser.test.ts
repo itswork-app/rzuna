@@ -3,6 +3,19 @@ import { type MintEvent } from '../src/infrastructure/solana/geyser.service.js';
 import { ScoringService } from '../src/core/scoring/scoring.service.js';
 import { IntelligenceEngine } from '../src/core/engine.js';
 
+vi.mock('@solana/web3.js', () => ({
+  Connection: vi.fn().mockImplementation(() => ({
+    getParsedTransaction: vi.fn(),
+    getSignatureStatus: vi.fn(),
+    onLogs: vi.fn(),
+    removeOnLogsListener: vi.fn(),
+  })),
+  PublicKey: vi.fn().mockImplementation((key: string) => ({
+    toBase58: () => key,
+    toString: () => key,
+  })),
+}));
+
 vi.mock('@triton-one/yellowstone-grpc', () => {
   return {
     default: class {
@@ -28,6 +41,7 @@ vi.mock('../src/utils/env.js', () => ({
     SUPABASE_URL: 'https://test.supabase.co',
     SUPABASE_KEY: 'test-key-long-enough-for-zod',
     PORT: '3000',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
   },
 }));
 

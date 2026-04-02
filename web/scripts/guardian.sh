@@ -22,7 +22,7 @@ npm run test:coverage || { echo -e "${RED}❌ TESTS FAILED or Coverage < 80%. UI
 # 3. THE FORTRESS (Security Audit)
 echo -e "\n🔒 [STAGE 3] Scanning for Vulnerabilities (NPM Audit)..."
 # In a consolidated monorepo, we check the root audit for institutional-grade compliance
-cd .. && npm audit --audit-level=critical || { echo -e "${RED}❌ CRITICAL SECURITY VULNERABILITY FOUND. Audit your dependencies!${NC}"; exit 1; }
+cd .. && npm audit --audit-level=high || { echo -e "${RED}❌ SECURITY VULNERABILITY FOUND. Audit your dependencies!${NC}"; exit 1; }
 cd web
 
 

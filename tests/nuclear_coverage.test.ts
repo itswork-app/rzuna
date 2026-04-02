@@ -78,6 +78,15 @@ vi.mock('@solana/web3.js', async (importOriginal) => {
     SystemProgram: {
       transfer: vi.fn(),
     },
+    Connection: vi.fn().mockImplementation(() => ({
+      getSignatureStatus: vi.fn().mockResolvedValue({ value: { err: null } }),
+      getParsedTransaction: vi.fn().mockResolvedValue({
+        meta: { err: null },
+        transaction: { message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }] } },
+      }),
+      onLogs: vi.fn().mockReturnValue(123),
+      removeOnLogsListener: vi.fn().mockResolvedValue(true),
+    })),
   };
 });
 

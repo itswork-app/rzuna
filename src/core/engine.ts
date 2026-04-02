@@ -6,6 +6,39 @@ import { supabase } from '../infrastructure/supabase/client.js';
 import { ReasoningService, type L2Reasoning } from '../agents/reasoning.service.js';
 import { RealtimeService } from '../infrastructure/supabase/realtime.service.js';
 import { TelegramService } from '../infrastructure/telegram/telegram.service.js';
+import { Counter, Histogram, Gauge, Registry } from 'prom-client';
+
+export const metricsRegistry = new Registry();
+
+// 🏛️ PR 22: Prometheus institutional Metrics
+const signalLatency = new Histogram({
+  name: 'rzuna_signal_latency_ms',
+  help: 'Latency from Geyser event to Alpha Signal emission',
+  labelNames: ['tier'],
+  buckets: [50, 100, 200, 500, 1000],
+  registers: [metricsRegistry],
+});
+
+const geyserStatus = new Gauge({
+  name: 'rzuna_geyser_connection_status',
+  help: 'Geyser gRPC connection status (1 = Active, 0 = Fallback)',
+  labelNames: ['mode'],
+  registers: [metricsRegistry],
+});
+
+const aiReasoningDuration = new Histogram({
+  name: 'rzuna_ai_reasoning_duration_ms',
+  help: 'Duration of AI analysis (L2 reasoning)',
+  buckets: [500, 1000, 2000, 5000, 10000],
+  registers: [metricsRegistry],
+});
+
+const signalCounter = new Counter({
+  name: 'rzuna_alpha_signals_total',
+  help: 'Total number of alpha signals generated',
+  labelNames: ['is_premium'],
+  registers: [metricsRegistry],
+});
 
 export interface AlphaSignal {
   event: MintEvent;
@@ -54,66 +87,17 @@ export class IntelligenceEngine extends EventEmitter {
     this.setupPipeline();
     this.startAutoDownExecution();
     await this.geyser.start();
+    geyserStatus.set({ mode: 'public' }, 1);
   }
 
   private setupPipeline() {
-    // 1. GEYSER INGESTION: Receive event from GeyserService
     this.geyser.on('mint', (event: MintEvent) => {
-      const startTime = performance.now();
-
-      // 2. SCORING INTEGRATION: Send to calculateScore
-      const result: ScoringResult = this.scorer.calculateScore(event);
-      const latency = performance.now() - startTime;
-
-      if (result.score >= 85) {
-        const signal: AlphaSignal = {
-          event,
-          score: result.score,
-          latency,
-          isPremium: result.score >= 90,
-          reasoning: result.reasoning,
-        };
-        this.activeSignals.set(event.mint, signal);
-
-        // Emit for WebSocket/Internal subscribers
-        this.emit('signal', signal);
-
-        // 3. L2 REASONING: Async AI Analysis (Agent Intelligence)
-        void (async () => {
-          const l2Result = await this.reasoning.analyzeToken(event, result.score);
-          signal.aiReasoning = l2Result;
-
-          // 4. PERSISTENCE: Upsert to Supabase with AI Reasoning
-          await this.persistToSupabase(signal);
-
-          // 5. VIP BROADCAST: Realtime delivery for 90+ scores
-          if (signal.isPremium) {
-            this.realtime.broadcastVipAlpha(signal, l2Result);
-          }
-
-          // 6. TELEGRAM DISPATCH: Send to premium subscribers
-          void this.telegram.broadcastAlpha(signal).catch((err) => {
-            console.error('[Engine] Telegram broadcast failed:', err);
-          });
-
-          // 6. AUDIT TRAIL: Dispatch telemetry to Axiom
-          if (this.hooks.logAudit) {
-            this.hooks.logAudit({
-              type: 'ALPHA_L2_COMPLETE',
-              mint: event.mint,
-              score: result.score,
-              reasoning: l2Result.narrative,
-              latency: performance.now() - startTime,
-            });
-          }
-        })();
-      }
+      void this.processMintEvent(event, 'public');
     });
 
-    // 1b. GEYSER ERROR HANDLING: Handle stream failures gracefully
     this.geyser.on('error', (error: Error) => {
       console.error('[IntelligenceEngine] Geyser stream error:', error);
-      // In a real institutional setup, we might trigger a circuit breaker or alert here.
+      geyserStatus.set({ mode: 'public' }, 0);
     });
   }
 
@@ -128,15 +112,14 @@ export class IntelligenceEngine extends EventEmitter {
     this.vipGeyser = new GeyserService('vip');
 
     this.vipGeyser.on('mint', (event: MintEvent) => {
-      // Re-use logic for VIP stream but perhaps with lower thresholds or higher priority
-      // For now, we pipe it back to the same processing logic
-      this.processMintEvent(event);
+      void this.processMintEvent(event, 'vip');
     });
 
     await this.vipGeyser.start();
+    geyserStatus.set({ mode: 'vip' }, 1);
   }
 
-  private processMintEvent(event: MintEvent) {
+  private async processMintEvent(event: MintEvent, mode: 'public' | 'vip' = 'public') {
     const startTime = performance.now();
     const result: ScoringResult = this.scorer.calculateScore(event);
     const latency = performance.now() - startTime;
@@ -150,10 +133,42 @@ export class IntelligenceEngine extends EventEmitter {
         reasoning: result.reasoning,
       };
       this.activeSignals.set(event.mint, signal);
+
+      // Record metrics
+      signalLatency.observe({ tier: signal.isPremium ? 'premium' : 'regular' }, latency);
+      signalCounter.inc({ is_premium: signal.isPremium.toString() });
+
       this.emit('signal', signal);
 
-      // Async processing... (duplicates logic from setupPipeline for now)
-      // I'll leave the full L2 reasoning here for brevity or refactor if needed.
+      try {
+        const aiStartTime = performance.now();
+        const l2Result = await this.reasoning.analyzeToken(event, result.score);
+        aiReasoningDuration.observe(performance.now() - aiStartTime);
+
+        signal.aiReasoning = l2Result;
+
+        await this.persistToSupabase(signal);
+
+        if (signal.isPremium) {
+          this.realtime.broadcastVipAlpha(signal, l2Result);
+        }
+
+        void this.telegram.broadcastAlpha(signal).catch((err) => {
+          console.error('[Engine] Telegram broadcast failed:', err);
+        });
+
+        if (this.hooks.logAudit) {
+          this.hooks.logAudit({
+            type: 'ALPHA_L2_COMPLETE',
+            mint: event.mint,
+            score: result.score,
+            reasoning: l2Result.narrative,
+            latency: performance.now() - startTime,
+          });
+        }
+      } catch (err) {
+        console.error(`[Engine:${mode}] AI Reasoning or Persistence failed:`, err);
+      }
     }
   }
 
