@@ -27,7 +27,13 @@ export function useProfile() {
         .single();
       
       if (data && !error) {
-        setProfile(data as UserProfile);
+        const userProfile = data as UserProfile;
+        setProfile(userProfile);
+        
+        // Sync to cookie for Middleware (Edge) consumption
+        document.cookie = `x-rzuna-subscription=${userProfile.subscription_status}; path=/; domain=.aivo.sh; max-age=3600; SameSite=Lax`;
+        // Fallback for localhost
+        document.cookie = `x-rzuna-subscription=${userProfile.subscription_status}; path=/; max-age=3600; SameSite=Lax`;
       }
     } finally {
       setIsLoading(false);
@@ -60,6 +66,8 @@ export function useProfile() {
         },
         (payload: { new: UserProfile }) => {
           setProfile(payload.new);
+          document.cookie = `x-rzuna-subscription=${payload.new.subscription_status}; path=/; domain=.aivo.sh; max-age=3600; SameSite=Lax`;
+          document.cookie = `x-rzuna-subscription=${payload.new.subscription_status}; path=/; max-age=3600; SameSite=Lax`;
         }
       )
       .subscribe();

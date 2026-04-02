@@ -18,21 +18,25 @@ export async function middleware(request: NextRequest) {
   
   // 1. VIP Subdomain Logic
   if (isVipSubdomain) {
-    // PR 10: vip.aivo.sh -> Internal Redirect / Dashboard with VIP Access
-    // If on homepage of VIP subdomain, move to dashboard
+    // Check for subscription (read from cookie set by AuthProvider/Profile)
+    const subscription = request.cookies.get('x-rzuna-subscription')?.value || 'NONE';
+    const isAuthenticated = request.cookies.get('sb-access-token') || request.cookies.get('x-rzuna-authenticated');
+
+    if (subscription === 'NONE' && isAuthenticated) {
+      // Redirect back to trade with upgrade prompt
+      const url = request.nextUrl.clone();
+      url.hostname = hostname.replace('vip', 'trade');
+      url.pathname = '/dashboard';
+      url.searchParams.set('error', 'upgrade_required');
+      return NextResponse.redirect(url);
+    }
+
     if (pathname === '/') {
        const url = request.nextUrl.clone();
        url.pathname = '/dashboard';
        const res = NextResponse.redirect(url);
        res.headers.set('X-RZUNA-VIP-MODE', 'true'); // Inject VIP header for backend
        return res;
-    }
-    
-    // Check for auth (Supabase session)
-    const token = request.cookies.get('sb-access-token')?.value;
-    if (!token && !pathname.startsWith('/auth')) {
-       // Optional: Redirect to auth or main landing
-       // For now, let the client-side AuthProvider handle it or restrict here
     }
   }
 
