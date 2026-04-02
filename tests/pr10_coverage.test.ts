@@ -18,16 +18,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
   supabase: {
     from: vi.fn().mockReturnThis(),
     upsert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn().mockResolvedValue({ error: null }),
-    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
-}));
-
-vi.mock('prom-client', () => ({
-  Counter: vi.fn().mockImplementation(() => ({ inc: vi.fn() })),
-  Histogram: vi.fn().mockImplementation(() => ({ observe: vi.fn() })),
-  Gauge: vi.fn().mockImplementation(() => ({ set: vi.fn() })),
-  Registry: vi.fn().mockImplementation(() => ({ registerMetric: vi.fn() })),
 }));
 
 describe('🛡️ PR 10 Coverage Hardening (Branch Infiltration)', () => {
@@ -61,49 +52,48 @@ describe('🛡️ PR 10 Coverage Hardening (Branch Infiltration)', () => {
   });
 
   describe('IntelligenceEngine.processMintEvent()', () => {
-    it('should process a mint event and emit signal if score >= 85', async () => {
+    it('should process a mint event and emit signal if score >= 85', () => {
       const signalSpy = vi.fn();
       engine.on('signal', signalSpy);
 
       const mockEvent = {
         mint: 'MINT123',
         signature: 'SIG123',
-        timestamp: new Date().toISOString(),
+        slot: 1,
         metadata: { symbol: 'TEST' },
       };
 
+      // We need to mock the scorer to return a high score
       // @ts-expect-error - testing private member
       vi.spyOn(engine.scorer, 'calculateScore').mockReturnValue({
         score: 95,
         reasoning: ['Bullish Narrative'],
-      } as any);
+        isPremium: true,
+      });
 
       // @ts-expect-error - testing private member
-      await engine.processMintEvent(mockEvent, 'public');
+      engine.processMintEvent(mockEvent);
 
       expect(signalSpy).toHaveBeenCalled();
       // @ts-expect-error - testing private member
       expect(engine.activeSignals.has('MINT123')).toBe(true);
     });
 
-    it('should NOT emit signal if score < 85 (Branch Coverage)', async () => {
+    it('should NOT emit signal if score < 85 (Branch Coverage)', () => {
       const signalSpy = vi.fn();
       engine.on('signal', signalSpy);
 
-      const mockEvent = {
-        mint: 'MINT_LOW',
-        signature: 'SIG456',
-        timestamp: new Date().toISOString(),
-      };
+      const mockEvent = { mint: 'MINT_LOW', signature: 'SIG456', slot: 1 };
 
       // @ts-expect-error - testing private member
       vi.spyOn(engine.scorer, 'calculateScore').mockReturnValue({
         score: 50,
         reasoning: ['Bearish'],
-      } as any);
+        isPremium: false,
+      });
 
       // @ts-expect-error - testing private member
-      await engine.processMintEvent(mockEvent, 'public');
+      engine.processMintEvent(mockEvent);
 
       expect(signalSpy).not.toHaveBeenCalled();
     });

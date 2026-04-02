@@ -2,6 +2,40 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { FastifyInstance } from 'fastify';
 
+// Mock Solana
+vi.mock('@solana/web3.js', () => ({
+  Connection: class {
+    getSignatureStatus = vi.fn().mockResolvedValue({ value: { err: null } });
+    getParsedTransaction = vi.fn().mockResolvedValue({
+      meta: { err: null, postTokenBalances: [] },
+      transaction: {
+        message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
+      },
+    });
+    onLogs = vi.fn().mockReturnValue(1);
+    removeOnLogsListener = vi.fn();
+    getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
+    sendRawTransaction = vi.fn().mockResolvedValue('sig');
+  },
+  PublicKey: class {
+    constructor(public key: string) {}
+    toBase58 = () => this.key;
+    static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    toBuffer = () => Buffer.from(this.key);
+  },
+}));
+
+// Mock Env
+vi.mock('../src/utils/env.js', () => ({
+  env: {
+    NODE_ENV: 'test',
+    SUPABASE_URL: 'https://test.co',
+    SUPABASE_KEY: 'test-key',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
+    USDC_TREASURY_WALLET: 'treasury_123',
+  },
+}));
+
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
   supabase: {
     from: vi.fn(() => ({

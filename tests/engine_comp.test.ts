@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IntelligenceEngine } from '../src/core/engine.js';
 import { UserRank } from '../src/core/types/user.js';
@@ -46,7 +47,7 @@ describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ error: null }),
     };
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+
     vi.mocked(supabase.from).mockReturnValue(mockQueryBuilder as any);
 
     engine = new IntelligenceEngine();
@@ -132,7 +133,7 @@ describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
       const loggerSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // Test explicit error
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       vi.mocked(supabase.from).mockReturnValue({
         upsert: vi.fn().mockResolvedValue({ error: new Error('Db Fail') }),
       } as any);
@@ -144,7 +145,7 @@ describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
       );
 
       // Test null response
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       vi.mocked(supabase.from).mockReturnValue({ upsert: vi.fn().mockResolvedValue(null) } as any);
       // @ts-expect-error - Accessing private
       await engine.persistToSupabase({ event: { mint: 'm2' }, score: 90 } as any);
@@ -169,7 +170,6 @@ describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
       // @ts-expect-error - Accessing private
       engine.activeSignals.set('m', { mint: 'm', score: 90, event: { mint: 'm' } } as any);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       vi.mocked(scoringService.calculateScore).mockReturnValue({
         score: 80,
         reasoning: [],
@@ -177,7 +177,7 @@ describe('🛡️ IntelligenceEngine Institutional Coverage', () => {
       });
 
       // Mock failure
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({ error: new Error('Update Fail') }),

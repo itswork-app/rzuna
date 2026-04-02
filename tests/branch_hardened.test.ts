@@ -13,7 +13,7 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
     connect = vi.fn().mockResolvedValue(undefined);
     subscribe = vi.fn().mockResolvedValue({
       on: vi.fn(),
-      write: vi.fn().mockImplementation((req, cb) => cb(null)),
+      write: vi.fn().mockImplementation((req: any, cb: (err: Error | null) => void) => cb(null)),
       removeAllListeners: vi.fn(),
     });
   },
@@ -29,24 +29,35 @@ vi.mock('@solana/web3.js', async () => {
     VersionedTransaction: {
       deserialize: vi.fn().mockReturnValue({ sign: vi.fn(), serialize: () => new Uint8Array() }),
     },
-    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
-      this.toBase58 = () => key;
-      this.toBuffer = () => Buffer.alloc(32);
-      this.equals = () => true;
-    }),
+    PublicKey: class {
+      constructor(public key: string) {}
+      toBase58 = () => this.key;
+      toBuffer = () => Buffer.alloc(32);
+      equals = () => true;
+      static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    },
     Connection: class {
       sendRawTransaction = vi.fn().mockResolvedValue('MOCK_SIG');
       getLatestBlockhash = vi
         .fn()
         .mockResolvedValue({ blockhash: 'MOCK_HASH', lastValidBlockHeight: 100 });
+      getSignatureStatus = vi.fn().mockResolvedValue({ value: { err: null } });
+      getParsedTransaction = vi.fn().mockResolvedValue({
+        meta: { err: null, postTokenBalances: [] },
+        transaction: {
+          message: { accountKeys: [{ pubkey: { toBase58: () => 'MOCK_PUB' } }], instructions: [] },
+        },
+      });
+      onLogs = vi.fn().mockReturnValue(1);
+      removeOnLogsListener = vi.fn();
     },
-    Transaction: vi.fn().mockImplementation(function (this: any) {
-      this.add = vi.fn().mockReturnThis();
-      this.sign = vi.fn();
-      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
-      this.recentBlockhash = '';
-      this.feePayer = null;
-    }),
+    Transaction: class {
+      add = vi.fn().mockReturnThis();
+      sign = vi.fn();
+      serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      recentBlockhash = '';
+      feePayer = null;
+    },
     SystemProgram: {
       transfer: vi.fn(),
     },
@@ -57,19 +68,18 @@ vi.mock('@solana/web3.js', async () => {
 const mockAxiomIngest = vi.fn();
 const mockAxiomFlush = vi.fn().mockResolvedValue(undefined);
 vi.mock('@axiomhq/js', () => ({
-  Axiom: vi.fn().mockImplementation(function (this: any) {
-    this.ingest = mockAxiomIngest;
-    this.flush = mockAxiomFlush;
-    return this;
-  }),
+  Axiom: class {
+    ingest = mockAxiomIngest;
+    flush = mockAxiomFlush;
+  },
 }));
 
 // Mock PostHog
 vi.mock('posthog-node', () => ({
-  PostHog: vi.fn().mockImplementation(() => ({
-    shutdown: vi.fn().mockResolvedValue(undefined),
-    getAllFlags: vi.fn().mockResolvedValue({}),
-  })),
+  PostHog: class {
+    shutdown = vi.fn().mockResolvedValue(undefined);
+    getAllFlags = vi.fn().mockResolvedValue({});
+  },
 }));
 
 import { GeyserService } from '../src/infrastructure/solana/geyser.service.js';
@@ -83,6 +93,8 @@ describe('🛡️ Institutional Infrastructure Hardening (80% Branches)', () => 
     env.WALLET_PRIVATE_KEY = 'mock_key';
     env.GEYSER_ENDPOINT = 'test';
     env.GEYSER_TOKEN = 'test';
+    env.SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com';
+    env.USDC_TREASURY_WALLET = 'treasury_123';
   });
 
   describe('📡 GeyserService Surgical Coverage', () => {

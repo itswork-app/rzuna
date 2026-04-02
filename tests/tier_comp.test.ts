@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TierService } from '../src/core/tiers/tier.service.js';
 import { UserRank } from '../src/core/types/user.js';
@@ -51,7 +52,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
 
   it('should consume AI quota for non-VIP', async () => {
     const mockFrom = supabase.from('profiles');
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+
     const mockRpc = supabase.rpc;
 
     // 1. First call: getUserProfile
@@ -73,7 +74,7 @@ describe('🛡️ TierService Institutional Coverage', () => {
 
   it('should allow AI quota for VIP without tracking', async () => {
     const mockFrom = supabase.from('profiles');
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+
     const mockRpc = supabase.rpc;
 
     // @ts-expect-error - Internal mock

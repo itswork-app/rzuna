@@ -9,6 +9,9 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 
 import { Toaster } from 'react-hot-toast';
+import { Refine } from '@refinedev/core';
+import routerProvider from '@refinedev/nextjs-router';
+import { dataProvider } from '@/providers/dataProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,7 +32,16 @@ export default function RootLayout({
           <WalletContextProvider>
             <PostHogProvider>
               <AuthProvider>
-                {children}
+                <Refine
+                  dataProvider={dataProvider}
+                  routerProvider={routerProvider}
+                  options={{
+                    syncWithLocation: true,
+                    warnWhenUnsavedChanges: true,
+                  }}
+                >
+                  {children}
+                </Refine>
               </AuthProvider>
               <Toaster 
                 position="bottom-right"

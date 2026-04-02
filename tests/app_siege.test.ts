@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { supabase } from '../src/infrastructure/supabase/client.js';
@@ -40,7 +41,7 @@ describe('🛡️ App Entry Point Branch Siege', () => {
         error: null,
       }),
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+
     vi.mocked(supabase.from).mockReturnValue({ select: mockSelect } as any);
 
     const fastify = await buildApp();

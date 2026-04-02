@@ -99,12 +99,12 @@ export const buildApp = async () => {
   });
 
   // Health check for Checkly/Guardian
-  fastify.get('/health', async (_request, reply) => {
-    return await reply.send({
+  fastify.get('/health', async () => {
+    return {
       status: 'ok',
       timestamp: new Date().toISOString(),
       env: env.NODE_ENV,
-    });
+    };
   });
 
   /**
@@ -171,8 +171,9 @@ export const buildApp = async () => {
           return await reply.status(400).send({ error: 'Missing route or wallet context' });
         }
 
+        const modeDisplay = (env.EXECUTION_MODE || 'dry_run').toUpperCase();
         console.info(
-          `[EXECUTION] [${env.EXECUTION_MODE.toUpperCase()}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`,
+          `[EXECUTION] [${modeDisplay}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`,
         );
 
         const result = await jupiterService.executeSwap(route);

@@ -10,24 +10,35 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
   },
 }));
 
-// Mock Solana
+// Mock Solana Web3
 vi.mock('@solana/web3.js', () => ({
-  Connection: vi.fn().mockImplementation(() => ({
-    getSignatureStatus: vi.fn().mockResolvedValue({ value: { err: null } }),
-    getParsedTransaction: vi.fn().mockResolvedValue({ meta: { err: null } }),
-  })),
-  PublicKey: vi.fn().mockImplementation((key: string) => ({
-    toBase58: () => key,
-  })),
+  Connection: class {
+    getSignatureStatus = vi.fn().mockResolvedValue({ value: { err: null } });
+    getParsedTransaction = vi.fn().mockResolvedValue({
+      meta: { err: null, postTokenBalances: [] },
+      transaction: {
+        message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
+      },
+    });
+    onLogs = vi.fn().mockReturnValue(1);
+    removeOnLogsListener = vi.fn();
+    getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
+    sendRawTransaction = vi.fn().mockResolvedValue('sig');
+  },
+  PublicKey: class {
+    constructor(public key: string) {}
+    toBase58 = () => this.key;
+    static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    toBuffer = () => Buffer.from(this.key);
+  },
 }));
 
 // Mock Axiom
 vi.mock('@axiomhq/js', () => ({
-  Axiom: vi.fn().mockImplementation(function (this: any) {
-    this.ingest = vi.fn();
-    this.flush = vi.fn().mockResolvedValue(undefined);
-    return this;
-  }),
+  Axiom: class {
+    ingest = vi.fn();
+    flush = vi.fn().mockResolvedValue(undefined);
+  },
 }));
 
 // Mock Sentry
@@ -67,7 +78,6 @@ vi.mock('@supabase/supabase-js', () => ({
     upsert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),
-    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
     single: vi.fn().mockResolvedValue({
       data: {
         id: 'test-uuid',
@@ -83,6 +93,7 @@ vi.mock('@supabase/supabase-js', () => ({
       },
       error: null,
     }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   }),
 }));
 

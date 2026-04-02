@@ -99,55 +99,43 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
   const jupiterService = new JupiterService();
 
   fastify.post<{ Body: TradeBody }>('/trade', async (request, reply) => {
-    const {
-      walletAddress,
-      amountUSD,
-      platform,
-      signature,
-      jitoTipSOL = 0,
-      networkFeeSOL = 0.000005,
-      status = 'success',
-      tokenMint,
-      feeAmountLamports,
-    } = request.body;
+    const body = request.body;
+    const { walletAddress, amountUSD, platform, signature, status = 'success' } = body;
 
     try {
-      if (status === 'success' && signature) {
-        await verifySignatureStatus(signature);
-      }
+      // 🏛️ PR 22: Hardened Trade Verification
+      await handleTradeVerification(status, signature, reply);
 
       const profile = await tierService.getUserProfile(walletAddress);
-      await checkPostHogFlags(fastify, walletAddress);
+      await checkJupiterEnabled(walletAddress, fastify, reply);
 
       const feeRate = tierService.getTradingFeePercentage(profile);
-      const tradingFeeUSD = amountUSD * feeRate;
       const solPrice = await getLiveSOLPrice();
-      const costs = calculateCosts(tradingFeeUSD, jitoTipSOL, networkFeeSOL, solPrice);
 
-      const { newRank, updatedProfile } = await updateProfileAndLogAudit(
-        walletAddress,
-        amountUSD,
-        tradingFeeUSD,
-        signature,
-        platform,
-        status,
-        tokenMint,
-        feeAmountLamports,
-        profile,
-        tierService,
-        jupiterService,
-        fastify,
-      );
+      const tradingFeeUSD = amountUSD * feeRate;
+      const jitoTipUSD = (body.jitoTipSOL || 0) * solPrice;
+      const networkFeeUSD = (body.networkFeeSOL || 0.000005) * solPrice;
+      const totalBundledCostUSD = tradingFeeUSD + jitoTipUSD + networkFeeUSD;
+
+      let newRank = profile.rank;
+      if (status === 'success') {
+        newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
+      }
+
+      const updatedProfile = await tierService.getUserProfile(walletAddress);
+      await logTransactionAuditTrail(updatedProfile, body, tradingFeeUSD, jupiterService, fastify);
 
       if (fastify.logAlpha) {
-        void fastify.logAlpha({
+        await fastify.logAlpha({
           type: 'TRADE_FEE_COLLECTED',
           wallet: walletAddress,
           platform,
           amountUSD,
           feeRate: `${(feeRate * 100).toFixed(2)}%`,
           tradingFeeUSD,
-          ...costs,
+          jitoTipUSD,
+          networkFeeUSD,
+          totalBundledCostUSD,
           rank: updatedProfile.rank,
           status: updatedProfile.status,
           newRank,
@@ -163,132 +151,18 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
         status: 'success',
         tradingFeeUSD,
         feeRate: `${(feeRate * 100).toFixed(2)}%`,
-        ...costs,
+        jitoTipUSD,
+        networkFeeUSD,
+        totalBundledCostUSD,
         currentRank: newRank,
         signature,
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error('[FEE_PLUGIN_ERROR]', error);
       fastify.log.error(error);
-      const statusCode = error.statusCode || 500;
-      return await reply
-        .status(statusCode)
-        .send({ error: error.message || 'Failed to record trade volume' });
+      return await reply.status(500).send({ error: 'Failed to record trade volume' });
     }
   });
-
-  async function updateProfileAndLogAudit(
-    walletAddress: string,
-    amountUSD: number,
-    tradingFeeUSD: number,
-    signature: string,
-    platform: string,
-    status: string,
-    tokenMint?: string,
-    feeAmountLamports?: number,
-    profile?: any,
-    tierService?: any,
-    jupiterService?: any,
-    fastify?: any,
-  ) {
-    let newRank = profile.rank;
-    if (status === 'success') {
-      newRank = await tierService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
-    }
-
-    const updatedProfile = await tierService.getUserProfile(walletAddress);
-    await logTradeAudit(
-      updatedProfile,
-      signature,
-      amountUSD,
-      tradingFeeUSD,
-      platform,
-      status,
-      tokenMint,
-      feeAmountLamports,
-      jupiterService,
-      fastify,
-    );
-
-    return { newRank, updatedProfile };
-  }
-
-  async function verifySignatureStatus(signature: string) {
-    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
-    const tx = await connection.getSignatureStatus(signature);
-    if (!tx.value || tx.value.err) {
-      const error = new Error('Invalid or failed trade signature') as any;
-      error.statusCode = 400;
-      throw error;
-    }
-  }
-
-  async function checkPostHogFlags(fastify: any, walletAddress: string) {
-    if (fastify.posthog) {
-      const flags = await fastify.posthog.getAllFlags(walletAddress);
-      if (flags['jupiter_swap_enabled'] === false) {
-        const error = new Error('Jupiter swap is not enabled for your account tier.') as any;
-        error.statusCode = 403;
-        throw error;
-      }
-    }
-  }
-
-  function calculateCosts(
-    tradingFeeUSD: number,
-    jitoTipSOL: number,
-    networkFeeSOL: number,
-    solPrice: number,
-  ) {
-    const jitoTipUSD = jitoTipSOL * solPrice;
-    const networkFeeUSD = networkFeeSOL * solPrice;
-    return {
-      jitoTipUSD,
-      networkFeeUSD,
-      totalBundledCostUSD: tradingFeeUSD + jitoTipUSD + networkFeeUSD,
-    };
-  }
-
-  async function logTradeAudit(
-    profile: any,
-    signature: string,
-    amountUSD: number,
-    tradingFeeUSD: number,
-    platform: string,
-    status: string,
-    tokenMint?: string,
-    feeAmountLamports?: number,
-    jupiterService?: any,
-    fastify?: any,
-  ) {
-    if (!profile.id) return;
-
-    const { error: insertError } = await supabase.from('transactions').insert({
-      profile_id: profile.id,
-      tx_hash: signature,
-      amount_usd: amountUSD,
-      fee_collected: status === 'success' ? tradingFeeUSD : 0,
-      platform,
-      status,
-      type: 'trading_fee',
-      treasury_asset: 'SOL',
-      treasury_status: status === 'success' ? 'pending_conversion' : 'settled',
-    } as unknown as never);
-
-    if (insertError) {
-      fastify.log.error(insertError);
-      console.error(insertError, 'Failed to log transaction audit trail');
-    }
-
-    if (status === 'success' && tokenMint && feeAmountLamports) {
-      const swapResult = await jupiterService.autoConvertFeeToSOL(tokenMint, feeAmountLamports);
-      if (swapResult.status === 'success') {
-        await supabase
-          .from('transactions')
-          .update({ treasury_status: 'settled' } as unknown as never)
-          .eq('tx_hash', signature);
-      }
-    }
-  }
 
   fastify.post<{ Body: SubscribeBody }>('/subscribe', async (request, reply) => {
     const { walletAddress, tier, amountSOL, paymentSignature } = request.body;
@@ -357,3 +231,63 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
     }
   });
 };
+
+async function handleTradeVerification(status: string, signature: string, reply: any) {
+  if (status === 'success' && signature) {
+    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const tx = await connection.getSignatureStatus(signature);
+    if (!tx.value || tx.value.err) {
+      return await reply.status(400).send({ error: 'Invalid or failed trade signature' });
+    }
+  }
+}
+
+async function checkJupiterEnabled(walletAddress: string, fastify: any, reply: any) {
+  if (fastify.posthog) {
+    const flags = await fastify.posthog.getAllFlags(walletAddress);
+    if (flags['jupiter_swap_enabled'] === false) {
+      return await reply.status(403).send({
+        error: 'Jupiter swap is not enabled for your account tier.',
+      });
+    }
+  }
+}
+
+async function logTransactionAuditTrail(
+  profile: any,
+  body: TradeBody,
+  tradingFeeUSD: number,
+  jupiterService: JupiterService,
+  fastify: any,
+) {
+  if (!profile.id) return;
+  const { signature, amountUSD, platform, status, tokenMint, feeAmountLamports } = body;
+
+  try {
+    const { error: insertError } = await supabase.from('transactions').insert({
+      profile_id: profile.id,
+      tx_hash: signature,
+      amount_usd: amountUSD,
+      fee_collected: status === 'success' ? tradingFeeUSD : 0,
+      platform,
+      status,
+      type: 'trading_fee',
+      treasury_asset: 'SOL',
+      treasury_status: status === 'success' ? 'pending_conversion' : 'settled',
+    } as unknown as never);
+
+    if (insertError) fastify.log.error(insertError, 'Failed to log transaction audit trail');
+
+    if (status === 'success' && tokenMint && feeAmountLamports) {
+      const swapResult = await jupiterService.autoConvertFeeToSOL(tokenMint, feeAmountLamports);
+      if (swapResult.status === 'success') {
+        await supabase
+          .from('transactions')
+          .update({ treasury_status: 'settled' } as unknown as never)
+          .eq('tx_hash', signature);
+      }
+    }
+  } catch (trailError) {
+    fastify.log.error(trailError, 'Background audit trail failed');
+  }
+}

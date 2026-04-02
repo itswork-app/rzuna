@@ -38,18 +38,34 @@ vi.mock('@solana/web3.js', async (importOriginal) => {
         serialize: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
       }),
     },
-    PublicKey: vi.fn().mockImplementation(function (this: any, key: string) {
-      this.toBase58 = () => key;
-      this.toBuffer = () => Buffer.alloc(32);
-      this.equals = () => true;
-    }),
-    Transaction: vi.fn().mockImplementation(function (this: any) {
-      this.add = vi.fn().mockReturnThis();
-      this.sign = vi.fn();
-      this.serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
-      this.recentBlockhash = '';
-      this.feePayer = null;
-    }),
+    PublicKey: class {
+      constructor(public key: string) {}
+      toBase58 = () => this.key;
+      toBuffer = () => Buffer.alloc(32);
+      equals = () => true;
+      static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    },
+    Transaction: class {
+      add = vi.fn().mockReturnThis();
+      sign = vi.fn();
+      serialize = vi.fn().mockReturnValue(new Uint8Array([4, 5, 6]));
+      recentBlockhash = '';
+      feePayer = null;
+    },
+    Connection: class {
+      constructor() {}
+      getSignatureStatus = vi.fn().mockResolvedValue({ value: { err: null } });
+      getParsedTransaction = vi.fn().mockResolvedValue({
+        meta: { err: null, postTokenBalances: [] },
+        transaction: {
+          message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
+        },
+      });
+      onLogs = vi.fn().mockReturnValue(1);
+      removeOnLogsListener = vi.fn();
+      getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
+      sendRawTransaction = vi.fn().mockResolvedValue('sig');
+    },
   };
 });
 

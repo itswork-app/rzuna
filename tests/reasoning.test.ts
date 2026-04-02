@@ -10,6 +10,7 @@ vi.mock('../src/utils/env.js', () => ({
   env: {
     NODE_ENV: 'test',
     OPENAI_API_KEY: 'test-key',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
   },
 }));
 

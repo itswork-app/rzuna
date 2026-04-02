@@ -24,6 +24,7 @@ export interface UserProfile {
   last_rank_reset: string;
   tg_chat_id?: string;
   is_tg_enabled?: boolean;
+  quota?: number;
 }
 
 export interface AlphaSignal {

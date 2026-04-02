@@ -3,19 +3,6 @@ import { type MintEvent } from '../src/infrastructure/solana/geyser.service.js';
 import { ScoringService } from '../src/core/scoring/scoring.service.js';
 import { IntelligenceEngine } from '../src/core/engine.js';
 
-vi.mock('@solana/web3.js', () => ({
-  Connection: vi.fn().mockImplementation(() => ({
-    getParsedTransaction: vi.fn(),
-    getSignatureStatus: vi.fn(),
-    onLogs: vi.fn(),
-    removeOnLogsListener: vi.fn(),
-  })),
-  PublicKey: vi.fn().mockImplementation((key: string) => ({
-    toBase58: () => key,
-    toString: () => key,
-  })),
-}));
-
 vi.mock('@triton-one/yellowstone-grpc', () => {
   return {
     default: class {
@@ -68,6 +55,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     update: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   },
 }));
 
