@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TierService } from '../src/core/tiers/tier.service.js';
 import { UserRank, SubscriptionStatus, type UserProfile } from '../src/core/types/user.js';
@@ -12,12 +13,18 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     upsert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   },
 }));
 
 // Mock env
 vi.mock('../src/utils/env.js', () => ({
-  env: { NODE_ENV: 'test', SUPABASE_URL: 'https://test.co', SUPABASE_KEY: 'test-key' },
+  env: {
+    NODE_ENV: 'test',
+    SUPABASE_URL: 'https://test.co',
+    SUPABASE_KEY: 'test-key',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
+  },
 }));
 
 const makeProfile = (rank: UserRank, status: SubscriptionStatus): UserProfile => ({
@@ -82,30 +89,21 @@ describe('TierService — Dynamic Fee Calculator', () => {
 
   describe('addVolume() — Rank Upgrades', () => {
     it('upgrades user to ELITE when threshold is met', async () => {
-      // Mock profile with 9000 volume
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      vi.mocked(supabase.from('profiles').select as any).mockReturnValue({
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            wallet_address: 'w1',
-            rank: 'PRO',
-            current_month_volume: 9000,
-            total_fees_paid: 100,
-            subscription_status: 'NONE',
-          },
-          error: null,
-        }),
-      });
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: 'ELITE', error: null } as any);
 
-      const nextRank = await service.addVolume('w1', 1500); // 9000 + 1500 = 10500 (ELITE)
+      const nextRank = await service.addVolume('w1', 1500);
       expect(nextRank).toBe(UserRank.ELITE);
+
+      expect(supabase.rpc).toHaveBeenCalledWith('add_volume_atomic', {
+        p_wallet_address: 'w1',
+        p_volume_increment: 1500,
+        p_fee_increment: 0,
+      });
     });
   });
 
   describe('performMonthlyReset() — Demotions', () => {
     it('demotes PRO to NEWBIE if not protected', async () => {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       vi.mocked(supabase.from('profiles').select as any).mockReturnValue({
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({

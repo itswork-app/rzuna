@@ -28,6 +28,7 @@ vi.mock('../src/utils/env.js', () => ({
     SUPABASE_URL: 'https://test.supabase.co',
     SUPABASE_KEY: 'test-key-long-enough-for-zod',
     PORT: '3000',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
   },
 }));
 
@@ -54,6 +55,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     update: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   },
 }));
 

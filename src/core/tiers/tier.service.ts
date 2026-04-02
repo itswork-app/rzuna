@@ -130,36 +130,29 @@ export class TierService {
   }
 
   /**
-   * Add trading volume and handle rank upgrades.
-   * Also accumulates total_fees_paid for platform revenue tracking.
+   * Add trading volume and handle rank upgrades (Atomic).
+   * Standar: Canonical Master Blueprint v1.6 (Race Condition Protection)
    */
   async addVolume(walletAddress: string, amount: number, feePaid: number = 0): Promise<UserRank> {
-    const profile = await this.getUserProfile(walletAddress);
-    const newVolume = profile.volume.currentMonthVolume + amount;
-    const newTotalFees = profile.volume.totalFeesPaid + feePaid;
-    let newRank = profile.rank;
+    const rpc = (
+      supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: any; error: any }>;
+      }
+    ).rpc;
 
-    if (newVolume >= this.ELITE_THRESHOLD) {
-      newRank = UserRank.ELITE;
-    } else if (newVolume >= this.PRO_THRESHOLD) {
-      newRank = UserRank.PRO;
+    const { data, error } = await rpc('add_volume_atomic', {
+      p_wallet_address: walletAddress,
+      p_volume_increment: amount,
+      p_fee_increment: feePaid,
+    });
+
+    if (error) {
+      console.error('[TIER] Atomic volume update failed:', error);
+      // Logic for fallback (though RPC is preferred)
+      return UserRank.NEWBIE;
     }
 
-    void (async () => {
-      const { error: upsertError } = await supabase.from('profiles').upsert(
-        {
-          wallet_address: walletAddress,
-          current_month_volume: newVolume,
-          total_fees_paid: newTotalFees,
-          rank: newRank,
-          updated_at: new Date().toISOString(),
-        } as unknown as never,
-        { onConflict: 'wallet_address' },
-      );
-      if (upsertError) console.error('Failed to update volume:', upsertError);
-    })();
-
-    return newRank;
+    return data as UserRank;
   }
 
   /**

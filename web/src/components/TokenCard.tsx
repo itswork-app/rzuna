@@ -1,10 +1,12 @@
-'use client';
-
 import React, { useState } from 'react';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, Brain, Zap, ArrowRight } from 'lucide-react';
 import { useTrade } from '@/hooks/useTrade';
 import { useWallet } from '@solana/wallet-adapter-react';
 import posthog from 'posthog-js';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TokenSignal {
   id: string;
@@ -53,73 +55,116 @@ export function TokenCard({
   };
 
   return (
-    <div className={`bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-6 hover:border-cyan-500/50 transition-all group ${sensorMode ? 'opacity-70 grayscale-[0.5]' : ''}`}>
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
-            {signal.event.metadata?.name || 'Unknown Token'}
-          </h3>
-          {sensorMode ? (
-            <div className="flex items-center gap-2 text-cyan-400/60 font-mono text-xs mt-1">
-              <span className="bg-cyan-400/20 px-2 py-0.5 rounded italic">Institutional Mint Hidden</span>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={sensorMode ? 'opacity-70 grayscale-[0.3]' : ''}
+    >
+      <Card className="relative overflow-hidden group border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="space-y-1">
+            <CardTitle className="text-white group-hover:text-shadow-silver transition-all">
+              {signal.event.metadata?.name || 'Unknown Token'}
+            </CardTitle>
+            {sensorMode ? (
+              <Badge variant="institutional" className="bg-white/10 text-white/40">
+                Identity Masked
+              </Badge>
+            ) : (
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">
+                {signal.event.mint.slice(0, 12)}...
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <Badge variant="institutional" className="bg-white/5 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              {signal.score}
+            </Badge>
+            <span className="text-[8px] uppercase font-black text-muted-foreground tracking-[0.2em]">Alpha Score</span>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Liquidity</p>
+              <div className="flex items-center gap-2">
+                <Zap size={10} className="text-white/40" />
+                <p className="text-xs font-mono text-white">${signal.event.initialLiquidity?.toLocaleString()}</p>
+              </div>
             </div>
-          ) : (
-            <p className="text-gray-400 text-sm font-mono">{signal.event.mint.slice(0, 6)}...{signal.event.mint.slice(-4)}</p>
-          )}
-        </div>
-        <div className="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full text-sm font-bold border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
-          Score: {signal.score}
-        </div>
-      </div>
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Social Pulse</p>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-xs font-mono text-white">{signal.event.socialScore}%</p>
+              </div>
+            </div>
+          </div>
 
+          <AnimatePresence mode="wait">
+            {isReasoningVisible ? (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mb-6 p-4 bg-white/[0.03] border border-white/10 rounded-xl"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain size={12} className="text-white/60" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/60">L2 Reasoning</span>
+                </div>
+                <p className="text-[11px] text-gray-400 italic leading-relaxed">
+                  &quot;{signal.aiReasoning?.narrative}&quot;
+                </p>
+              </motion.div>
+            ) : (
+              <Button
+                variant="institutional"
+                className="w-full mb-6 h-10 text-[9px] hover:bg-white/10"
+                onClick={() => {
+                  posthog.capture('REVEAL_REASONING_CLICK', { mint: signal.event.mint });
+                  onConsumeQuota();
+                  setIsReasoningVisible(true);
+                }}
+              >
+                Decrypt Intelligence Nexus (-1)
+              </Button>
+            )}
+          </AnimatePresence>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-black/30 p-3 rounded-lg border border-white/5">
-          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1 font-bold">Liquidity</p>
-          <p className="text-white font-mono text-sm">${signal.event.initialLiquidity?.toFixed(2)}</p>
-        </div>
-        <div className="bg-black/30 p-3 rounded-lg border border-white/5">
-          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1 font-bold">Socials</p>
-          <p className="text-white font-mono text-sm">{signal.event.socialScore}%</p>
-        </div>
-      </div>
-
-      {isReasoningVisible ? (
-        <div className="mb-6 p-4 bg-black/40 rounded-lg border border-cyan-500/10 animate-in fade-in slide-in-from-top-2 duration-300">
-          <p className="text-gray-300 text-sm italic leading-relaxed">
-            &quot;{signal.aiReasoning?.narrative}&quot;
-          </p>
-        </div>
-      ) : (
-        <button
-          onClick={() => {
-            posthog.capture('REVEAL_REASONING_CLICK', { mint: signal.event.mint });
-            onConsumeQuota();
-            setIsReasoningVisible(true);
-          }}
-          className="w-full mb-6 py-2 rounded-lg bg-cyan-500/5 hover:bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02]"
-        >
-          Reveal AI Reasoning (-1 Quota)
-        </button>
-      )}
-
-      <div className="flex gap-3">
-        <button 
-          onClick={handleBuy}
-          disabled={isExecuting}
-          className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 text-white py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transform active:scale-95 flex items-center justify-center gap-2"
-        >
-          {isExecuting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Institutional Buy (Jito)'}
-        </button>
-        <a
-          href={`https://solscan.io/token/${signal.event.mint}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all group"
-        >
-          <ExternalLink className="w-5 h-5 text-gray-400 group-hover:text-white" />
-        </a>
-      </div>
-    </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="default"
+              size="lg"
+              onClick={handleBuy}
+              disabled={isExecuting}
+              className="flex-1 bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[10px] rounded-xl group/btn"
+            >
+              {isExecuting ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                <span className="flex items-center gap-2">
+                   Institutional Buy <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              asChild
+              className="w-12 h-12 rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
+            >
+              <a
+                href={`https://solscan.io/token/${signal.event.mint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4 text-white/60" />
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

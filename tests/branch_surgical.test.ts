@@ -11,6 +11,61 @@ vi.mock('@triton-one/yellowstone-grpc', () => ({
     subscribe = vi.fn().mockResolvedValue({ on: vi.fn(), write: vi.fn() });
   },
 }));
+
+// Mock Solana
+vi.mock('@solana/web3.js', () => {
+  class MockConnection {
+    getSignatureStatus = vi.fn().mockResolvedValue({ value: { err: null } });
+    getParsedTransaction = vi.fn().mockResolvedValue({
+      meta: { err: null, postTokenBalances: [] },
+      transaction: {
+        message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
+      },
+    });
+    onLogs = vi.fn().mockReturnValue(1);
+    removeOnLogsListener = vi.fn();
+    getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'bh' });
+    sendRawTransaction = vi.fn().mockResolvedValue('sig');
+  }
+  class MockPublicKey {
+    constructor(public k: string) {}
+    toBase58 = () => this.k;
+    static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    toBuffer = () => Buffer.from(this.k);
+  }
+  return {
+    Connection: MockConnection,
+    PublicKey: MockPublicKey,
+    Keypair: {
+      fromSecretKey: vi.fn().mockReturnValue({ publicKey: { toBase58: () => 'kp' } }),
+    },
+    VersionedTransaction: {
+      deserialize: vi.fn().mockReturnValue({ sign: vi.fn(), serialize: vi.fn() }),
+    },
+    SystemProgram: {
+      transfer: vi.fn(),
+    },
+    Transaction: class {
+      add = vi.fn().mockReturnThis();
+      sign = vi.fn();
+      serialize = vi.fn();
+    },
+  };
+});
+
+// Mock Env
+vi.mock('../src/utils/env.js', () => ({
+  env: {
+    NODE_ENV: 'test',
+    SUPABASE_URL: 'https://test.co',
+    SUPABASE_KEY: 'test-key',
+    SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com',
+    USDC_TREASURY_WALLET: 'treasury_123',
+    JITO_BLOCK_ENGINE_URL: 'https://jito',
+    JITO_TIP_PAYMENT_ADDRESS: 'tip',
+    EXECUTION_MODE: 'dry_run',
+  },
+}));
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn().mockReturnValue({
     from: vi.fn().mockReturnThis(),
@@ -19,6 +74,7 @@ vi.mock('@supabase/supabase-js', () => ({
     single: vi.fn().mockResolvedValue({ data: { id: 'u1' } }),
     upsert: vi.fn().mockResolvedValue({ error: null }),
     insert: vi.fn().mockResolvedValue({ error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   }),
 }));
 vi.mock('@sentry/node', () => ({ init: vi.fn(), captureException: vi.fn() }));
@@ -92,9 +148,13 @@ describe('☢️ Final Stand: Branch Infiltration Suite', () => {
     expect((app as any).logAlpha).toHaveBeenCalled();
 
     // Case 3: insertError log (Line 95)
-    const spyFrom = vi.spyOn(supabase, 'from').mockReturnValue({
+    const mockChain = {
       insert: vi.fn().mockResolvedValue({ error: new Error('Insert Fail') }),
-    } as any);
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'u1' } }),
+    };
+    const spyFrom = vi.spyOn(supabase, 'from').mockReturnValue(mockChain as any);
     await app.inject({
       method: 'POST',
       url: '/trade',

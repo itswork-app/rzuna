@@ -49,20 +49,20 @@ describe('TokenCard Component (Institutional)', () => {
   it('renders token metadata and score correctly', () => {
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
     expect(screen.getByText('Solana Coin')).toBeInTheDocument();
-    expect(screen.getByText('Score: 95')).toBeInTheDocument();
+    expect(screen.getByText('95')).toBeInTheDocument();
     expect(screen.getByText('88%')).toBeInTheDocument();
-    expect(screen.getByText('$1250.50')).toBeInTheDocument();
+    expect(screen.getByText('$1,250.5')).toBeInTheDocument();
   });
 
   it('AI Reasoning section is hidden initially and requires quota reveal', () => {
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
     expect(screen.queryByText(/High-conviction alpha/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Reveal AI Reasoning \(-1 Quota\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Decrypt Intelligence Nexus/i)).toBeInTheDocument();
   });
 
   it('reveals AI reasoning and calls onConsumeQuota when button is clicked', async () => {
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const revealBtn = screen.getByText(/Reveal AI Reasoning \(-1 Quota\)/i);
+    const revealBtn = screen.getByText(/Decrypt Intelligence Nexus/i);
     fireEvent.click(revealBtn);
 
     await waitFor(() => {
@@ -73,7 +73,7 @@ describe('TokenCard Component (Institutional)', () => {
 
   it('calls buy function when institutional buy button is clicked', async () => {
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
     
     // Check if it renders properly as part of handleBuy trace log or similar logic
@@ -94,7 +94,7 @@ describe('TokenCard Component (Institutional)', () => {
     window.alert = vi.fn();
     
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
     
     expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Please connect wallet first'));
@@ -111,7 +111,7 @@ describe('TokenCard Component (Institutional)', () => {
     window.alert = vi.fn();
 
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
 
     await waitFor(() => {
@@ -130,7 +130,7 @@ describe('TokenCard Component (Institutional)', () => {
     window.alert = vi.fn();
 
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
 
     await waitFor(() => {
@@ -149,7 +149,7 @@ describe('TokenCard Component (Institutional)', () => {
     window.alert = vi.fn();
 
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
-    const buyBtn = screen.getByText(/Institutional Buy \(Jito\)/i);
+    const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
 
     await waitFor(() => {

@@ -2,12 +2,11 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { WalletContextProvider } from '@/components/WalletContextProvider';
-import { PostHogProvider } from '@/components/PostHogProvider';
-import { AxiomWebVitals } from 'next-axiom';
+import { SafeTelemetry } from '@/components/SafeTelemetry';
 
 import { AuthProvider } from '@/components/AuthProvider';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
-
+import { RefineProvider } from '@/components/RefineProvider';
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -27,9 +26,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <GlobalErrorBoundary>
           <WalletContextProvider>
-            <PostHogProvider>
+            <SafeTelemetry>
               <AuthProvider>
-                {children}
+                <RefineProvider>
+                  {children}
+                </RefineProvider>
               </AuthProvider>
               <Toaster 
                 position="bottom-right"
@@ -43,8 +44,7 @@ export default function RootLayout({
                   },
                 }}
               />
-              <AxiomWebVitals />
-            </PostHogProvider>
+            </SafeTelemetry>
           </WalletContextProvider>
         </GlobalErrorBoundary>
       </body>

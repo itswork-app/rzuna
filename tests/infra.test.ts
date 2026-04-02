@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GeyserService } from '../src/infrastructure/solana/geyser.service.js';
 import { RealtimeService } from '../src/infrastructure/supabase/realtime.service.js';
@@ -8,6 +9,22 @@ import bs58 from 'bs58';
 
 const mockConnect = vi.fn();
 const mockSubscribe = vi.fn();
+
+vi.mock('@solana/web3.js', () => ({
+  Connection: class {
+    onLogs = vi.fn().mockReturnValue(123);
+    removeOnLogsListener = vi.fn();
+    getParsedTransaction = vi.fn();
+    getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'hash' });
+    sendRawTransaction = vi.fn().mockResolvedValue('sig');
+  },
+  PublicKey: class {
+    constructor(public key: string) {}
+    toBase58 = () => this.key;
+    static readonly findProgramAddressSync = vi.fn().mockReturnValue([Buffer.from('pda'), 255]);
+    toBuffer = () => Buffer.from(this.key);
+  },
+}));
 
 vi.mock('@triton-one/yellowstone-grpc', () => {
   return {
@@ -35,7 +52,7 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     channel: vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
       send: vi.fn().mockResolvedValue('ok'),
-      subscribe: vi.fn().mockImplementation((cb) => {
+      subscribe: vi.fn().mockImplementation((cb: (status: string) => void) => {
         cb('SUBSCRIBED');
         return { unsubscribe: vi.fn() };
       }),
@@ -65,6 +82,7 @@ describe('🛡️ Infrastructure Coverage Siege', () => {
 
     env.GEYSER_ENDPOINT = undefined;
     env.GEYSER_TOKEN = undefined;
+    env.SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com';
   });
 
   describe('GeyserService (Production Stream Path)', () => {
@@ -139,19 +157,22 @@ describe('🛡️ Infrastructure Coverage Siege', () => {
       expect(mintSpy).not.toHaveBeenCalled();
     });
 
-    it('should emit error after max retries failing', async () => {
+    it('should switch to WebSocket Fallback after max retries failing', async () => {
       env.GEYSER_ENDPOINT = 'https://fail-subscribe';
       env.GEYSER_TOKEN = 't';
       const service = new GeyserService();
       // @ts-expect-error - Mocking static property
       GeyserService.MAX_RETRIES = 1;
 
-      let errorEmitted = false;
-      service.on('error', () => {
-        errorEmitted = true;
-      });
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       await service.start();
-      expect(errorEmitted).toBe(true);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Max retries reached. Switching to WebSocket Fallback.'),
+      );
+      // @ts-expect-error - Internal state check
+      expect(service.isFallbackActive).toBe(true);
     });
   });
 
@@ -159,7 +180,7 @@ describe('🛡️ Infrastructure Coverage Siege', () => {
     it('should broadcast VIP alpha signals', async () => {
       const service = new RealtimeService();
       service.broadcastVipAlpha({ id: 't' } as any, { narrative: 'v' } as any);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(supabase.channel).toHaveBeenCalledWith('vip-alpha');
     });
   });
