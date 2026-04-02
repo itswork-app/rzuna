@@ -8,6 +8,7 @@ import {
 } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { env } from '../../utils/env.js';
+import * as Sentry from '@sentry/node';
 
 export interface SwapRoute {
   inMint: string;
@@ -58,6 +59,8 @@ export class JupiterService {
   private connection: Connection;
   private jitoValidator: string;
   private mode: 'dry_run' | 'real';
+  private consecutiveFailures = 0;
+  private circuitBreakerUntil = 0;
 
   constructor(modeOverride?: 'dry_run' | 'real') {
     this.connection = new Connection(
@@ -74,6 +77,19 @@ export class JupiterService {
     }
   }
 
+  private handleFailure(error: any, context: string) {
+    this.consecutiveFailures++;
+    console.error(`[JupiterService] ${context} Failure #${this.consecutiveFailures}:`, error);
+    if (this.consecutiveFailures >= 3) {
+      this.circuitBreakerUntil = Date.now() + 30000; // 30 seconds
+      console.warn(`[JupiterService] 🛑 CIRCUIT BREAKER TRIPPED! Suspending calls for 30s.`);
+    }
+  }
+
+  private resetBreaker() {
+    this.consecutiveFailures = 0;
+  }
+
   /**
    * Get the best swap route and transaction from Jupiter.
    */
@@ -85,66 +101,78 @@ export class JupiterService {
     userPublicKey: string,
     destinationWallet?: string,
   ): Promise<SwapRoute> {
-    const quoteParams = new URLSearchParams({
-      inputMint,
-      outputMint,
-      amount: amountLamports.toString(),
-      slippageBps: '50',
-      platformFeeBps: platformFeeBps.toString(),
-    });
-
-    const quoteRes = await fetch(`${JUPITER_QUOTE_API}/quote?${quoteParams.toString()}`);
-    if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.statusText}`);
-    const quoteData = (await quoteRes.json()) as JupiterQuoteResponse;
-
-    // Derive Fee Account (ATA) for on-chain fee collection (Blueprint v1.6)
-    let feeAccount: string | undefined;
-    if (env.PLATFORM_FEE_WALLET) {
-      const feeOwner = new PublicKey(env.PLATFORM_FEE_WALLET);
-      const mint = new PublicKey(outputMint);
-
-      // If output is SOL (So111...), keep it as the wallet address
-      if (outputMint === 'So11111111111111111111111111111111111111112') {
-        feeAccount = env.PLATFORM_FEE_WALLET;
-      } else {
-        // [Zero-Dependency] Derive ATA manually (pda: owner, token_program, mint)
-        const [ata] = PublicKey.findProgramAddressSync(
-          [
-            feeOwner.toBuffer(),
-            new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), // Token Program
-            mint.toBuffer(),
-          ],
-          new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'), // Associated Token Program
-        );
-        feeAccount = ata.toBase58();
-      }
+    if (Date.now() < this.circuitBreakerUntil) {
+      const waitSecs = Math.ceil((this.circuitBreakerUntil - Date.now()) / 1000);
+      throw new Error(`Circuit Breaker is OPEN. API suspended for ${waitSecs}s.`);
     }
 
-    // Fetch serialized transaction
-    const swapRes = await fetch(`${JUPITER_QUOTE_API}/swap`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quoteResponse: quoteData,
-        userPublicKey,
-        wrapAndUnwrapSol: true,
-        feeAccount, // PR 7 Hardening: Automatic On-Chain Fee Capture
-        destinationWallet, // PR 8: Direct Treasury Routing
-      }),
-    });
-    if (!swapRes.ok) throw new Error(`Jupiter swap assembly failed: ${swapRes.statusText}`);
-    const { swapTransaction } = (await swapRes.json()) as { swapTransaction: string };
+    try {
+      const quoteParams = new URLSearchParams({
+        inputMint,
+        outputMint,
+        amount: amountLamports.toString(),
+        slippageBps: '50',
+        platformFeeBps: platformFeeBps.toString(),
+      });
 
-    return {
-      inMint: inputMint,
-      outMint: outputMint,
-      inAmount: Number(quoteData.inAmount),
-      outAmount: Number(quoteData.outAmount),
-      priceImpactPct: quoteData.priceImpactPct,
-      routePlan: quoteData.routePlan.map((r) => r.swapInfo.label),
-      platformFeeBps,
-      swapTransaction,
-    };
+      const quoteRes = await fetch(`${JUPITER_QUOTE_API}/quote?${quoteParams.toString()}`);
+      if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.statusText}`);
+      const quoteData = (await quoteRes.json()) as JupiterQuoteResponse;
+
+      // Derive Fee Account (ATA) for on-chain fee collection (Blueprint v1.6)
+      let feeAccount: string | undefined;
+      if (env.PLATFORM_FEE_WALLET) {
+        const feeOwner = new PublicKey(env.PLATFORM_FEE_WALLET);
+        const mint = new PublicKey(outputMint);
+
+        // If output is SOL (So111...), keep it as the wallet address
+        if (outputMint === 'So11111111111111111111111111111111111111112') {
+          feeAccount = env.PLATFORM_FEE_WALLET;
+        } else {
+          // [Zero-Dependency] Derive ATA manually (pda: owner, token_program, mint)
+          const [ata] = PublicKey.findProgramAddressSync(
+            [
+              feeOwner.toBuffer(),
+              new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), // Token Program
+              mint.toBuffer(),
+            ],
+            new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'), // Associated Token Program
+          );
+          feeAccount = ata.toBase58();
+        }
+      }
+
+      // Fetch serialized transaction
+      const swapRes = await fetch(`${JUPITER_QUOTE_API}/swap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteResponse: quoteData,
+          userPublicKey,
+          wrapAndUnwrapSol: true,
+          feeAccount, // PR 7 Hardening: Automatic On-Chain Fee Capture
+          destinationWallet, // PR 8: Direct Treasury Routing
+        }),
+      });
+      if (!swapRes.ok) throw new Error(`Jupiter swap assembly failed: ${swapRes.statusText}`);
+      const { swapTransaction } = (await swapRes.json()) as { swapTransaction: string };
+
+      this.resetBreaker();
+
+      return {
+        inMint: inputMint,
+        outMint: outputMint,
+        inAmount: Number(quoteData.inAmount),
+        outAmount: Number(quoteData.outAmount),
+        priceImpactPct: quoteData.priceImpactPct,
+        routePlan: quoteData.routePlan.map((r) => r.swapInfo.label),
+        platformFeeBps,
+        swapTransaction,
+      };
+    } catch (err: any) {
+      this.handleFailure(err, 'Route Assembly');
+      throw err;
+    }
   }
 
   /**
@@ -294,6 +322,7 @@ export class JupiterService {
     // 6. Jito Bundle Submission (Swap + Tip)
     try {
       const result = await this.submitJitoBundle(signedSwapTxBase58, signedTipTxBase58);
+      this.resetBreaker();
       return {
         signature: result || `SIGNATURE_PENDING_${Date.now()}`,
         inAmount: route.inAmount,
@@ -303,7 +332,8 @@ export class JupiterService {
         dryRun: false,
         status: 'success',
       };
-    } catch (err) {
+    } catch (err: any) {
+      Sentry.captureException(err, { level: 'fatal', tags: { context: 'jito_bundle_submission' } });
       console.warn('Jito submission failed, falling back to standard RPC:', err);
       return this.executeStandardFallback(transaction, route);
     }
@@ -345,6 +375,7 @@ export class JupiterService {
         maxRetries: 3,
       });
 
+      this.resetBreaker();
       return {
         signature,
         inAmount: route.inAmount,
@@ -354,7 +385,12 @@ export class JupiterService {
         dryRun: false,
         status: 'success',
       };
-    } catch (fallbackErr) {
+    } catch (fallbackErr: any) {
+      Sentry.captureException(fallbackErr, {
+        level: 'fatal',
+        tags: { context: 'standard_rpc_submission' },
+      });
+      this.handleFailure(fallbackErr, 'RPC Execution');
       console.error('Standard RPC fallback also failed:', fallbackErr);
       return {
         signature: 'FAILED',

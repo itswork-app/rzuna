@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { type Axiom } from '@axiomhq/js';
 import { monitoringPlugin } from './infrastructure/monitoring/monitoring.plugin.js';
 import { IntelligenceEngine } from './core/engine.js';
@@ -47,6 +48,10 @@ export const buildApp = async () => {
     credentials: true,
   });
   await fastify.register(helmet);
+  await fastify.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
   await fastify.register(monitoringPlugin);
 
   // Feature Plugins
@@ -139,26 +144,37 @@ export const buildApp = async () => {
    * Execution Engine: Live Swap via Jito
    * Standar: Canonical Master Blueprint v1.5
    */
-  fastify.post('/trade/swap', async (request, reply) => {
-    try {
-      const { route, userPublicKey } = request.body as { route: any; userPublicKey: string };
+  fastify.post(
+    '/trade/swap',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { route, userPublicKey } = request.body as { route: any; userPublicKey: string };
 
-      if (!route || !userPublicKey) {
-        return await reply.status(400).send({ error: 'Missing route or wallet context' });
+        if (!route || !userPublicKey) {
+          return await reply.status(400).send({ error: 'Missing route or wallet context' });
+        }
+
+        console.info(
+          `[EXECUTION] [${env.EXECUTION_MODE.toUpperCase()}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`,
+        );
+
+        const result = await jupiterService.executeSwap(route);
+
+        return await reply.send({ mode: env.EXECUTION_MODE, result });
+      } catch (err: any) {
+        console.error('[EXECUTION_ERROR]', err);
+        return await reply.status(500).send({ error: err.message || 'Execution failed' });
       }
-
-      console.info(
-        `[EXECUTION] [${env.EXECUTION_MODE.toUpperCase()}] Initiating swap for ${userPublicKey} | Route: ${route.inMint} -> ${route.outMint}`,
-      );
-
-      const result = await jupiterService.executeSwap(route);
-
-      return await reply.send({ mode: env.EXECUTION_MODE, result });
-    } catch (err: any) {
-      console.error('[EXECUTION_ERROR]', err);
-      return await reply.status(500).send({ error: err.message || 'Execution failed' });
-    }
-  });
+    },
+  );
 
   /**
    * Telegram Dispatcher: Test Connection (PR 12)

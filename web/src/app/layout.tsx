@@ -6,6 +6,7 @@ import { PostHogProvider } from '@/components/PostHogProvider';
 import { AxiomWebVitals } from 'next-axiom';
 
 import { AuthProvider } from '@/components/AuthProvider';
+import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -24,26 +25,28 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <WalletContextProvider>
-          <PostHogProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-            <Toaster 
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: '#0a0a18',
-                  color: '#fff',
-                  border: '1px solid rgba(6,182,212,0.2)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '14px',
-                },
-              }}
-            />
-            <AxiomWebVitals />
-          </PostHogProvider>
-        </WalletContextProvider>
+        <GlobalErrorBoundary>
+          <WalletContextProvider>
+            <PostHogProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+              <Toaster 
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    background: '#0a0a18',
+                    color: '#fff',
+                    border: '1px solid rgba(6,182,212,0.2)',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '14px',
+                  },
+                }}
+              />
+              <AxiomWebVitals />
+            </PostHogProvider>
+          </WalletContextProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   );

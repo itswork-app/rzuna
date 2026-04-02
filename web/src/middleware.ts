@@ -22,12 +22,16 @@ export async function middleware(request: NextRequest) {
     const subscription = request.cookies.get('x-rzuna-subscription')?.value || 'NONE';
     const isAuthenticated = request.cookies.get('sb-access-token') || request.cookies.get('x-rzuna-authenticated');
 
-    if (subscription === 'NONE' && isAuthenticated) {
-      // Redirect back to trade with upgrade prompt
+    // Strict Ejection: Prevent any leakage to the VIP surface.
+    if (subscription === 'NONE') {
       const url = request.nextUrl.clone();
       url.hostname = hostname.replace('vip', 'trade');
       url.pathname = '/dashboard';
-      url.searchParams.set('error', 'upgrade_required');
+      if (isAuthenticated) {
+        url.searchParams.set('error', 'vip_access_denied_upgrade_required');
+      } else {
+        url.searchParams.set('error', 'auth_required_for_vip');
+      }
       return NextResponse.redirect(url);
     }
 
