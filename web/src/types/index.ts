@@ -20,6 +20,8 @@ export interface UserProfile {
   ai_quota_limit: number;
   ai_quota_used: number;
   total_volume_usd: number;
+  current_month_volume: number;
+  last_rank_reset: string;
   tg_chat_id?: string;
   is_tg_enabled?: boolean;
 }

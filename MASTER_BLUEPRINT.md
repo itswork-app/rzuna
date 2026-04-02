@@ -52,7 +52,7 @@ Sistem peringkat adiktif berbasis volume transaksi bulanan.
 | :--- | :--- | :--- |
 | **Newbie** | Start | 2.0% |
 | **Pro** | $1,000 | 1.75% |
-| **Elite** | $10,000 | 1.5% |
+| **Elite** | $5,000 | 1.5% |
 
 ### B. Paid Passes (The Shortcuts & AI Access)
 
@@ -93,13 +93,13 @@ Sistem peringkat adiktif berbasis volume transaksi bulanan.
 | Service | Domain | Target | Stack |
 | :--- | :--- | :--- | :--- |
 | **Marketing** | `aivo.sh` | Landing Page & SIWS | Vercel (Static) |
-| **Normal Trade** | `trade.aivo.sh` | Dashboard Public/Starlight | Vercel (Edge) |
-| **VIP / Dedicated** | `vip.aivo.sh` | Dedicated Infra Dashboard | Vercel + Dedicated gRPC |
+| **Normal Trade** | `trade.aivo.sh` | Volume-Based Growth (Newbie/Pro/Elite) | Vercel (Edge) |
+| **VIP / Premium** | `vip.aivo.sh` | Premium Infrastructure (Starlight/+/VIP) | Vercel + Dedicated gRPC |
 | **Backend / API** | `api.aivo.sh` | Fastify Core & WebSocket | Supabase / Private VPS |
 
 - **Marketing (`aivo.sh`)**: Pusat edukasi dan pintu masuk utama.
-- **Trade Dash (`trade.aivo.sh`)**: Performa tinggi untuk tier Newbie hingga Starlight+.
-- **VIP Lounge (`vip.aivo.sh`)**: Jalur khusus VIP dengan koneksi dedicated gRPC ke Solana Mainnet.
+- **Trade Dash (`trade.aivo.sh`)**: Pusat pertumbuhan volume. Fokus pada gamifikasi `Newbie` → `Pro` → `Elite` dengan diskon fee progresif. No VIP banners here.
+- **VIP Lounge (`vip.aivo.sh`)**: Jalur khusus premium. Akses eksklusif ke dedicated gRPC (Yellowstone), Telegram Alpha Dispatcher, dan L2 Reasoning unlimited.
 - **API Engine (`api.aivo.sh`)**: Backbone pengolahan data dan scoring rzuna.
 
 Routing dikendalikan oleh **Next.js Edge Middleware** yang membaca header `Host` dan merewrite request ke route yang sesuai secara transparan:

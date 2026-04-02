@@ -43,10 +43,12 @@ export class GeyserService extends EventEmitter {
   private retryCount: number = 0;
   private static readonly MAX_RETRIES = 5;
   private readonly mode: 'public' | 'vip';
+  private readonly priority: number;
 
-  constructor(mode: 'public' | 'vip' = 'public') {
+  constructor(mode: 'public' | 'vip' = 'public', priority: number = 0) {
     super();
     this.mode = mode;
+    this.priority = mode === 'vip' ? 1 : priority;
 
     const endpoint = mode === 'vip' ? env.VIP_GEYSER_ENDPOINT : env.GEYSER_ENDPOINT;
     const token = mode === 'vip' ? env.VIP_GEYSER_TOKEN : env.GEYSER_TOKEN;
@@ -55,6 +57,9 @@ export class GeyserService extends EventEmitter {
       // @ts-expect-error - Yellowstone gRPC Client types
       this.client = new Client(endpoint, token);
       this.isActive = true;
+      console.info(
+        `🛡️ [GeyserService:${mode}] Institutional Grade Ready. Priority: ${this.priority}`,
+      );
     } else {
       const label =
         mode === 'vip'

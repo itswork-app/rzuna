@@ -17,6 +17,8 @@ export default function DashboardPage() {
   const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
   const { profile, isLoading: profileLoading, mutate } = useProfile();
+  const isVipDomain = typeof window !== 'undefined' && window.location.hostname.includes('vip');
+  const isTradeDomain = typeof window !== 'undefined' && window.location.hostname.includes('trade');
   const supabase = createClient();
 
   const handleConsumeQuota = async () => {
@@ -83,7 +85,13 @@ export default function DashboardPage() {
             </h1>
             <p className="text-gray-500 font-mono text-sm flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Live Mainnet Scouting Active
+              {isVipDomain ? (
+                <span className="text-purple-400 font-bold border border-purple-500/20 px-2 py-0.5 rounded bg-purple-500/5">
+                  Institutional VIP: Dedicated Node Active
+                </span>
+              ) : (
+                'Live Mainnet Scouting Active'
+              )}
             </p>
           </div>
           <div className="flex items-center gap-4 bg-[#1a1a2e] p-2 rounded-xl border border-white/5">
@@ -103,7 +111,33 @@ export default function DashboardPage() {
  
         <UserStats profile={profile} isLoading={profileLoading} />
  
-        <div className="mb-8">
+        {isTradeDomain && (
+          <div className="mt-8 p-6 bg-gradient-to-r from-blue-900/20 to-zinc-900/40 border border-blue-500/20 rounded-2xl">
+            <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+              <ArrowRight className="w-5 h-5 text-blue-400" />
+              Monthly Volume Progress
+              <span className="text-[10px] font-mono text-zinc-500 ml-1 border border-zinc-700 px-1.5 py-0.5 rounded">Resets monthly</span>
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                  style={{
+                    width: `${Math.min(
+                      ((profile?.current_month_volume || 0) / (profile?.rank === 'PRO' ? 5000 : 1000)) * 100,
+                      100
+                    )}%`
+                  }}
+                ></div>
+              </div>
+              <span className="text-sm font-mono text-zinc-400">
+                ${(profile?.current_month_volume || 0).toLocaleString()} / ${profile?.rank === 'PRO' ? '5,000' : '1,000'} ({profile?.rank === 'PRO' ? 'Elite' : 'Pro'})
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-8 mt-8">
           <TelegramSettings profile={profile} onUpdate={mutate} />
         </div>
 

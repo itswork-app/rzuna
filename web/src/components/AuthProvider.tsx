@@ -54,6 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (signature) {
         setIsAuthenticated(true);
         posthog.capture('SIWS_SIGN_SUCCESS', { wallet: publicKey.toBase58() });
+        // Sync to cookie for Middleware
+        document.cookie = `x-rzuna-authenticated=true; path=/; domain=.aivo.sh; max-age=3600; SameSite=Lax`;
+        document.cookie = `x-rzuna-authenticated=true; path=/; max-age=3600; SameSite=Lax`;
         return true;
       }
       return false;
@@ -71,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setIsAuthenticated(false);
+    // Clear cookies
+    document.cookie = 'x-rzuna-authenticated=; path=/; max-age=0;';
+    document.cookie = 'x-rzuna-subscription=; path=/; max-age=0;';
     disconnect();
     router.push('/');
   }, [disconnect, router]);
