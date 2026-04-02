@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'https://rzuna.aivo.sh',
+      },
+    },
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     coverage: {

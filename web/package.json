@@ -20,6 +20,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.33",
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.101.0",
+    "@testing-library/dom": "^10.4.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.511.0",
     "next": "16.2.1",
@@ -35,8 +36,8 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.27",
@@ -50,10 +51,10 @@
     "vitest": "^4.1.2"
   },
   "overrides": {
-    "react": "$react",
-    "react-dom": "$react-dom",
-    "@types/react": "$@types/react",
-    "@types/react-dom": "$@types/react-dom",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
     "elliptic": "^6.6.1"
