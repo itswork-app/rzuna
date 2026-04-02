@@ -1,7 +1,8 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Safe institutional fallback for Vercel build/prerender phases
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ooheonpmgjenriksxwgc.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_placeholder';
 
 export function createClient() {
   return createSupabaseClient(supabaseUrl, supabaseAnonKey);
