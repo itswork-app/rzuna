@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "workspaces": [
+    "web"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

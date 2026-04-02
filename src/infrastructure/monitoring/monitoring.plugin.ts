@@ -2,8 +2,11 @@ import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import * as Sentry from '@sentry/node';
 import { Axiom } from '@axiomhq/js';
-import { PostHog } from 'posthog-node';
+import * as posthog_lib from 'posthog-node';
 import { env } from '../../utils/env.js';
+
+// Robust PostHog import for ESM/CJS interop
+const PHClient = (posthog_lib as any).PostHog || (posthog_lib as any).default || posthog_lib;
 
 /**
  * Monitoring Plugin: Centralizes Sentry (Errors) and Axiom (Logs)
@@ -69,14 +72,18 @@ const monitoring: FastifyPluginAsync = async (fastify) => {
   });
 
   // 3. PostHog initialization
-  let posthog: PostHog | undefined;
   if (env.POSTHOG_API_KEY) {
-    posthog = new PostHog(env.POSTHOG_API_KEY, { host: env.POSTHOG_HOST });
-    fastify.decorate('posthog', posthog);
+    try {
+      const posthog = new PHClient(env.POSTHOG_API_KEY, { host: env.POSTHOG_HOST });
+      fastify.decorate('posthog', posthog);
 
-    fastify.addHook('onClose', async () => {
-      await posthog?.shutdown();
-    });
+      fastify.addHook('onClose', async () => {
+        await posthog?.shutdown();
+      });
+      fastify.log.info('🛡️ Institutional PostHog monitoring active');
+    } catch (error) {
+      fastify.log.error(error, 'PostHog initialization failed (Non-blocking)');
+    }
   }
 };
 
