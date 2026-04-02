@@ -320,6 +320,27 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       );
       expect(fastify.log.error).toHaveBeenCalled();
       expect(fastify.logAlpha).toHaveBeenCalled();
+
+      // 4. Test /subscribe endpoint (Line 180+)
+      const subHandler = fastify.post.mock.calls.find((c: any) => c[0] === '/subscribe')[1];
+      await subHandler(
+        {
+          body: {
+            walletAddress: 'w',
+            tier: 'STARLIGHT',
+            amountSOL: 50,
+            paymentSignature: 'sub_sig',
+          },
+        },
+        reply,
+      );
+      expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+
+      // 5. Test /subscribe error branch
+      mockSupabase.update.mockResolvedValueOnce({ error: new Error('Sub Fail') });
+      await subHandler({ body: { walletAddress: 'w' } }, reply);
+      expect(reply.status).toHaveBeenCalledWith(500);
+
       supabaseFromSpy.mockRestore();
     });
   });
