@@ -25,6 +25,7 @@ npm run test:coverage || { echo -e "${RED}❌ TESTS FAILED or Coverage < 80%. Lo
 # 3. THE FORTRESS (Security Audit)
 echo -e "\n🔒 [STAGE 3] Scanning for Vulnerabilities (NPM Audit)..."
 # Institutional Grade Policy: Zero High-Severity Vulnerabilities.
+# We enforce high-severity blocks to ensure the terminal remains bulletproof.
 npm audit --audit-level=high || { echo -e "${RED}❌ SECURITY VULNERABILITY FOUND. Audit your dependencies!${NC}"; exit 1; }
 
 # 4. THE INTEGRITY (Production Build Check)

@@ -67,6 +67,9 @@
     "@types/react-dom": "^19.2.3",
     "tiny-secp256k1": "2.2.4",
     "@trezor/utxo-lib": "2.5.0",
+    "lodash": "4.18.1",
+    "lodash-es": "4.18.1",
+    "elliptic": "6.6.1",
     "@walletconnect/solana-adapter": {
       "lodash": "4.18.1"
     },
