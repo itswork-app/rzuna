@@ -87,7 +87,10 @@ async function verifyOnChainPayment(
   asset: 'SOL' | 'USDC' = 'SOL',
 ): Promise<boolean> {
   try {
-    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const connection = new Connection(env.SOLANA_RPC_URL, {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
     const tx = await connection.getParsedTransaction(signature, {
       maxSupportedTransactionVersion: 0,
     });
@@ -270,7 +273,10 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
 
 async function handleTradeVerification(status: string, signature: string, reply: any) {
   if (status === 'success' && signature) {
-    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const connection = new Connection(env.SOLANA_RPC_URL, {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
     const tx = await connection.getSignatureStatus(signature);
     if (!tx.value || tx.value.err) {
       return await reply.status(400).send({ error: 'Invalid or failed trade signature' });
