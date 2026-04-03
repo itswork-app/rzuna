@@ -44,15 +44,36 @@ vi.mock('openai', () => ({
   },
 }));
 
-// Mock Supabase
-vi.mock('../src/infrastructure/supabase/client.js', () => ({
-  supabase: {
-    from: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn().mockReturnThis(),
+const { mockSupabaseBuilder, mockConnection } = vi.hoisted(() => ({
+  mockSupabaseBuilder: {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ error: null }),
+    update: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     single: vi.fn().mockResolvedValue({ data: { id: 'u1', rank: 'NEWBIE' }, error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
+  },
+  mockConnection: {
+    getSignatureStatus: vi.fn().mockResolvedValue({ value: { err: null } }),
+    getParsedTransaction: vi.fn().mockResolvedValue({
+      meta: { err: null, postTokenBalances: [] },
+      transaction: {
+        message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
+      },
+    }),
+    onLogs: vi.fn().mockReturnValue(1),
+    removeOnLogsListener: vi.fn(),
+    simulateTransaction: vi.fn().mockResolvedValue({ value: { err: null, logs: [] } }),
+    confirmTransaction: vi.fn().mockResolvedValue({ value: { err: null } }),
+    getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'hash' }),
+    sendRawTransaction: vi.fn().mockResolvedValue('sig'),
+  },
+}));
+
+vi.mock('../src/infrastructure/supabase/client.js', () => ({
+  supabase: {
+    from: vi.fn(() => mockSupabaseBuilder),
     rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   },
 }));
@@ -78,22 +99,6 @@ vi.mock('../src/infrastructure/jupiter/jupiter.service.js', () => ({
     executeSwap = vi.fn().mockResolvedValue({ status: 'success', signature: 'mock_sig' });
   },
 }));
-
-const mockConnection = {
-  getSignatureStatus: vi.fn().mockResolvedValue({ value: { err: null } }),
-  getParsedTransaction: vi.fn().mockResolvedValue({
-    meta: { err: null, postTokenBalances: [] },
-    transaction: {
-      message: { accountKeys: [{ pubkey: { toBase58: () => 'mock_pub' } }], instructions: [] },
-    },
-  }),
-  onLogs: vi.fn().mockReturnValue(1),
-  removeOnLogsListener: vi.fn(),
-  simulateTransaction: vi.fn().mockResolvedValue({ value: { err: null, logs: [] } }),
-  confirmTransaction: vi.fn().mockResolvedValue({ value: { err: null } }),
-  getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'hash' }),
-  sendRawTransaction: vi.fn().mockResolvedValue('sig'),
-};
 
 vi.mock('@solana/web3.js', async (importOriginal: any) => {
   const actual: any = await importOriginal();
@@ -368,28 +373,9 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       // 2. Mock fetch failure for getLiveSOLPrice
       vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as any);
 
-      // 3. Mock Supabase error
+      // 3. Mock Supabase failure by overriding insert
       const { supabase } = await import('../src/infrastructure/supabase/client.js');
-      const mockSupabase = {
-        from: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockResolvedValue({ error: new Error('DB Fail') }),
-        update: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { id: '1', rank: 'NEWBIE' } }),
-        rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
-      };
-
-      const supabaseFromSpy = vi.spyOn(supabase, 'from').mockImplementation((tableName: string) => {
-        if (tableName === 'profiles') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { id: '1', rank: 'NEWBIE' }, error: null }),
-          } as any;
-        }
-        return mockSupabase.from(tableName);
-      });
+      vi.mocked(mockSupabaseBuilder.insert).mockResolvedValueOnce({ error: new Error('DB Fail') } as any);
 
       console.info('Triggering Handler 2...');
       const logSpy = vi.spyOn(fastify.log, 'error');
@@ -425,11 +411,9 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
 
       // 5. Test /subscribe error branch
-      mockSupabase.update.mockResolvedValueOnce({ error: new Error('Sub Fail') });
+      vi.mocked(mockSupabaseBuilder.update).mockResolvedValueOnce({ error: new Error('Sub Fail') } as any);
       await subHandler({ body: { walletAddress: 'w' } }, reply);
       expect(reply.status).toHaveBeenCalledWith(500);
-
-      supabaseFromSpy.mockRestore();
     });
 
     it('should cover feePlugin feature flag gating and verification failures', async () => {
@@ -437,7 +421,7 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
         post: vi.fn(),
         get: vi.fn(),
         logAlpha: vi.fn().mockResolvedValue(undefined),
-        posthog: { getAllFlags: vi.fn().mockResolvedValue({ jupiter_swap_enabled: false }) },
+        posthog: { getAllFlags: vi.fn() },
         log: { error: vi.fn(), info: vi.fn() },
       };
       await (feePlugin as any)(fastify, {});
@@ -448,10 +432,12 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       };
 
       // 1. Feature flag gated (Line 129)
+      fastify.posthog.getAllFlags.mockResolvedValue({ jupiter_swap_enabled: false });
       await handler({ body: { walletAddress: 'w' } }, reply);
       expect(reply.status).toHaveBeenCalledWith(403);
 
       // 2. Trade verification failure (Line 121)
+      fastify.posthog.getAllFlags.mockResolvedValue({ jupiter_swap_enabled: true });
       mockConnection.getSignatureStatus.mockResolvedValueOnce({ value: null } as any);
       await handler({ body: { walletAddress: 'w', signature: 'bad', status: 'success' } }, reply);
       expect(reply.status).toHaveBeenCalledWith(400);
@@ -522,8 +508,8 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       const emitSpy = vi.spyOn(geyser, 'emit');
       await logCallback({ logs: ['Program log: Instruction: Create'], signature: 'sig3' });
       // We expect 'mint' event to be emitted
-      // Wait for the async IIFE inside the callback
-      await new Promise((r) => setTimeout(r, 10));
+      // Wait for the async IIFE inside the callback - increased wait for institutional stability
+      await new Promise((r) => setTimeout(r, 50));
       expect(emitSpy).toHaveBeenCalledWith(
         'mint',
         expect.objectContaining({ mint: 'detected_mint_xyz_long_address_institutional_grade' }),
