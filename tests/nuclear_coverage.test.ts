@@ -374,8 +374,10 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as any);
 
       // 3. Mock Supabase failure by overriding insert
-      const { supabase } = await import('../src/infrastructure/supabase/client.js');
-      vi.mocked(mockSupabaseBuilder.insert).mockResolvedValueOnce({ error: new Error('DB Fail') } as any);
+      await import('../src/infrastructure/supabase/client.js');
+      vi.mocked(mockSupabaseBuilder.insert).mockResolvedValueOnce({
+        error: new Error('DB Fail'),
+      } as any);
 
       console.info('Triggering Handler 2...');
       const logSpy = vi.spyOn(fastify.log, 'error');
@@ -411,7 +413,9 @@ describe('☢️ Institutional 80% Absolute Nuclear Coverage', () => {
       expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
 
       // 5. Test /subscribe error branch
-      vi.mocked(mockSupabaseBuilder.update).mockResolvedValueOnce({ error: new Error('Sub Fail') } as any);
+      vi.mocked(mockSupabaseBuilder.update).mockResolvedValueOnce({
+        error: new Error('Sub Fail'),
+      } as any);
       await subHandler({ body: { walletAddress: 'w' } }, reply);
       expect(reply.status).toHaveBeenCalledWith(500);
     });
