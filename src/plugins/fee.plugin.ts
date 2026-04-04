@@ -188,41 +188,24 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post<{ Body: SubscribeBody }>('/subscribe', async (request, reply) => {
-    const { walletAddress, tier, amountSOL, paymentSignature } = request.body;
+    const { walletAddress, tier, amountSOL, paymentSignature, plan } = request.body as any;
+
+    if (!validateRegistration(walletAddress, paymentSignature, tier, plan)) {
+      return await reply.status(400).send({ error: 'Missing mandatory registration fields' });
+    }
+
     const amountUSDC = amountSOL;
 
     try {
-      // 🏛️ PR 22: Hardened Verification (On-Chain)
       const treasuryAddress = env.USDC_TREASURY_WALLET || env.SOL_TREASURY_WALLET;
+      if (!treasuryAddress) throw new Error('Treasury wallet not configured');
 
-      if (!treasuryAddress) {
-        throw new Error('Treasury wallet not configured');
-      }
-
-      fastify.log.info(
-        `[Subscription] Verifying $${amountUSDC} USDC transfer for ${walletAddress} (Tier: ${tier})...`,
-      );
-
-      // 1. Replay Attack Protection (Anti-Double Spend)
-      const { data: existingTx } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('tx_hash', paymentSignature)
-        .maybeSingle();
-
-      if (existingTx) {
-        return await reply.status(403).send({ error: 'Transaction signature already used' });
-      }
-
-      // 2. On-Chain Verification (Delta-Based)
-      const isValid = await verifyOnChainPayment(
+      const isValid = await executeVerification(
         paymentSignature,
         treasuryAddress,
         walletAddress,
         amountUSDC,
-        'USDC',
       );
-
       if (!isValid && env.NODE_ENV === 'production') {
         return await reply.status(403).send({ error: 'Subscription payment verification failed' });
       }
@@ -270,6 +253,28 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
     }
   });
 };
+
+/**
+ * Extracted Verification Helper to reduce handler complexity (Limit: 10)
+ */
+async function executeVerification(
+  signature: string,
+  treasury: string,
+  wallet: string,
+  amount: number,
+): Promise<boolean> {
+  const { data: existingTx } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('tx_hash', signature)
+    .maybeSingle();
+  if (existingTx) return false;
+  return await verifyOnChainPayment(signature, treasury, wallet, amount, 'USDC');
+}
+
+function validateRegistration(wallet: string, signature: string, tier: any, plan: any): boolean {
+  return !!(wallet && signature && (tier || plan));
+}
 
 async function handleTradeVerification(status: string, signature: string, reply: any) {
   if (status === 'success' && signature) {

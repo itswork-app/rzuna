@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TierService } from '../src/core/tiers/tier.service.js';
 import { UserRank, SubscriptionStatus, type UserProfile } from '../src/core/types/user.js';
 import { supabase } from '../src/infrastructure/supabase/client.js';
+import { JupiterService } from '../src/infrastructure/jupiter/jupiter.service.js';
 
 // Mock Supabase
 vi.mock('../src/infrastructure/supabase/client.js', () => ({
@@ -15,6 +16,25 @@ vi.mock('../src/infrastructure/supabase/client.js', () => ({
     single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
     rpc: vi.fn().mockResolvedValue({ data: 'NEWBIE', error: null }),
   },
+}));
+
+// Mock Solana
+vi.mock('@solana/web3.js', () => ({
+  Connection: class {
+    async getSignatureStatus() {
+      return { value: { err: null } };
+    }
+    async getParsedTransaction() {
+      return { meta: { err: null } };
+    }
+  },
+  PublicKey: class {
+    constructor() {}
+    toBase58() {
+      return 'w1';
+    }
+  },
+  Keypair: { generate: () => ({ publicKey: { toBase58: () => 'w1' } }) },
 }));
 
 // Mock env
@@ -142,8 +162,7 @@ describe('TierService — Rank Protection Logic', () => {
 });
 
 describe('JupiterService — Helpers', () => {
-  it('converts fee rate to basis points correctly', async () => {
-    const { JupiterService } = await import('../src/infrastructure/jupiter/jupiter.service.js');
+  it('converts fee rate to basis points correctly', () => {
     expect(JupiterService.feeToBps(0.02)).toBe(200);
     expect(JupiterService.feeToBps(0.0075)).toBe(75);
     expect(JupiterService.feeToBps(0.01)).toBe(100);
