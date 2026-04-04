@@ -81,6 +81,10 @@ describe('IntelligenceEngine (Bank Standard Nerve)', () => {
       vTokensInBondingCurve: 1000,
       marketCapSol: 150,
       baseScore: 50,
+      symbol: 'TEST',
+      name: 'Test Token',
+      twitter: 'https://x.com/test',
+      website: 'https://test.io',
     };
 
     let signalEmitted = false;

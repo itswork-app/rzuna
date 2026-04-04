@@ -6,6 +6,7 @@ import {
 } from '../infrastructure/adapters/pumpportal.adapter.js';
 import { PumpapiAdapter } from '../infrastructure/adapters/pumpapi.adapter.js';
 import { ScoringService } from './services/scoring.service.js';
+import { CreatorReputationService } from './services/reputation.service.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
 import { db, scoutedTokens } from '@rzuna/database';
 import { UserRank, type AlphaSignal } from '@rzuna/contracts';
@@ -28,7 +29,8 @@ export class IntelligenceEngine extends EventEmitter {
   private scorer = new ScoringService();
   private reasoning = new ReasoningService();
   private activeSignals: Map<string, AlphaSignal> = new Map();
-  private recentTraders: Map<string, string[]> = new Map(); // mint -> trader list
+  private recentTraders: Map<string, string[]> = new Map();
+  private reputation = new CreatorReputationService();
 
   // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
   public readonly hooks = {
@@ -60,23 +62,34 @@ export class IntelligenceEngine extends EventEmitter {
 
       if (initialScore.score >= this.scorer.L1_THRESHOLD) {
         const metadata = await this.pumpapi.getTokenMetadata(event.mint);
+        const creatorWallet = metadata?.creator || event.traderPublicKey;
+
+        // Creator Reputation (O(1) lookup)
+        const rep = this.reputation.getScoreModifier(creatorWallet);
 
         // Stateful Wash Tracker
         const traders = this.recentTraders.get(event.mint) || [];
         const isRepetitive = traders.includes(event.traderPublicKey);
-        
-        // Re-score with metadata and wash state
+
+        // Re-score with metadata, reputation, and wash state
         const enrichedScore = this.scorer.calculateInitialScore({
           ...event,
           ...metadata,
-          devPublicKey: metadata?.creator,
+          devPublicKey: creatorWallet,
           isRepetitive,
+          _reputationModifier: rep.modifier,
+          _reputationFlag: rep.redFlag,
         });
 
         // Update tracking
         traders.push(event.traderPublicKey);
         if (traders.length > 20) traders.shift();
         this.recentTraders.set(event.mint, traders);
+
+        // Record behavior for reputation
+        if (event.txType === 'create') this.reputation.recordCreation(creatorWallet);
+        if (enrichedScore.redFlags.includes('DEV_DUMP')) this.reputation.recordRugpull(creatorWallet);
+        if (enrichedScore.redFlags.includes('SELF_BUY')) this.reputation.recordWashTrade(creatorWallet);
 
         if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
 

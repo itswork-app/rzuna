@@ -120,6 +120,14 @@ export class ScoringService {
       redFlags.push('REPETITIVE_WASH_TRADE');
     }
 
+    // ═══════════════════════════════════════════
+    // 🏛️ CREATOR REPUTATION (O(1) lookup)
+    // ═══════════════════════════════════════════
+    if (event._reputationModifier) {
+      score += event._reputationModifier;
+      if (event._reputationFlag) redFlags.push(event._reputationFlag);
+    }
+
     return {
       score: Math.min(100, Math.max(0, score)),
       isPremium: score >= 80,
