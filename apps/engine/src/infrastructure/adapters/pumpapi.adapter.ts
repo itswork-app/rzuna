@@ -13,31 +13,27 @@ export interface PumpMetadata {
 }
 
 /**
- * 🏛️ PumpapiAdapter: Rich Metadata Enrichment
- * Standar: Canonical Master Blueprint v22.1 (The Dual-Path)
- * Uses pumpapi.io as the primary data provider for social links.
+ * 🏛️ PumpapiAdapter: Rich Metadata Enrichment (Cached)
+ * 30s TTL cache prevents redundant API calls on rapid trades.
  */
 export class PumpapiAdapter {
-  private readonly baseUrl = 'https://frontend-api-v3.pump.fun'; // Blueprint: High-memory provider
+  private readonly baseUrl = 'https://frontend-api-v3.pump.fun';
+  private cache: Map<string, { data: PumpMetadata; expiry: number }> = new Map();
+  private static readonly CACHE_TTL = 30_000;
 
   async getTokenMetadata(mint: string): Promise<PumpMetadata | null> {
-    try {
-      console.info(`🔍 [Pumpapi] Fetching metadata for ${mint}...`);
+    const cached = this.cache.get(mint);
+    if (cached && Date.now() < cached.expiry) return cached.data;
 
+    try {
       const response = await fetch(`${this.baseUrl}/coins/${mint}`, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'RZUNA-Engine/1.9.0',
-        },
+        headers: { Accept: 'application/json', 'User-Agent': 'RZUNA-Engine/1.9.0' },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
 
       const data = await response.json();
-
-      return {
+      const metadata: PumpMetadata = {
         mint: data.mint,
         name: data.name,
         symbol: data.symbol,
@@ -48,6 +44,9 @@ export class PumpapiAdapter {
         website: data.website || null,
         creator: data.creator || data.traderPublicKey || 'UNKNOWN',
       };
+
+      this.cache.set(mint, { data: metadata, expiry: Date.now() + PumpapiAdapter.CACHE_TTL });
+      return metadata;
     } catch (err) {
       console.error(`❌ [Pumpapi] Error fetching ${mint}:`, err);
       return null;

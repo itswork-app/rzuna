@@ -7,6 +7,7 @@ import {
 import { PumpapiAdapter } from '../infrastructure/adapters/pumpapi.adapter.js';
 import { ScoringService } from './services/scoring.service.js';
 import { CreatorReputationService } from './services/reputation.service.js';
+import { TokenSecurityService } from './services/security.service.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
 import { db, scoutedTokens } from '@rzuna/database';
 import { UserRank, type AlphaSignal } from '@rzuna/contracts';
@@ -30,7 +31,9 @@ export class IntelligenceEngine extends EventEmitter {
   private reasoning = new ReasoningService();
   private activeSignals: Map<string, AlphaSignal> = new Map();
   private recentTraders: Map<string, string[]> = new Map();
+  private tradeTimestamps: Map<string, number[]> = new Map(); // mint -> timestamps
   private reputation = new CreatorReputationService();
+  private security = new TokenSecurityService();
 
   // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
   public readonly hooks = {
@@ -71,7 +74,19 @@ export class IntelligenceEngine extends EventEmitter {
         const traders = this.recentTraders.get(event.mint) || [];
         const isRepetitive = traders.includes(event.traderPublicKey);
 
-        // Re-score with metadata, reputation, and wash state
+        // Volume Velocity (trades per minute)
+        const now = Date.now();
+        const timestamps = this.tradeTimestamps.get(event.mint) || [];
+        timestamps.push(now);
+        const oneMinAgo = now - 60_000;
+        const recentTimestamps = timestamps.filter((t) => t > oneMinAgo);
+        this.tradeTimestamps.set(event.mint, recentTimestamps);
+        const tradesPerMinute = recentTimestamps.length;
+
+        // On-chain security check (cached, non-blocking)
+        const securityReport = await this.security.getSecurityReport(event.mint);
+
+        // Re-score with ALL enrichment data
         const enrichedScore = this.scorer.calculateInitialScore({
           ...event,
           ...metadata,
@@ -79,6 +94,9 @@ export class IntelligenceEngine extends EventEmitter {
           isRepetitive,
           _reputationModifier: rep.modifier,
           _reputationFlag: rep.redFlag,
+          _tradesPerMinute: tradesPerMinute,
+          _securityScore: securityReport?.score,
+          _securityFlags: securityReport?.redFlags,
         });
 
         // Update tracking
@@ -93,7 +111,20 @@ export class IntelligenceEngine extends EventEmitter {
 
         if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
 
-        const aiResult = await this.reasoning.analyzeToken(event as any, enrichedScore.score);
+        // L2 AI Reasoning with fallback
+        let aiResult: ReasoningResult;
+        try {
+          aiResult = await this.reasoning.analyzeToken(event as any, enrichedScore.score);
+        } catch {
+          // AI fallback — proceed without AI if OpenAI is down
+          aiResult = {
+            narrative: '[L2 Unavailable] Signal passed L1 heuristic filter only.',
+            confidence: 'LOW',
+            riskFactors: enrichedScore.redFlags,
+            catalysts: [],
+            generatedByAI: false,
+          };
+        }
 
         await this.persistEnrichedToken(event, enrichedScore, aiResult.narrative, metadata);
 

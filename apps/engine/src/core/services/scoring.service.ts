@@ -55,6 +55,27 @@ export class ScoringService {
     if (event.symbol && event.symbol.length <= 8 && /^[A-Z]+$/i.test(event.symbol)) score += 2;
     if (event.name && event.name.length >= 3 && event.name.length <= 30) score += 2;
 
+    // ── Token Age (injected by engine) ──
+    if (event._ageMinutes !== undefined) {
+      if (event._ageMinutes < 1) score -= 5; // Too new, risky
+      else if (event._ageMinutes >= 5 && event._ageMinutes <= 60) score += 3; // Sweet spot
+      else if (event._ageMinutes > 1440) score -= 3; // Stale (>24hr)
+    }
+
+    // ── Volume Velocity (injected by engine wash tracker) ──
+    if (event._tradesPerMinute && event._tradesPerMinute > 30) {
+      redFlags.push('VOLUME_SPIKE');
+      score -= 10;
+    }
+
+    // ── On-Chain Security (injected by SecurityService) ──
+    if (event._securityScore !== undefined) {
+      score += event._securityScore; // -50 to +10
+      if (event._securityFlags) {
+        redFlags.push(...event._securityFlags);
+      }
+    }
+
     // ═══════════════════════════════════════════
     // 🔴 ANTI-RUGPULL DETECTION
     // ═══════════════════════════════════════════
