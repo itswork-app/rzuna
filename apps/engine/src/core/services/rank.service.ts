@@ -29,6 +29,10 @@ export class RankService {
   }
 
   async getUser(walletAddress: string) {
+    if (!walletAddress) {
+      throw new Error('Invalid wallet address');
+    }
+
     // 1. Fetch User Base Rank
     const rows = await db
       .select()

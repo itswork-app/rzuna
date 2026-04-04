@@ -30,11 +30,19 @@ export const signalRoutes = async (fastify: FastifyInstance) => {
             count: z.number(),
             signals: z.array(AlphaSignalSchema),
           }),
+          400: z.object({
+            error: z.string(),
+          }),
         },
       },
     },
     async (request, reply) => {
-      const { wallet } = request.query as { wallet: string };
+      const query = (request.query || {}) as { wallet?: string };
+      const wallet = query.wallet;
+
+      if (!wallet) {
+        return reply.status(400).send({ error: 'Missing wallet' });
+      }
 
       // Use RankService to get user details including tier/status
       const user = await fastify.rankService.getUser(wallet);
