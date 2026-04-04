@@ -1,0 +1,25 @@
+{
+  "name": "@rzuna/database",
+  "version": "1.9.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "generate": "drizzle-kit generate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio",
+    "lint": "eslint .",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@rzuna/contracts": "workspace:*",
+    "drizzle-orm": "latest",
+    "postgres": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "drizzle-kit": "latest",
+    "typescript": "latest"
+  }
+}

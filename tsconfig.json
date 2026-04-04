@@ -11,6 +11,5 @@
     "allowSyntheticDefaultImports": true,
     "types": []
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist", "web"]
+  "include": ["vitest.config.ts", "eslint.config.js"]
 }

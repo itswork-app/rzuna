@@ -4,3 +4,8 @@ coverage/
 .env
 *.log
 .DS_Store
+.turbo/
+
+# Next.js Build Artifacts
+.next/
+
