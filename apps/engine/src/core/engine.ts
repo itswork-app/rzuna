@@ -57,7 +57,7 @@ export class IntelligenceEngine extends EventEmitter {
     try {
       const initialScore = this.scorer.calculateInitialScore(event);
 
-      if (initialScore.score >= 88) {
+      if (initialScore.score >= this.scorer.L1_THRESHOLD) {
         const aiResult = await this.reasoning.analyzeToken(event as any, initialScore.score);
         const metadata = await this.pumpapi.getTokenMetadata(event.mint);
 
