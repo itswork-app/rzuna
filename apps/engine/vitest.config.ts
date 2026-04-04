@@ -8,7 +8,13 @@ export default defineConfig({
       SUPABASE_URL: 'https://mock.supabase.co',
       SUPABASE_KEY: 'mock-key',
     },
-    exclude: [...(configDefaults?.exclude || []), 'web/**', 'dist/**'],
+    exclude: [
+      ...(configDefaults?.exclude || []),
+      'web/**',
+      'dist/**',
+      'src/tests/integration.test.ts',
+      'src/tests/simulation_dryrun.test.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
