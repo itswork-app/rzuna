@@ -63,12 +63,8 @@
           "name": "ai_quota_user_id_users_id_fk",
           "tableFrom": "ai_quota",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -78,9 +74,7 @@
         "ai_quota_user_id_unique": {
           "name": "ai_quota_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "policies": {},
@@ -157,9 +151,7 @@
         "scouted_tokens_mint_address_unique": {
           "name": "scouted_tokens_mint_address_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "mint_address"
-          ]
+          "columns": ["mint_address"]
         }
       },
       "policies": {},
@@ -231,12 +223,8 @@
           "name": "subscriptions_user_id_users_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -322,12 +310,8 @@
           "name": "trades_user_id_users_id_fk",
           "tableFrom": "trades",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -465,9 +449,7 @@
         "users_wallet_address_unique": {
           "name": "users_wallet_address_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "wallet_address"
-          ]
+          "columns": ["wallet_address"]
         }
       },
       "policies": {},
@@ -479,24 +461,12 @@
     "public.sub_status": {
       "name": "sub_status",
       "schema": "public",
-      "values": [
-        "NONE",
-        "STARLIGHT",
-        "STARLIGHT_PLUS",
-        "VIP"
-      ]
+      "values": ["NONE", "STARLIGHT", "STARLIGHT_PLUS", "VIP"]
     },
     "public.user_rank": {
       "name": "user_rank",
       "schema": "public",
-      "values": [
-        "BRONZE",
-        "SILVER",
-        "GOLD",
-        "PLATINUM",
-        "DIAMOND",
-        "MYTHIC"
-      ]
+      "values": ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MYTHIC"]
     }
   },
   "schemas": {},

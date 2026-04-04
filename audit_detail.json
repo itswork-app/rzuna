@@ -5,16 +5,10 @@
       "name": "@solana/buffer-layout-utils",
       "severity": "high",
       "isDirect": false,
-      "via": [
-        "bigint-buffer"
-      ],
-      "effects": [
-        "@solana/spl-token"
-      ],
+      "via": ["bigint-buffer"],
+      "effects": ["@solana/spl-token"],
       "range": "*",
-      "nodes": [
-        "node_modules/@solana/buffer-layout-utils"
-      ],
+      "nodes": ["node_modules/@solana/buffer-layout-utils"],
       "fixAvailable": {
         "name": "@solana/spl-token",
         "version": "0.1.8",
@@ -25,14 +19,10 @@
       "name": "@solana/spl-token",
       "severity": "high",
       "isDirect": true,
-      "via": [
-        "@solana/buffer-layout-utils"
-      ],
+      "via": ["@solana/buffer-layout-utils"],
       "effects": [],
       "range": ">=0.2.0-alpha.0",
-      "nodes": [
-        "node_modules/@solana/spl-token"
-      ],
+      "nodes": ["node_modules/@solana/spl-token"],
       "fixAvailable": {
         "name": "@solana/spl-token",
         "version": "0.1.8",
@@ -43,17 +33,10 @@
       "name": "@solana/wallet-adapter-torus",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@toruslabs/solana-embed",
-        "crypto-browserify"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-wallets"
-      ],
+      "via": ["@toruslabs/solana-embed", "crypto-browserify"],
+      "effects": ["@solana/wallet-adapter-wallets"],
       "range": ">=0.11.12",
-      "nodes": [
-        "node_modules/@solana/wallet-adapter-torus"
-      ],
+      "nodes": ["node_modules/@solana/wallet-adapter-torus"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -64,16 +47,10 @@
       "name": "@solana/wallet-adapter-trezor",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@trezor/connect-web"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-wallets"
-      ],
+      "via": ["@trezor/connect-web"],
+      "effects": ["@solana/wallet-adapter-wallets"],
       "range": "*",
-      "nodes": [
-        "node_modules/@solana/wallet-adapter-trezor"
-      ],
+      "nodes": ["node_modules/@solana/wallet-adapter-trezor"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -84,16 +61,10 @@
       "name": "@solana/wallet-adapter-walletconnect",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@walletconnect/solana-adapter"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-wallets"
-      ],
+      "via": ["@walletconnect/solana-adapter"],
+      "effects": ["@solana/wallet-adapter-wallets"],
       "range": ">=0.1.18",
-      "nodes": [
-        "node_modules/@solana/wallet-adapter-walletconnect"
-      ],
+      "nodes": ["node_modules/@solana/wallet-adapter-walletconnect"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -111,9 +82,7 @@
       ],
       "effects": [],
       "range": ">=0.16.2",
-      "nodes": [
-        "node_modules/@solana/wallet-adapter-wallets"
-      ],
+      "nodes": ["node_modules/@solana/wallet-adapter-wallets"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -124,96 +93,60 @@
       "name": "@toruslabs/base-controllers",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@toruslabs/broadcast-channel"
-      ],
-      "effects": [
-        "@toruslabs/solana-embed"
-      ],
+      "via": ["@toruslabs/broadcast-channel"],
+      "effects": ["@toruslabs/solana-embed"],
       "range": "1.6.16 - 8.17.0",
-      "nodes": [
-        "node_modules/@toruslabs/base-controllers"
-      ],
+      "nodes": ["node_modules/@toruslabs/base-controllers"],
       "fixAvailable": true
     },
     "@toruslabs/broadcast-channel": {
       "name": "@toruslabs/broadcast-channel",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@toruslabs/eccrypto",
-        "@toruslabs/metadata-helpers"
-      ],
-      "effects": [
-        "@toruslabs/base-controllers"
-      ],
+      "via": ["@toruslabs/eccrypto", "@toruslabs/metadata-helpers"],
+      "effects": ["@toruslabs/base-controllers"],
       "range": "<=12.0.0",
-      "nodes": [
-        "node_modules/@toruslabs/broadcast-channel"
-      ],
+      "nodes": ["node_modules/@toruslabs/broadcast-channel"],
       "fixAvailable": true
     },
     "@toruslabs/eccrypto": {
       "name": "@toruslabs/eccrypto",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "elliptic"
-      ],
+      "via": ["elliptic"],
       "effects": [],
       "range": "<=6.2.0",
-      "nodes": [
-        "node_modules/@toruslabs/eccrypto"
-      ],
+      "nodes": ["node_modules/@toruslabs/eccrypto"],
       "fixAvailable": true
     },
     "@toruslabs/metadata-helpers": {
       "name": "@toruslabs/metadata-helpers",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@toruslabs/eccrypto",
-        "elliptic"
-      ],
-      "effects": [
-        "@toruslabs/broadcast-channel"
-      ],
+      "via": ["@toruslabs/eccrypto", "elliptic"],
+      "effects": ["@toruslabs/broadcast-channel"],
       "range": "<=7.0.2",
-      "nodes": [
-        "node_modules/@toruslabs/metadata-helpers"
-      ],
+      "nodes": ["node_modules/@toruslabs/metadata-helpers"],
       "fixAvailable": true
     },
     "@toruslabs/solana-embed": {
       "name": "@toruslabs/solana-embed",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@toruslabs/base-controllers"
-      ],
+      "via": ["@toruslabs/base-controllers"],
       "effects": [],
       "range": "0.2.0 - 2.1.0",
-      "nodes": [
-        "node_modules/@toruslabs/solana-embed"
-      ],
+      "nodes": ["node_modules/@toruslabs/solana-embed"],
       "fixAvailable": true
     },
     "@trezor/blockchain-link": {
       "name": "@trezor/blockchain-link",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@trezor/blockchain-link-types",
-        "@trezor/utxo-lib",
-        "crypto-browserify"
-      ],
-      "effects": [
-        "@trezor/connect"
-      ],
+      "via": ["@trezor/blockchain-link-types", "@trezor/utxo-lib", "crypto-browserify"],
+      "effects": ["@trezor/connect"],
       "range": ">=2.1.0",
-      "nodes": [
-        "node_modules/@trezor/blockchain-link"
-      ],
+      "nodes": ["node_modules/@trezor/blockchain-link"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -224,13 +157,8 @@
       "name": "@trezor/blockchain-link-types",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@trezor/utxo-lib"
-      ],
-      "effects": [
-        "@trezor/blockchain-link",
-        "@trezor/connect"
-      ],
+      "via": ["@trezor/utxo-lib"],
+      "effects": ["@trezor/blockchain-link", "@trezor/connect"],
       "range": ">=1.0.13",
       "nodes": [
         "node_modules/@trezor/blockchain-link-types",
@@ -246,18 +174,10 @@
       "name": "@trezor/connect",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@trezor/blockchain-link",
-        "@trezor/blockchain-link-types",
-        "@trezor/utxo-lib"
-      ],
-      "effects": [
-        "@trezor/connect-web"
-      ],
+      "via": ["@trezor/blockchain-link", "@trezor/blockchain-link-types", "@trezor/utxo-lib"],
+      "effects": ["@trezor/connect-web"],
       "range": "*",
-      "nodes": [
-        "node_modules/@trezor/connect"
-      ],
+      "nodes": ["node_modules/@trezor/connect"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -268,16 +188,10 @@
       "name": "@trezor/connect-web",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@trezor/connect"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-trezor"
-      ],
+      "via": ["@trezor/connect"],
+      "effects": ["@solana/wallet-adapter-trezor"],
       "range": "*",
-      "nodes": [
-        "node_modules/@trezor/connect-web"
-      ],
+      "nodes": ["node_modules/@trezor/connect-web"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -288,18 +202,10 @@
       "name": "@trezor/utxo-lib",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "tiny-secp256k1"
-      ],
-      "effects": [
-        "@trezor/blockchain-link",
-        "@trezor/blockchain-link-types",
-        "@trezor/connect"
-      ],
+      "via": ["tiny-secp256k1"],
+      "effects": ["@trezor/blockchain-link", "@trezor/blockchain-link-types", "@trezor/connect"],
       "range": ">=1.0.0-beta.1",
-      "nodes": [
-        "node_modules/@trezor/utxo-lib"
-      ],
+      "nodes": ["node_modules/@trezor/utxo-lib"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -310,16 +216,10 @@
       "name": "@walletconnect/solana-adapter",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "@walletconnect/utils"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-walletconnect"
-      ],
+      "via": ["@walletconnect/utils"],
+      "effects": ["@solana/wallet-adapter-walletconnect"],
       "range": ">=0.0.6",
-      "nodes": [
-        "node_modules/@walletconnect/solana-adapter"
-      ],
+      "nodes": ["node_modules/@walletconnect/solana-adapter"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -330,16 +230,10 @@
       "name": "@walletconnect/utils",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "elliptic"
-      ],
-      "effects": [
-        "@walletconnect/solana-adapter"
-      ],
+      "via": ["elliptic"],
+      "effects": ["@walletconnect/solana-adapter"],
       "range": "2.15.0-canary.1 - 2.19.1",
-      "nodes": [
-        "node_modules/@walletconnect/utils"
-      ],
+      "nodes": ["node_modules/@walletconnect/utils"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -358,9 +252,7 @@
           "title": "bigint-buffer Vulnerable to Buffer Overflow via toBigIntLE() Function",
           "url": "https://github.com/advisories/GHSA-3gc7-fjrx-p6mg",
           "severity": "high",
-          "cwe": [
-            "CWE-120"
-          ],
+          "cwe": ["CWE-120"],
           "cvss": {
             "score": 7.5,
             "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
@@ -368,13 +260,9 @@
           "range": "<=1.1.5"
         }
       ],
-      "effects": [
-        "@solana/buffer-layout-utils"
-      ],
+      "effects": ["@solana/buffer-layout-utils"],
       "range": "*",
-      "nodes": [
-        "node_modules/bigint-buffer"
-      ],
+      "nodes": ["node_modules/bigint-buffer"],
       "fixAvailable": {
         "name": "@solana/spl-token",
         "version": "0.1.8",
@@ -385,16 +273,10 @@
       "name": "browserify-sign",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "elliptic"
-      ],
-      "effects": [
-        "crypto-browserify"
-      ],
+      "via": ["elliptic"],
+      "effects": ["crypto-browserify"],
       "range": ">=2.4.0",
-      "nodes": [
-        "node_modules/browserify-sign"
-      ],
+      "nodes": ["node_modules/browserify-sign"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -405,16 +287,10 @@
       "name": "create-ecdh",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "elliptic"
-      ],
-      "effects": [
-        "crypto-browserify"
-      ],
+      "via": ["elliptic"],
+      "effects": ["crypto-browserify"],
       "range": "*",
-      "nodes": [
-        "node_modules/create-ecdh"
-      ],
+      "nodes": ["node_modules/create-ecdh"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -425,14 +301,8 @@
       "name": "crypto-browserify",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "browserify-sign",
-        "create-ecdh"
-      ],
-      "effects": [
-        "@solana/wallet-adapter-torus",
-        "@trezor/blockchain-link"
-      ],
+      "via": ["browserify-sign", "create-ecdh"],
+      "effects": ["@solana/wallet-adapter-torus", "@trezor/blockchain-link"],
       "range": ">=3.4.0",
       "nodes": [
         "node_modules/@trezor/blockchain-link/node_modules/crypto-browserify",
@@ -456,9 +326,7 @@
           "title": "Elliptic Uses a Cryptographic Primitive with a Risky Implementation",
           "url": "https://github.com/advisories/GHSA-848j-6mx2-7j84",
           "severity": "low",
-          "cwe": [
-            "CWE-1240"
-          ],
+          "cwe": ["CWE-1240"],
           "cvss": {
             "score": 5.6,
             "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:L"
@@ -475,9 +343,7 @@
         "tiny-secp256k1"
       ],
       "range": "*",
-      "nodes": [
-        "node_modules/elliptic"
-      ],
+      "nodes": ["node_modules/elliptic"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",
@@ -488,16 +354,10 @@
       "name": "tiny-secp256k1",
       "severity": "low",
       "isDirect": false,
-      "via": [
-        "elliptic"
-      ],
-      "effects": [
-        "@trezor/utxo-lib"
-      ],
+      "via": ["elliptic"],
+      "effects": ["@trezor/utxo-lib"],
       "range": "0.0.0-rc-1560324438 || 0.2.0 - 1.1.7",
-      "nodes": [
-        "node_modules/tiny-secp256k1"
-      ],
+      "nodes": ["node_modules/tiny-secp256k1"],
       "fixAvailable": {
         "name": "@solana/wallet-adapter-wallets",
         "version": "0.16.1",

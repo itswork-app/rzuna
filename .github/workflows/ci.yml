@@ -2,9 +2,9 @@ name: 🛡️ The Constitutional CI
 
 on:
   push:
-    branches: [ main, feat/*, ready-live-* ]
+    branches: [main, feat/*, ready-live-*]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -16,32 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.4
 
       - uses: actions/setup-node@v4
-        with: 
+        with:
           node-version: '24'
           cache: 'pnpm'
 
       - name: 📦 Install Dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: "🛡️ The Guardian Audit (Singularity V22.1)"
+      - name: '🛡️ The Guardian Audit (Singularity V22.1)'
         run: pnpm exec turbo run lint test build --filter=@rzuna/engine --filter=@rzuna/contracts --filter=@rzuna/database --filter=@rzuna/sdk
         env:
           NODE_ENV: test
-          SUPABASE_URL: "https://mock.supabase.co"
-          SUPABASE_KEY: "mock-key"
-          NEXT_PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-key"
-          SOLANA_RPC_URL: "https://api.mainnet-beta.solana.com"
-          USDC_TREASURY_WALLET: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-          SOL_TREASURY_WALLET: "So11111111111111111111111111111111111111112"
+          SUPABASE_URL: 'https://mock.supabase.co'
+          SUPABASE_KEY: 'mock-key'
+          NEXT_PUBLIC_SUPABASE_URL: 'https://mock.supabase.co'
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: 'mock-key'
+          SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com'
+          USDC_TREASURY_WALLET: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+          SOL_TREASURY_WALLET: 'So11111111111111111111111111111111111111112'
 
-      - name: "⚡ The Performance (Smoke Test)"
+      - name: '⚡ The Performance (Smoke Test)'
         run: |
           if [ -f "./tests/smoke-test.js" ]; then
             sudo apt-get update

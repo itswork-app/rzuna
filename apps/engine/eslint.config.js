@@ -33,7 +33,7 @@ export default tseslint.config(
       'sonarjs/no-duplicate-string': 'warn',
       'sonarjs/pseudo-random': 'off',
       'sonarjs/no-nested-conditional': 'off',
-      'complexity': ['error', 10],
+      complexity: ['error', 10],
     },
   },
   {
@@ -50,6 +50,14 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'vitest.config.ts', 'eslint.config.js', 'scripts/', 'coverage/', 'web/**'],
-  }
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'vitest.config.ts',
+      'eslint.config.js',
+      'scripts/',
+      'coverage/',
+      'web/**',
+    ],
+  },
 );

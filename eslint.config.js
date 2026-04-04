@@ -43,7 +43,7 @@ export default tseslint.config(
       'sonarjs/no-nested-conditional': 'off',
       'sonarjs/void-use': 'off',
       'sonarjs/assertions-in-tests': 'off',
-      'complexity': 'off',
+      complexity: 'off',
     },
   },
   {
@@ -59,5 +59,5 @@ export default tseslint.config(
       '**/eslint.config.js',
       '**/vitest.config.ts',
     ],
-  }
+  },
 );
