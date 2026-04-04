@@ -1,25 +1,23 @@
 export interface InitialScore {
   score: number;
   isPremium: boolean;
+  redFlags: string[];
 }
 
 /**
  * 🏛️ ScoringService: Dual-Path Intelligence (V22.1)
  * Level 1: Fast heuristic pre-filter (<1ms per event).
- * Purpose: Filter noise, let promising candidates pass to Level 2 (AI Reasoning).
+ * Purpose: Filter noise AND dangerous tokens, let safe candidates pass to Level 2 (AI).
  *
  * Scoring Rules (calibrated against 150 real Pump.fun tokens):
  * - Base: 30 (neutral starting point)
- * - Liquidity signals: vSol, marketCap
- * - Transaction context: buy momentum, dev dump detection
- * - Social signals: twitter, website, telegram presence
- * - Token metadata quality: name/symbol validation
+ * - Positive signals: liquidity, social presence, token quality, buy momentum
+ * - Red flags: dev dump, wash trading patterns, rugpull indicators
  *
  * L1 Threshold: 65 → passes to Level 2 AI
  * Premium: score >= 80 → marked as high-priority for VIP users
  */
 export class ScoringService {
-  // L1 pre-filter threshold — candidates above this go to AI reasoning (Level 2)
   readonly L1_THRESHOLD = 65;
 
   /**
@@ -28,41 +26,104 @@ export class ScoringService {
    */
   calculateInitialScore(event: any): InitialScore {
     let score = 30;
+    const redFlags: string[] = [];
+
+    // ═══════════════════════════════════════════
+    // 🟢 POSITIVE SIGNALS (Higher = More Promising)
+    // ═══════════════════════════════════════════
 
     // ── Liquidity Signals ──
-    // Real data: new tokens ~30 vSol, graduated tokens ~115 vSol
-    if (event.vSolInBondingCurve > 20) score += 10; // Has initial liquidity
-    if (event.vSolInBondingCurve > 50) score += 10; // Strong liquidity
-    if (event.vSolInBondingCurve > 100) score += 5; // Graduated-tier
+    if (event.vSolInBondingCurve > 20) score += 10;
+    if (event.vSolInBondingCurve > 50) score += 10;
+    if (event.vSolInBondingCurve > 100) score += 5;
 
-    // Real data: new tokens ~15 mcapSol, top tokens 40K+ mcapSol
-    if (event.marketCapSol > 10) score += 10; // Minimum viable market cap
-    if (event.marketCapSol > 50) score += 5; // Growing traction
-    if (event.marketCapSol > 500) score += 5; // Established
+    // ── Market Cap Signals ──
+    if (event.marketCapSol > 10) score += 10;
+    if (event.marketCapSol > 50) score += 5;
+    if (event.marketCapSol > 500) score += 5;
 
     // ── Transaction Context ──
-    if (event.txType === 'buy') score += 8; // Buy pressure = bullish signal
-    if (event.txType === 'create') score += 3; // New token creation (mild positive)
+    if (event.txType === 'buy') score += 8;
+    if (event.txType === 'create') score += 3;
 
-    // ── Social Signals (from PumpPortal stream or metadata) ──
+    // ── Social Signals ──
     if (event.twitter || event.uri?.includes('twitter')) score += 5;
     if (event.website || event.uri?.includes('http')) score += 3;
     if (event.telegram) score += 3;
 
     // ── Token Quality ──
-    // Legitimate projects have proper names, not random strings
     if (event.symbol && event.symbol.length <= 8 && /^[A-Z]+$/i.test(event.symbol)) score += 2;
     if (event.name && event.name.length >= 3 && event.name.length <= 30) score += 2;
 
-    // ── Hard Red Flags ──
-    // Dev dumping their own token is a massive red flag
-    if (event.txType === 'sell' && event.traderPublicKey === event.devPublicKey) {
+    // ═══════════════════════════════════════════
+    // 🔴 ANTI-RUGPULL DETECTION
+    // ═══════════════════════════════════════════
+
+    // R1: Developer dumping their own token
+    if (event.txType === 'sell' && event.traderPublicKey && event.traderPublicKey === event.devPublicKey) {
       score = Math.min(score, 20);
+      redFlags.push('DEV_DUMP');
+    }
+
+    // R2: Suspiciously low initial liquidity (honeypot indicator)
+    if (event.vSolInBondingCurve < 5 && event.txType === 'create') {
+      score -= 15;
+      redFlags.push('MICRO_LIQUIDITY');
+    }
+
+    // R3: Bonding curve nearly complete but low market cap (about to rugpull)
+    if (event.vSolInBondingCurve > 80 && event.marketCapSol < 20) {
+      score -= 20;
+      redFlags.push('CURVE_MISMATCH');
+    }
+
+    // R4: No social presence at all — anonymous project, high rug risk
+    const hasSocial = event.twitter || event.website || event.telegram;
+    if (!hasSocial && event.txType === 'create') {
+      score -= 10;
+      redFlags.push('NO_SOCIAL');
+    }
+
+    // ═══════════════════════════════════════════
+    // 🟡 ANTI-WASH TRADING DETECTION
+    // ═══════════════════════════════════════════
+
+    // W1: Buyer is the same as the token creator (self-buying to inflate volume)
+    if (event.txType === 'buy' && event.traderPublicKey && event.traderPublicKey === event.devPublicKey) {
+      score -= 20;
+      redFlags.push('SELF_BUY');
+    }
+
+    // W2: Abnormally small trade amount (wash trading often uses micro-amounts)
+    if (event.txType === 'buy' && event.solAmount && event.solAmount < 0.01) {
+      score -= 10;
+      redFlags.push('MICRO_TRADE');
+    }
+
+    // W3: Rapid successive same-wallet transactions (bot pattern)
+    if (event.txType === 'buy' && event.traderPublicKey && event.traderPublicKey === event.bondingCurveKey) {
+      score -= 15;
+      redFlags.push('BOT_PATTERN');
+    }
+
+    // W4: Fake Volume - High volume but abnormally low market cap growth
+    // (Pattern: many small trades that don't move the price much)
+    if (event.txType === 'buy' && event.vSolInBondingCurve > 80 && event.marketCapSol < 10) {
+      score -= 20;
+      redFlags.push('FAKE_VOLUME_IMBALANCE');
+    }
+
+    // W5: Repetitive Trading (Wallet reuse)
+    // If the engine passes 'isRepetitive' flag from stateful tracking
+    if (event.isRepetitive) {
+      score -= 25;
+      redFlags.push('REPETITIVE_WASH_TRADE');
     }
 
     return {
       score: Math.min(100, Math.max(0, score)),
       isPremium: score >= 80,
+      redFlags,
     };
   }
 

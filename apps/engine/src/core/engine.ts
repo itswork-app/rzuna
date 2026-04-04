@@ -28,6 +28,7 @@ export class IntelligenceEngine extends EventEmitter {
   private scorer = new ScoringService();
   private reasoning = new ReasoningService();
   private activeSignals: Map<string, AlphaSignal> = new Map();
+  private recentTraders: Map<string, string[]> = new Map(); // mint -> trader list
 
   // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
   public readonly hooks = {
@@ -58,21 +59,41 @@ export class IntelligenceEngine extends EventEmitter {
       const initialScore = this.scorer.calculateInitialScore(event);
 
       if (initialScore.score >= this.scorer.L1_THRESHOLD) {
-        const aiResult = await this.reasoning.analyzeToken(event as any, initialScore.score);
         const metadata = await this.pumpapi.getTokenMetadata(event.mint);
 
-        await this.persistEnrichedToken(event, initialScore, aiResult.narrative, metadata);
+        // Stateful Wash Tracker
+        const traders = this.recentTraders.get(event.mint) || [];
+        const isRepetitive = traders.includes(event.traderPublicKey);
+        
+        // Re-score with metadata and wash state
+        const enrichedScore = this.scorer.calculateInitialScore({
+          ...event,
+          ...metadata,
+          devPublicKey: metadata?.creator,
+          isRepetitive,
+        });
+
+        // Update tracking
+        traders.push(event.traderPublicKey);
+        if (traders.length > 20) traders.shift();
+        this.recentTraders.set(event.mint, traders);
+
+        if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
+
+        const aiResult = await this.reasoning.analyzeToken(event as any, enrichedScore.score);
+
+        await this.persistEnrichedToken(event, enrichedScore, aiResult.narrative, metadata);
 
         const signal: AlphaSignal = {
           mint: event.mint,
           symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
           name: event.name || metadata?.name || 'UNKNOWN',
           description: metadata?.description,
-          twitter: metadata?.twitter,
-          telegram: metadata?.telegram,
-          website: metadata?.website,
-          score: initialScore.score,
-          isPremium: initialScore.isPremium,
+          twitter: metadata?.twitter || null,
+          telegram: metadata?.telegram || null,
+          website: metadata?.website || null,
+          score: enrichedScore.score,
+          isPremium: enrichedScore.isPremium,
           isNew: true,
           timestamp: Date.now(),
           aiReasoning: {
@@ -104,9 +125,9 @@ export class IntelligenceEngine extends EventEmitter {
         symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
         name: event.name || metadata?.name || 'UNKNOWN',
         description: metadata?.description,
-        twitter: metadata?.twitter,
-        telegram: metadata?.telegram,
-        website: metadata?.website,
+        twitter: metadata?.twitter || null,
+        telegram: metadata?.telegram || null,
+        website: metadata?.website || null,
         baseScore: Math.floor(score.score),
         aiReasoning: reasoning,
         isPrivate: score.isPremium,

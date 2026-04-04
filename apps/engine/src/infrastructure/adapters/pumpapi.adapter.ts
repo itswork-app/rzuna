@@ -9,6 +9,7 @@ export interface PumpMetadata {
   twitter?: string;
   telegram?: string;
   website?: string;
+  creator: string;
 }
 
 /**
@@ -45,6 +46,7 @@ export class PumpapiAdapter {
         twitter: data.twitter || null,
         telegram: data.telegram || null,
         website: data.website || null,
+        creator: data.creator || data.traderPublicKey || 'UNKNOWN',
       };
     } catch (err) {
       console.error(`❌ [Pumpapi] Error fetching ${mint}:`, err);
