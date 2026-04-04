@@ -1,0 +1,22 @@
+{
+  "name": "@rzuna/sdk",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "axios": "latest",
+    "ws": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.2",
+    "@types/ws": "latest",
+    "typescript": "latest"
+  }
+}

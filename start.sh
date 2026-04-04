@@ -1,12 +1,22 @@
-#!/bin/sh
+#!/bin/bash
+# 📜 RZUNA V22.1 CANONICAL ENTRY POINT
+# Standard: Institutional-Grade Monorepo (Singularity)
 
-# ===============================================
-# RZUNA FOUNDATION: Institutional Grade Startup
-# Blueprint v1.6 - Single-Container Monolith
-# ===============================================
+echo "🛡️ [AIVO] Initializing Canonical Singularity V22.1..."
 
-echo "🚀 [RZUNA] Starting Fastify Backend (Port 3001)..."
-node dist/src/server.js &
+if ! command -v pnpm &> /dev/null; then
+    echo "❌ Error: pnpm is required to run the monorepo."
+    exit 1
+fi
 
-echo "🚀 [RZUNA] Starting Next.js Glass Fortress (Port 3000)..."
-cd web && npm run start
+# 1. Verification Stage
+echo "🔍 Running Constitutional Audit..."
+pnpm turbo run lint test:coverage build
+
+if [ $? -eq 0 ]; then
+    echo "✅ Audit Passed. Initializing Development Environment..."
+    pnpm turbo run dev
+else
+    echo "❌ Audit Failed. Please check the logs for constitutional violations."
+    exit 1
+fi
