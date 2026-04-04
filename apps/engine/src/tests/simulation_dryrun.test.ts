@@ -36,7 +36,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
 
   it('SHOULD NOT execute real trades when IS_SIMULATION=true (Blueprint Section V.10)', async () => {
     // 1. Setup Simulation Mode
-    // @ts-expect-error - Mocking env
+    
     env.IS_SIMULATION = true;
 
     const service = new JupiterService();
@@ -63,9 +63,9 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
 
   it('SHOULD NOT execute real trades when EXECUTION_MODE=dry_run', async () => {
     // 1. Setup Dry-Run Mode
-    // @ts-expect-error - Mocking env
+    
     env.IS_SIMULATION = false;
-    // @ts-expect-error - Mocking env
+    
     env.EXECUTION_MODE = 'dry_run';
 
     const service = new JupiterService('dry_run');
@@ -92,11 +92,11 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
 
   it('SHOULD allow real trades only when BOTH IS_SIMULATION=false and EXECUTION_MODE=real', async () => {
     // 1. Setup Real Mode
-    // @ts-expect-error - Mocking env
+    
     env.IS_SIMULATION = false;
-    // @ts-expect-error - Mocking env
+    
     env.EXECUTION_MODE = 'real';
-    // @ts-expect-error - Mocking env
+    
     env.WALLET_PRIVATE_KEY = '58D8919641...'; // Fake base58
 
     const service = new JupiterService('real');

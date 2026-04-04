@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: "🛡️ The Guardian Audit (Singularity V22.1)"
-        run: pnpm exec turbo run lint test build --filter=@rzuna/engine --filter=@rzuna/terminal
+        run: pnpm exec turbo run lint test build --filter=@rzuna/engine --filter=@rzuna/contracts --filter=@rzuna/database --filter=@rzuna/sdk
         env:
           NODE_ENV: test
           SUPABASE_URL: "https://mock.supabase.co"
