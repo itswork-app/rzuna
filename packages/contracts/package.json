@@ -6,10 +6,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
+    "test": "echo \"No tests in this package yet\"",
+    "test:coverage": "echo \"No coverage in this package yet\"",
     "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "zod": "^3.25.76"

@@ -16,8 +16,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:alpha": "turbo run test --filter=@rzuna/engine -- --file=backtest_alpha.test.ts",
-    "test:dry-run": "turbo run test --filter=@rzuna/engine -- --file=simulation_dryrun.test.ts",
+    "test:alpha": "turbo run test --filter=@rzuna/engine -- src/tests/backtest_alpha.test.ts",
+    "test:dry-run": "turbo run test --filter=@rzuna/engine -- src/tests/simulation_dryrun.test.ts",
     "guardian": "./scripts/guardian.sh"
   },
   "keywords": [],
@@ -53,9 +53,10 @@
   "overrides": {
     "lodash": "4.18.1",
     "elliptic": "6.6.1",
+    "bigint-buffer": "1.1.5",
     "create-ecdh": "4.0.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "lodash-es": "4.18.1",
     "tiny-secp256k1": "2.2.4",
     "@trezor/utxo-lib": "2.5.0",
@@ -66,6 +67,7 @@
     "**": {
       "lodash": "4.18.1",
       "elliptic": "6.6.1",
+      "bigint-buffer": "1.1.5",
       "create-ecdh": "4.0.4",
       "tiny-secp256k1": "2.2.4",
       "@trezor/utxo-lib": "2.5.0"
