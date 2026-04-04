@@ -1,6 +1,0 @@
-{
-  "name": "rzuna-web-ghost",
-  "scripts": {
-    "build": "cd .. && pnpm turbo run build --filter=@rzuna/terminal"
-  }
-}

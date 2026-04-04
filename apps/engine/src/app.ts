@@ -70,21 +70,27 @@ export const buildApp = async () => {
   void engine.start();
 
   // Error Handler logic for Zod
-  fastify.setErrorHandler((error: any, request, reply) => {
-    if (error.validation) {
-      console.error('🛡️ Validation Error:', JSON.stringify(error.validation, null, 2));
-      return reply.status(400).send({
-        error: 'Bad Request',
-        message: 'Validation failed',
-        details: error.validation,
+  fastify.setErrorHandler(
+    (
+      error: any,
+      request: import('fastify').FastifyRequest,
+      reply: import('fastify').FastifyReply,
+    ) => {
+      if (error.validation) {
+        console.error('🛡️ Validation Error:', JSON.stringify(error.validation, null, 2));
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Validation failed',
+          details: error.validation,
+        });
+      }
+      console.error('🛡️ Server Error:', error);
+      return reply.status(error.statusCode || 500).send({
+        error: error.name || 'Error',
+        message: error.message || 'Internal Server Error',
       });
-    }
-    console.error('🛡️ Server Error:', error);
-    return reply.status(error.statusCode || 500).send({
-      error: error.name || 'Error',
-      message: error.message || 'Internal Server Error',
-    });
-  });
+    },
+  );
 
   return fastify;
 };

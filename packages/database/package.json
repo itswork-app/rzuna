@@ -5,6 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "test": "echo \"No tests in this package yet\"",
+    "test:coverage": "echo \"No coverage in this package yet\"",
     "build": "tsc",
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push",

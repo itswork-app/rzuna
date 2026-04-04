@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "echo 'No tests in admin yet'",
+    "test:coverage": "echo 'No coverage in admin yet'"
   },
   "dependencies": {
     "@refinedev/core": "^4.56.0",

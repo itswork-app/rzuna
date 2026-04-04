@@ -179,9 +179,10 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     await app.inject({ method: 'GET', url: '/metrics' });
   });
 
-  it.skip('🛡️ app.ts: /signals multi-tier coverage', async () => {
+  it('🛡️ app.ts: /signals multi-tier coverage', async () => {
     // 1. Missing wallet
     const r1 = await app.inject({ method: 'GET', url: '/signals' });
+    if (r1.statusCode === 500) console.error('500 ERROR IS:', r1.json());
     expect(r1.statusCode).toBe(400);
 
     // 2. STARLIGHT tier

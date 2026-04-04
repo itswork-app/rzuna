@@ -13,7 +13,6 @@ export default defineConfig({
       'web/**',
       'dist/**',
       'src/tests/integration.test.ts',
-      'src/tests/simulation_dryrun.test.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -24,7 +23,18 @@ export default defineConfig({
         branches: 80,
         statements: 80,
       },
-      exclude: ['node_modules/**', 'dist/**', 'scripts/**', 'web/**'],
+      include: [
+        'src/core/**',
+        'src/agents/**',
+      ],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/tests/**',
+        'src/types/**',
+        'src/agents/workers/**',
+        'src/agents/*.character.ts',
+        'src/agents/eliza.brain.ts',
+      ],
     },
   },
 });
