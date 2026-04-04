@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import { env } from '../src/utils/env.js';
 
 // Mock gRPC
 vi.mock('@triton-one/yellowstone-grpc', () => ({
@@ -55,6 +56,28 @@ vi.mock('../src/infrastructure/jupiter/jupiter.service.js', () => ({
   JupiterService: class {
     getBestRoute = vi.fn();
     executeSwap = mockExecuteSwap;
+  },
+}));
+
+// Mock TelegramService
+vi.mock('../src/infrastructure/telegram/telegram.service.js', () => ({
+  TelegramService: class {
+    sendTestPing = vi.fn().mockResolvedValue(true);
+    broadcastAlpha = vi.fn().mockResolvedValue(undefined);
+  },
+}));
+
+// Mock TierService
+vi.mock('../src/core/tiers/tier.service.js', () => ({
+  TierService: class {
+    getUserProfile = vi.fn().mockResolvedValue({
+      id: 'u-123',
+      rank: 'NEWBIE',
+      status: 'NONE',
+      volume: { currentMonthVolume: 0 },
+    });
+    getTradingFeePercentage = vi.fn().mockReturnValue(0.01);
+    addVolume = vi.fn().mockResolvedValue('NEWBIE');
   },
 }));
 
@@ -135,9 +158,38 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/trade',
-      body: { walletAddress: TEST_WALLET, amountUSD: 1000, platform: 'JUPITER', signature: 's1' },
+      body: {
+        walletAddress: TEST_WALLET,
+        amountUSD: 1000,
+        platform: 'JUPITER',
+        signature: 's_trade_final',
+        status: 'success',
+      },
     });
     expect(response.statusCode).toBe(200);
+  });
+
+  it('🛡️ app.ts: CORS origins logic', async () => {
+    // CORS origins are resolved at registration (buildApp).
+    // We need a fresh instance with the custom env.
+    const originalOrigins = env.ALLOWED_ORIGINS;
+    const origin = 'https://aivo.sh';
+    env.ALLOWED_ORIGINS = origin;
+    const testApp = await buildApp();
+
+    const response = await testApp.inject({
+      method: 'OPTIONS',
+      url: '/health',
+      headers: {
+        origin,
+        'access-control-request-method': 'GET',
+      },
+    });
+
+    expect(response.headers['access-control-allow-origin']).toBe(origin);
+
+    await testApp.close();
+    env.ALLOWED_ORIGINS = originalOrigins;
   });
 
   it('🛡️ fee.plugin.ts: GET /user/:wallet/tier coverage', async () => {
@@ -151,8 +203,70 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/trade/swap',
-      body: { route: {}, userPublicKey: 'u' },
+      body: { route: { inMint: 'a', outMint: 'b' }, userPublicKey: 'u' },
     });
     expect(response.statusCode).toBe(200);
+  });
+
+  it('🛡️ app.ts: /metrics and /health coverage', async () => {
+    await app.inject({ method: 'GET', url: '/health' });
+    await app.inject({ method: 'GET', url: '/metrics' });
+  });
+
+  it('🛡️ app.ts: /signals multi-tier coverage', async () => {
+    // 1. Missing wallet
+    const r1 = await app.inject({ method: 'GET', url: '/signals' });
+    expect(r1.statusCode).toBe(400);
+
+    // 2. STARLIGHT tier
+    const mockTier = (app as any).tierService;
+    vi.spyOn(mockTier, 'getUserProfile').mockResolvedValueOnce({
+      status: 'STARLIGHT',
+      rank: 'ELITE',
+      volume: { currentMonthVolume: 0 },
+      walletAddress: 'w',
+    } as any);
+    const r2 = await app.inject({ method: 'GET', url: '/signals', query: { wallet: 'w' } });
+    expect(r2.statusCode).toBe(200);
+
+    // 3. VIP tier
+    vi.spyOn(mockTier, 'getUserProfile').mockResolvedValueOnce({
+      status: 'VIP',
+      rank: 'ELITE',
+      volume: { currentMonthVolume: 0 },
+      walletAddress: 'w',
+    } as any);
+    const r3 = await app.inject({ method: 'GET', url: '/signals', query: { wallet: 'v' } });
+    expect(r3.statusCode).toBe(200);
+  });
+
+  it('🛡️ app.ts: /trade/swap error branch', async () => {
+    mockExecuteSwap.mockRejectedValueOnce(new Error('Swap Crash'));
+    const response = await app.inject({
+      method: 'POST',
+      url: '/trade/swap',
+      body: { route: { inMint: 'a', outMint: 'b' }, userPublicKey: 'w' },
+    });
+    expect(response.statusCode).toBe(500);
+  });
+
+  it('🛡️ app.ts: /telegram/test success/error', async () => {
+    // 1. Success
+    const r1 = await app.inject({ method: 'POST', url: '/telegram/test', body: { chatId: '123' } });
+    expect(r1.statusCode).toBe(200);
+
+    // 2. Missing chatId
+    const r2 = await app.inject({ method: 'POST', url: '/telegram/test', body: {} });
+    expect(r2.statusCode).toBe(400);
+  });
+
+  it('🛡️ app.ts: Engine logAlpha hook coverage', async () => {
+    await (app as any).engine.hooks.logAudit({
+      type: 'ALPHA',
+      score: 90,
+      mint: 'm',
+      reasoning: 'r',
+      latency: 1,
+    });
   });
 });

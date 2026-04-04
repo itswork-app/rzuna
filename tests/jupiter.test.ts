@@ -234,4 +234,59 @@ describe('🛡️ JupiterService Institutional Coverage', () => {
     expect(result.signature).toBe('crash_fallback_sig');
     expect(result.jitoBundle).toBe(false);
   });
+
+  it('should hit autoConvertFeeToSOL success path', async () => {
+    const SOL_MINT = 'So11111111111111111111111111111111111111112';
+    // 1. Skip if already SOL
+    const result1 = await service.autoConvertFeeToSOL(SOL_MINT, 500);
+    expect(result1.status).toBe('success');
+    expect(result1.signature).toBe('SKIPPED');
+
+    // 2. Full success flow
+    const spyRoute = vi.spyOn(service, 'getBestRoute').mockResolvedValue({
+      inAmount: 1000,
+      outAmount: 5,
+      swapTransaction: 'tx',
+    } as any);
+    const spyExecute = vi.spyOn(service, 'executeSwap').mockResolvedValue({
+      status: 'success',
+      signature: 'sig_convert',
+    } as any);
+
+    const result2 = await service.autoConvertFeeToSOL('mint', 2000);
+    expect(result2.status).toBe('success');
+    expect(result2.signature).toBe('sig_convert');
+
+    spyRoute.mockRestore();
+    spyExecute.mockRestore();
+  });
+
+  it('should successfully submit a Jito Bundle (Line 180+)', async () => {
+    const realService = new JupiterService('real');
+    const mockRoute = {
+      inAmount: 1,
+      outAmount: 1,
+      swapTransaction: 'AQID',
+    };
+
+    // Jito Tip Floor
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve([{ ema_landed_tips_50th_percentile: 0.00001 }]),
+    });
+
+    // Jito Bundle SUCCESS (200 OK)
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ result: 'bundle_uuid' }),
+    });
+
+    // Mock blockhash
+    // @ts-expect-error - Internal
+    realService.connection.getLatestBlockhash = vi.fn().mockResolvedValue({ blockhash: 'bh' });
+
+    const result = await realService.executeSwap(mockRoute as any);
+    expect(result.jitoBundle).toBe(true);
+    expect(result.status).toBe('success');
+  });
 });

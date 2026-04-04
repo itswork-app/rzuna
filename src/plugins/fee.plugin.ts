@@ -39,6 +39,46 @@ async function getLiveSOLPrice(): Promise<number> {
 /**
  * On-Chain Verification Engine (Blueprint v1.6 Hardening)
  */
+async function verifySOLPayment(
+  tx: any,
+  expectedReceiver: string,
+  expectedAmount: number,
+): Promise<boolean> {
+  const receiverIndex = tx.transaction.message.accountKeys.findIndex(
+    (acc: any) => acc.pubkey.toBase58() === expectedReceiver,
+  );
+
+  if (receiverIndex === -1) return false;
+
+  const preBalance = tx.meta.preBalances[receiverIndex];
+  const postBalance = tx.meta.postBalances[receiverIndex];
+  const deltaSOL = (postBalance - preBalance) / 1e9;
+
+  return deltaSOL >= expectedAmount * 0.99;
+}
+
+async function verifyUSDCPayment(
+  tx: any,
+  expectedReceiver: string,
+  expectedAmount: number,
+): Promise<boolean> {
+  const usdcMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+  const findBalance = (balances: any[]) => {
+    const found = balances?.find((b) => b.owner === expectedReceiver && b.mint === usdcMint);
+    return found ? Number(found.uiTokenAmount.amount) : 0;
+  };
+
+  const preAmount = findBalance(tx.meta.preTokenBalances || []);
+  const postAmount = findBalance(tx.meta.postTokenBalances || []);
+  const deltaUSDC = (postAmount - preAmount) / 1e6; // USDC has 6 decimals
+
+  return deltaUSDC >= expectedAmount * 0.99;
+}
+
+/**
+ * On-Chain Verification Engine (Blueprint v1.6 Hardening)
+ */
 async function verifyOnChainPayment(
   signature: string,
   expectedReceiver: string,
@@ -47,7 +87,10 @@ async function verifyOnChainPayment(
   asset: 'SOL' | 'USDC' = 'SOL',
 ): Promise<boolean> {
   try {
-    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const connection = new Connection(env.SOLANA_RPC_URL, {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
     const tx = await connection.getParsedTransaction(signature, {
       maxSupportedTransactionVersion: 0,
     });
@@ -58,31 +101,11 @@ async function verifyOnChainPayment(
     const sender = tx.transaction.message.accountKeys[0].pubkey.toBase58();
     if (sender !== expectedSender) return false;
 
-    // 2. Verify Receiver & Amount
+    // 2. Verify Receiver & Amount (Delta-Based - Blueprint v1.6 Hardening)
     if (asset === 'SOL') {
-      const lamports = expectedAmount * 1e9;
-      // In a simple transfer, we look for instructions targeting the expectedReceiver
-      const hasTransfer = tx.transaction.message.instructions.some((ix: any) => {
-        if (ix.program === 'system' && ix.parsed?.type === 'transfer') {
-          return (
-            ix.parsed.info.destination === expectedReceiver &&
-            Number(ix.parsed.info.lamports) >= lamports * 0.99 // 1% tolerance for slippage/rounding
-          );
-        }
-        return false;
-      });
-      return hasTransfer;
+      return await verifySOLPayment(tx, expectedReceiver, expectedAmount);
     } else {
-      // USDC (SPL Token) logic
-      const amountUnits = expectedAmount * 1e6; // USDC has 6 decimals
-      const hasTokenTransfer = tx.meta.postTokenBalances?.some((balance: any) => {
-        return (
-          balance.owner === expectedReceiver &&
-          balance.mint === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' && // USDC mainnet mint
-          Number(balance.uiTokenAmount.amount) >= amountUnits * 0.99
-        );
-      });
-      return !!hasTokenTransfer;
+      return await verifyUSDCPayment(tx, expectedReceiver, expectedAmount);
     }
   } catch (error) {
     console.error('[Verification] Error:', error);
@@ -165,43 +188,32 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post<{ Body: SubscribeBody }>('/subscribe', async (request, reply) => {
-    const { walletAddress, tier, amountSOL, paymentSignature } = request.body;
+    const { walletAddress, tier, amountSOL, paymentSignature, plan } = request.body as any;
+
+    if (!validateRegistration(walletAddress, paymentSignature, tier, plan)) {
+      return await reply.status(400).send({ error: 'Missing mandatory registration fields' });
+    }
+
     const amountUSDC = amountSOL;
 
     try {
-      // 🏛️ PR 22: Hardened Verification (On-Chain)
       const treasuryAddress = env.USDC_TREASURY_WALLET || env.SOL_TREASURY_WALLET;
+      if (!treasuryAddress) throw new Error('Treasury wallet not configured');
 
-      if (!treasuryAddress) {
-        throw new Error('Treasury wallet not configured');
-      }
-
-      fastify.log.info(
-        `[Subscription] Verifying $${amountUSDC} USDC transfer for ${walletAddress} (Tier: ${tier})...`,
-      );
-
-      const isValid = await verifyOnChainPayment(
+      const isValid = await executeVerification(
         paymentSignature,
         treasuryAddress,
         walletAddress,
         amountUSDC,
-        'USDC',
       );
-
       if (!isValid && env.NODE_ENV === 'production') {
         return await reply.status(403).send({ error: 'Subscription payment verification failed' });
       }
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ subscription_status: tier } as unknown as never)
-        .eq('wallet_address', walletAddress);
-
-      if (updateError) throw updateError;
-
       const profile = await tierService.getUserProfile(walletAddress);
 
-      await supabase.from('transactions').insert({
+      // 3. Database Transaction Safety (Insert Transaction Audit Trail FIRST)
+      const { error: txError } = await supabase.from('transactions').insert({
         profile_id: profile.id,
         tx_hash: paymentSignature,
         amount_usd: amountUSDC,
@@ -211,6 +223,16 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
         treasury_status: 'settled',
         status: 'success',
       } as unknown as never);
+
+      if (txError) throw txError;
+
+      // 4. Update Profile Status
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ subscription_status: tier } as unknown as never)
+        .eq('wallet_address', walletAddress);
+
+      if (updateError) throw updateError;
 
       return await reply.send({ status: 'success', tier });
     } catch (error) {
@@ -232,9 +254,34 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
   });
 };
 
+/**
+ * Extracted Verification Helper to reduce handler complexity (Limit: 10)
+ */
+async function executeVerification(
+  signature: string,
+  treasury: string,
+  wallet: string,
+  amount: number,
+): Promise<boolean> {
+  const { data: existingTx } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('tx_hash', signature)
+    .maybeSingle();
+  if (existingTx) return false;
+  return await verifyOnChainPayment(signature, treasury, wallet, amount, 'USDC');
+}
+
+function validateRegistration(wallet: string, signature: string, tier: any, plan: any): boolean {
+  return !!(wallet && signature && (tier || plan));
+}
+
 async function handleTradeVerification(status: string, signature: string, reply: any) {
   if (status === 'success' && signature) {
-    const connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    const connection = new Connection(env.SOLANA_RPC_URL, {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
     const tx = await connection.getSignatureStatus(signature);
     if (!tx.value || tx.value.err) {
       return await reply.status(400).send({ error: 'Invalid or failed trade signature' });

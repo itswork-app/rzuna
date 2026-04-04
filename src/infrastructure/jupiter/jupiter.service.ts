@@ -63,10 +63,10 @@ export class JupiterService {
   private circuitBreakerUntil = 0;
 
   constructor(modeOverride?: 'dry_run' | 'real') {
-    this.connection = new Connection(
-      env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
-      'confirmed',
-    );
+    this.connection = new Connection(env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com', {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
     this.jitoValidator = env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf';
     this.mode = modeOverride || env.EXECUTION_MODE || 'dry_run';
 

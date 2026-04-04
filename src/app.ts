@@ -74,6 +74,7 @@ export const buildApp = async () => {
 
   fastify.decorate('engine', engine);
   fastify.decorate('jupiter', jupiterService);
+  fastify.decorate('tierService', tierService);
 
   // VIP Infrastructure Activation: Blueprint v1.6
   fastify.addHook('onRequest', async (request) => {

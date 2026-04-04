@@ -53,7 +53,10 @@ export class GeyserService extends EventEmitter {
     super();
     this.mode = mode;
     this.priority = mode === 'vip' ? 1 : priority;
-    this.connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    this.connection = new Connection(env.SOLANA_RPC_URL, {
+      commitment: 'confirmed',
+      wsEndpoint: env.SOLANA_WSS_URL,
+    });
 
     const endpoint = mode === 'vip' ? env.VIP_GEYSER_ENDPOINT : env.GEYSER_ENDPOINT;
     const token = mode === 'vip' ? env.VIP_GEYSER_TOKEN : env.GEYSER_TOKEN;

@@ -10,6 +10,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string(),
   SUPABASE_KEY: z.string(),
   SOLANA_RPC_URL: z.string().default('https://api.mainnet-beta.solana.com'),
+  SOLANA_WSS_URL: z.string().optional(),
   WALLET_PRIVATE_KEY: z.string().optional(),
   GEYSER_ENDPOINT: z.string().optional(),
   GEYSER_TOKEN: z.string().optional(),
