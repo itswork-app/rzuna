@@ -217,6 +217,62 @@ describe('🛡️ Infrastructure Coverage Siege', () => {
       env.AXIOM_DATASET = originalDataset;
     });
 
+    it('GeyserService: should hit logs processing in WebSocket Fallback mode', async () => {
+      env.GEYSER_ENDPOINT = ''; // Force fallback
+      const service = new GeyserService();
+
+      // Spy on onLogs to grab the callback
+      let logCallback: any;
+      const onLogsSpy = vi
+        .spyOn((service as any).connection, 'onLogs')
+        .mockImplementation((_id, cb) => {
+          logCallback = cb;
+          return 123;
+        });
+
+      await service.start();
+      expect(onLogsSpy).toHaveBeenCalled();
+
+      const mintSpy = vi.fn();
+      service.on('mint', mintSpy);
+
+      // 💉 Infiltrate with Create log
+      const mockLogs = {
+        logs: ['Program log: Instruction: Create', 'Program jito: bundle'],
+        signature: 'sig_123',
+      };
+
+      // Mock getParsedTransaction to find the mint
+      vi.spyOn((service as any).connection, 'getParsedTransaction').mockResolvedValueOnce({
+        meta: { err: null },
+        transaction: {
+          message: {
+            accountKeys: [
+              { pubkey: { toBase58: () => '6EF8rrecthR5Dkzon8Nwu78hRvfMX1NczvLA8nd6XMyC' } }, // PUMP
+              { pubkey: { toBase58: () => 'RZUnA11111111111111111111111111111111111111' } }, // MINT (44 chars)
+            ],
+          },
+        },
+      } as any);
+
+      // Trigger the callback (async void in service)
+      if (logCallback) {
+        logCallback(mockLogs);
+      }
+
+      // 🕒 Wait for async emission
+      await vi.waitFor(() => {
+        if (mintSpy.mock.calls.length === 0) throw new Error('Not called yet');
+      });
+
+      expect(mintSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mint: 'RZUnA11111111111111111111111111111111111111',
+          signature: 'sig_123',
+        }),
+      );
+    });
+
     it('GeyserService: should hit retry and fallback branches', async () => {
       env.GEYSER_ENDPOINT = 'https://fail-conn';
       const service = new GeyserService();
