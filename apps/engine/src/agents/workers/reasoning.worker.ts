@@ -26,9 +26,12 @@ async function run() {
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'You are an institutional RZUNA trading intelligence unit.' },
-        { role: 'user', content: `Analyze token ${event.mint} with initial score ${score}. Symbol: ${event.symbol}` }
+        {
+          role: 'user',
+          content: `Analyze token ${event.mint} with initial score ${score}. Symbol: ${event.symbol}`,
+        },
       ],
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
     });
 
     const content = JSON.parse(response.choices[0].message.content || '{}');

@@ -34,7 +34,7 @@ export class TwitterAdapter {
 
       const tweets = search.tweets;
       const count = tweets.length;
-      
+
       // Simple heuristic for sentiment scoring
       let score = 50;
       if (count > 0) {

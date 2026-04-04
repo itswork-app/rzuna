@@ -39,7 +39,7 @@ export class TelegramService {
       const rows = await db
         .select({
           tgChatId: users.telegramId,
-          status: subscriptions.status
+          status: subscriptions.status,
         })
         .from(users)
         .innerJoin(subscriptions, eq(users.id, subscriptions.userId))
@@ -47,8 +47,8 @@ export class TelegramService {
           and(
             eq(users.isTgEnabled, true),
             inArray(subscriptions.status, ['STARLIGHT', 'STARLIGHT_PLUS', 'VIP']),
-            isNotNull(users.telegramId)
-          )
+            isNotNull(users.telegramId),
+          ),
         );
 
       if (rows.length === 0) return;

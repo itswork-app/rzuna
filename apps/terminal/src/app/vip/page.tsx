@@ -7,15 +7,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Crown, Sparkles, ShieldCheck, Zap, Star, Shield } from 'lucide-react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useProfile } from '@/hooks/useProfile';
-import { 
-  PublicKey, 
-  Transaction, 
-  Connection 
-} from '@solana/web3.js';
-import { 
-  getAssociatedTokenAddress, 
+import { PublicKey, Transaction, Connection } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
   createTransferCheckedInstruction,
-  getMint
+  getMint,
 } from '@solana/spl-token';
 
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -36,8 +32,9 @@ export default function VIPChannel() {
           id: 'vip-1',
           score: 98,
           aiReasoning: {
-            narrative: 'Deep institutional liquidity depth and high directional conviction from top-tier traders.',
-            confident: 'HIGH'
+            narrative:
+              'Deep institutional liquidity depth and high directional conviction from top-tier traders.',
+            confident: 'HIGH',
           },
           event: {
             mint: 'DezXAZ8z7Pnrn9vzct2PrfLvWzoZOAP89TO86UVHjm6',
@@ -47,10 +44,10 @@ export default function VIPChannel() {
             socialScore: 99,
             metadata: {
               name: 'BONK',
-              symbol: 'BONK'
-            }
-          }
-        }
+              symbol: 'BONK',
+            },
+          },
+        },
       ];
       setSignals(vipSignals);
     };
@@ -61,14 +58,14 @@ export default function VIPChannel() {
   const handleSubscribe = async (tier: string, priceUSDC: number) => {
     if (!connected || !publicKey) return alert('Please connect your wallet first.');
     setIsSubscribing(tier);
-    
+
     try {
       // 🏛️ PR 18: Real SPL-Token USDC Transfer
       console.log(`[Institutional] Initiating ${priceUSDC} USDC transfer for ${tier}...`);
-      
+
       const userAta = await getAssociatedTokenAddress(USDC_MINT, publicKey);
       const treasuryAta = await getAssociatedTokenAddress(USDC_MINT, USDC_TREASURY_WALLET);
-      
+
       const mintInfo = await getMint(connection, USDC_MINT);
       const amountRaw = BigInt(Math.floor(priceUSDC * Math.pow(10, mintInfo.decimals)));
 
@@ -79,8 +76,8 @@ export default function VIPChannel() {
           treasuryAta,
           publicKey,
           amountRaw,
-          mintInfo.decimals
-        )
+          mintInfo.decimals,
+        ),
       );
 
       const signature = await sendTransaction(tx, connection);
@@ -93,8 +90,8 @@ export default function VIPChannel() {
           walletAddress: publicKey.toBase58(),
           tier,
           amountSOL: priceUSDC, // Sent as USDC value but field naming kept for backend legacy-sync or rename locally
-          paymentSignature: signature
-        })
+          paymentSignature: signature,
+        }),
       });
 
       if (response.ok) {
@@ -117,23 +114,36 @@ export default function VIPChannel() {
         <div className="absolute top-6 left-1/2 -translate-x-1/2 text-purple-500/10 pointer-events-none">
           <Crown size={140} />
         </div>
-        
+
         <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 px-5 py-2 rounded-full mb-6">
           <Crown size={16} className="text-purple-500" />
-          <span className="text-[10px] font-bold text-purple-500 uppercase tracking-[0.2em]">Institutional Access</span>
+          <span className="text-[10px] font-bold text-purple-500 uppercase tracking-[0.2em]">
+            Institutional Access
+          </span>
         </div>
-        
+
         <h1 className="text-5xl font-black tracking-tighter mb-4 leading-none">
-          Real-time <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">Alpha</span> Intelligence
+          Real-time{' '}
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
+            Alpha
+          </span>{' '}
+          Intelligence
         </h1>
         <p className="text-zinc-400 text-lg max-w-2xl mx-auto mb-8">
-          Dedicated L2 reasoning pipeline and high-conviction signals (Score 90+) delivered with zero latency for institutional subscribers.
+          Dedicated L2 reasoning pipeline and high-conviction signals (Score 90+) delivered with
+          zero latency for institutional subscribers.
         </p>
-        
+
         <div className="flex justify-center gap-8 text-zinc-500 text-sm font-bold tracking-tight">
-          <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-green-500" /> Verified Security</div>
-          <div className="flex items-center gap-2"><Sparkles size={18} className="text-purple-500" /> AI Optimized</div>
-          <div className="flex items-center gap-2"><Zap size={18} className="text-yellow-500" /> Zero Latency</div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} className="text-green-500" /> Verified Security
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-purple-500" /> AI Optimized
+          </div>
+          <div className="flex items-center gap-2">
+            <Zap size={18} className="text-yellow-500" /> Zero Latency
+          </div>
         </div>
       </header>
 
@@ -141,17 +151,40 @@ export default function VIPChannel() {
       <section className="mb-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {[
-            { id: 'STARLIGHT', name: 'Starlight', price: 19, icon: Star, color: 'zinc', perks: ['85+ Signal Access', 'Standard Detection'] },
-            { id: 'STARLIGHT_PLUS', name: 'Starlight+', price: 49, icon: Shield, color: 'blue', perks: ['90+ Signal Access', 'Priority Notifications', 'Rank Multiplier'] },
-            { id: 'VIP', name: 'VIP Alliance', price: 149, icon: Crown, color: 'purple', perks: ['L2 AI Reasoning', 'Instant Jito Swaps', 'Private Alpha Channel'] },
+            {
+              id: 'STARLIGHT',
+              name: 'Starlight',
+              price: 19,
+              icon: Star,
+              color: 'zinc',
+              perks: ['85+ Signal Access', 'Standard Detection'],
+            },
+            {
+              id: 'STARLIGHT_PLUS',
+              name: 'Starlight+',
+              price: 49,
+              icon: Shield,
+              color: 'blue',
+              perks: ['90+ Signal Access', 'Priority Notifications', 'Rank Multiplier'],
+            },
+            {
+              id: 'VIP',
+              name: 'VIP Alliance',
+              price: 149,
+              icon: Crown,
+              color: 'purple',
+              perks: ['L2 AI Reasoning', 'Instant Jito Swaps', 'Private Alpha Channel'],
+            },
           ].map((tier) => (
-            <motion.div 
+            <motion.div
               key={tier.id}
               whileHover={{ y: -5 }}
               className={`relative overflow-hidden bg-zinc-950 border ${profile?.status === tier.id ? 'border-purple-500' : 'border-zinc-800'} p-8 rounded-[24px] flex flex-col`}
             >
               {profile?.status === tier.id && (
-                <div className="absolute top-4 right-4 bg-purple-500 text-black text-[10px] font-black px-2 py-1 rounded">CURRENT</div>
+                <div className="absolute top-4 right-4 bg-purple-500 text-black text-[10px] font-black px-2 py-1 rounded">
+                  CURRENT
+                </div>
               )}
               <tier.icon size={32} className={`mb-4 text-${tier.color}-500`} />
               <h3 className="text-2xl font-bold mb-1">{tier.name}</h3>
@@ -165,50 +198,53 @@ export default function VIPChannel() {
                   </li>
                 ))}
               </ul>
-              <button 
+              <button
                 onClick={() => handleSubscribe(tier.id, tier.price)}
                 disabled={isSubscribing !== null || profile?.status === tier.id}
                 className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${
-                  profile?.status === tier.id 
-                  ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
-                  : 'bg-white text-black hover:bg-zinc-200'
+                  profile?.status === tier.id
+                    ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+                    : 'bg-white text-black hover:bg-zinc-200'
                 }`}
               >
-                {isSubscribing === tier.id ? 'Settling...' : profile?.status === tier.id ? 'Active' : 'Upgrade to USDC'}
+                {isSubscribing === tier.id
+                  ? 'Settling...'
+                  : profile?.status === tier.id
+                    ? 'Active'
+                    : 'Upgrade to USDC'}
               </button>
             </motion.div>
           ))}
         </div>
-        
+
         {/* Institutional Settlement Note */}
         <p className="text-center text-zinc-600 text-[10px] mt-8 uppercase font-bold tracking-[0.2em] max-w-xs mx-auto leading-relaxed">
-          Institutional Settlement Protocol: <br/> All payments are processed directly in USDC for treasury stability.
+          Institutional Settlement Protocol: <br /> All payments are processed directly in USDC for
+          treasury stability.
         </p>
       </section>
 
       {/* Live Signals (Guarded by Subscription) */}
       <section>
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-zinc-600 text-xs font-black uppercase tracking-[0.3em]">Institutional Alpha Stream</h2>
+          <h2 className="text-zinc-600 text-xs font-black uppercase tracking-[0.3em]">
+            Institutional Alpha Stream
+          </h2>
           <div className="h-[1px] flex-grow mx-8 bg-zinc-900" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence>
             {signals.map((signal) => (
-              <TokenCard 
-                key={signal.id} 
-                signal={signal} 
-                onConsumeQuota={() => {}} 
-              />
+              <TokenCard key={signal.id} signal={signal} onConsumeQuota={() => {}} />
             ))}
           </AnimatePresence>
         </div>
 
         {signals.length === 0 && (
-           <div className="py-20 text-center border-2 border-dashed border-zinc-900 rounded-[32px] text-zinc-600 font-bold uppercase tracking-widest text-sm">
-             Calibrating L2 reasoning modules...
-           </div>
+          <div className="py-20 text-center border-2 border-dashed border-zinc-900 rounded-[32px] text-zinc-600 font-bold uppercase tracking-widest text-sm">
+            Calibrating L2 reasoning modules...
+          </div>
         )}
       </section>
     </div>

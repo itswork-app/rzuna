@@ -12,17 +12,21 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
 
   // 🚀 Dynamic Rate Limiting (Tier-based)
   fastify.addHook('preHandler', async (request, reply) => {
-    const [user] = await db.select().from(users).where(eq(users.id, request.apiKey.userId)).limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, request.apiKey.userId))
+      .limit(1);
     const tier = user?.tier || 'BRONZE';
-    
+
     // Tier-based limits (Simulated in Task 4)
     const limits: Record<string, number> = {
-      'BRONZE': 10,
-      'SILVER': 20,
-      'GOLD': 50,
-      'PLATINUM': 100,
-      'DIAMOND': 500,
-      'MYTHIC': 1000,
+      BRONZE: 10,
+      SILVER: 20,
+      GOLD: 50,
+      PLATINUM: 100,
+      DIAMOND: 500,
+      MYTHIC: 1000,
     };
 
     // In a real scenario, we'd use Redis or a more robust counter.
@@ -34,9 +38,13 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
    */
   fastify.get('/sdk/intelligence/:mint', async (request, reply) => {
     const { mint } = request.params as { mint: string };
-    
-    const [token] = await db.select().from(scoutedTokens).where(eq(scoutedTokens.mintAddress, mint)).limit(1);
-    
+
+    const [token] = await db
+      .select()
+      .from(scoutedTokens)
+      .where(eq(scoutedTokens.mintAddress, mint))
+      .limit(1);
+
     if (!token) {
       return reply.status(404).send({ error: 'TOKEN_NOT_SCOUTED' });
     }
@@ -46,7 +54,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
       userId: request.apiKey.userId,
       apiKeyId: request.apiKey.id,
       endpoint: 'intelligence',
-      creditsUsed: 1
+      creditsUsed: 1,
     });
 
     return token;
@@ -58,31 +66,38 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
    */
   fastify.post('/sdk/trade/swap', async (request, reply) => {
     const params = request.body as any;
-    
+
     // Fetch User Tier for Fee Calculation
-    const [user] = await db.select().from(users).where(eq(users.id, request.apiKey.userId)).limit(1);
-    
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, request.apiKey.userId))
+      .limit(1);
+
     // Calculate Fee based on Tier
     // (In production, use RankService; here we implement the logic directly for clarity in Task 4)
     let feeBps = 150; // default 1.5% (Starlight)
-    if (user?.tier === 'DIAMOND' || user?.tier === 'MYTHIC') feeBps = 50; // 0.5% (VIP)
+    if (user?.tier === 'DIAMOND' || user?.tier === 'MYTHIC')
+      feeBps = 50; // 0.5% (VIP)
     else if (user?.tier === 'GOLD' || user?.tier === 'PLATINUM') feeBps = 100; // 1.0%
 
-    console.info(`🛡️ [SDK] Institutional B2B Trade: ${params.type} ${params.mint} | Fee: ${feeBps} BPS`);
+    console.info(
+      `🛡️ [SDK] Institutional B2B Trade: ${params.type} ${params.mint} | Fee: ${feeBps} BPS`,
+    );
 
     // 📊 Log Usage (More expensive for trades)
     await db.insert(usageLogs).values({
       userId: request.apiKey.userId,
       apiKeyId: request.apiKey.id,
       endpoint: 'swap',
-      creditsUsed: 10
+      creditsUsed: 10,
     });
 
-    return { 
-      status: 'success', 
+    return {
+      status: 'success',
       signature: 'SIMULATED_B2B_TX_HASH',
       feePaid: (feeBps / 10000).toFixed(4),
-      tier: user?.tier || 'BRONZE'
+      tier: user?.tier || 'BRONZE',
     };
   });
 
@@ -91,13 +106,17 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
    */
   fastify.get('/sdk/usage', async (request, reply) => {
     const logs = await db.select().from(usageLogs).where(eq(usageLogs.apiKeyId, request.apiKey.id));
-    const [user] = await db.select().from(users).where(eq(users.id, request.apiKey.userId)).limit(1);
-    
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, request.apiKey.userId))
+      .limit(1);
+
     return {
       apiKey: request.apiKey.name,
       totalCalls: logs.length,
       creditsUsed: logs.reduce((sum, l) => sum + l.creditsUsed, 0),
-      tier: user?.tier || 'BRONZE'
+      tier: user?.tier || 'BRONZE',
     };
   });
 };

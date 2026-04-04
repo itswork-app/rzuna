@@ -23,20 +23,23 @@ describe('useSignals Hook (Institutional)', () => {
         timestamp: new Date().toISOString(),
         initialLiquidity: 1000,
         socialScore: 90,
-        metadata: { name: 'Solana Coin', symbol: 'SOL' }
-      }
-    }
+        metadata: { name: 'Solana Coin', symbol: 'SOL' },
+      },
+    },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useWallet).mockReturnValue({ publicKey: { toBase58: () => 'rzun...7p2v' }, connected: true } as unknown as ReturnType<typeof useWallet>);
+    vi.mocked(useWallet).mockReturnValue({
+      publicKey: { toBase58: () => 'rzun...7p2v' },
+      connected: true,
+    } as unknown as ReturnType<typeof useWallet>);
   });
 
   it('initially has empty signals and starts loading', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: [] })
+      json: () => Promise.resolve({ signals: [] }),
     } as Response);
 
     const { result } = renderHook(() => useSignals());
@@ -48,12 +51,12 @@ describe('useSignals Hook (Institutional)', () => {
   it('fetches signals correctly for a connected wallet', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: mockSignals })
+      json: () => Promise.resolve({ signals: mockSignals }),
     } as Response);
 
     const { result } = renderHook(() => useSignals());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    
+
     expect(result.current.signals).toHaveLength(1);
     expect(result.current.signals[0].event.mint).toBe('So11...112');
   });
@@ -63,7 +66,7 @@ describe('useSignals Hook (Institutional)', () => {
 
     const { result } = renderHook(() => useSignals());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    
+
     expect(result.current.error).toBe('Network Crash');
     expect(result.current.signals).toEqual([]);
   });
@@ -71,7 +74,7 @@ describe('useSignals Hook (Institutional)', () => {
   it('provides a refetch function to manually refresh', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: [] })
+      json: () => Promise.resolve({ signals: [] }),
     } as Response);
 
     const { result } = renderHook(() => useSignals());
@@ -79,7 +82,7 @@ describe('useSignals Hook (Institutional)', () => {
 
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ signals: mockSignals })
+      json: () => Promise.resolve({ signals: mockSignals }),
     } as Response);
 
     await act(async () => {
@@ -89,7 +92,10 @@ describe('useSignals Hook (Institutional)', () => {
   });
 
   it('returns immediately if publicKey is missing', async () => {
-    vi.mocked(useWallet).mockReturnValue({ publicKey: null, connected: false } as unknown as ReturnType<typeof useWallet>);
+    vi.mocked(useWallet).mockReturnValue({
+      publicKey: null,
+      connected: false,
+    } as unknown as ReturnType<typeof useWallet>);
     const { result } = renderHook(() => useSignals());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(global.fetch).not.toHaveBeenCalled();
@@ -98,7 +104,7 @@ describe('useSignals Hook (Institutional)', () => {
   it('handles signals payload with missing signals array', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({}) // Missing signals array
+      json: () => Promise.resolve({}), // Missing signals array
     } as Response);
 
     const { result } = renderHook(() => useSignals());
@@ -109,7 +115,7 @@ describe('useSignals Hook (Institutional)', () => {
   it('handles API failure with non-OK status code', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: false,
-      statusText: 'Forbidden'
+      statusText: 'Forbidden',
     } as Response);
 
     const { result } = renderHook(() => useSignals());

@@ -1,4 +1,14 @@
-import { pgTable, uuid, text, numeric, timestamp, boolean, integer, pgEnum, jsonb } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  numeric,
+  timestamp,
+  boolean,
+  integer,
+  pgEnum,
+  jsonb,
+} from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 
 // 🏛️ RZUNA V22.1 CONSTITUTIONAL ENUMS
@@ -8,26 +18,23 @@ export const userRankEnum = pgEnum('user_rank', [
   'GOLD',
   'PLATINUM',
   'DIAMOND',
-  'MYTHIC'
+  'MYTHIC',
 ]);
 
-export const subStatusEnum = pgEnum('sub_status', [
-  'NONE',
-  'STARLIGHT',
-  'STARLIGHT_PLUS',
-  'VIP'
-]);
+export const subStatusEnum = pgEnum('sub_status', ['NONE', 'STARLIGHT', 'STARLIGHT_PLUS', 'VIP']);
 
 // 👥 USERS TABLE (Formerly Profiles)
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   walletAddress: text('wallet_address').notNull().unique(),
   tier: userRankEnum('tier').default('BRONZE').notNull(),
-  currentMonthVolume: numeric('current_month_volume', { precision: 20, scale: 8 }).default('0').notNull(),
+  currentMonthVolume: numeric('current_month_volume', { precision: 20, scale: 8 })
+    .default('0')
+    .notNull(),
   totalFeesPaid: numeric('total_fees_paid', { precision: 20, scale: 8 }).default('0').notNull(),
   lastRankReset: timestamp('last_rank_reset', { withTimezone: true }).defaultNow().notNull(),
   telegramId: text('telegram_id'),
-  
+
   // V22.1 Audit & Governance
   isTgEnabled: boolean('is_tg_enabled').default(false).notNull(),
   isBanned: boolean('is_banned').default(false).notNull(),
@@ -39,11 +46,13 @@ export const users = pgTable('users', {
 // 🎟️ SUBSCRIPTIONS TABLE
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
   tier: userRankEnum('tier').notNull(),
   status: subStatusEnum('status').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
-  
+
   auditId: uuid('audit_id').defaultRandom().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -52,13 +61,15 @@ export const subscriptions = pgTable('subscriptions', {
 // 💹 TRADES TABLE
 export const trades = pgTable('trades', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
   mint: text('mint').notNull(),
   amount: numeric('amount', { precision: 20, scale: 8 }).notNull(),
   pnl: numeric('pnl', { precision: 20, scale: 8 }),
   feePaid: numeric('fee_paid', { precision: 20, scale: 8 }).notNull(),
   type: text('type').notNull(), // 'buy' | 'sell'
-  
+
   auditId: uuid('audit_id').defaultRandom().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -67,10 +78,13 @@ export const trades = pgTable('trades', {
 // 🤖 AI QUOTA TABLE
 export const aiQuota = pgTable('ai_quota', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull().unique(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull()
+    .unique(),
   creditsRemaining: integer('credits_remaining').default(0).notNull(),
   resetAt: timestamp('reset_at', { withTimezone: true }).defaultNow().notNull(),
-  
+
   auditId: uuid('audit_id').defaultRandom().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -93,7 +107,7 @@ export const scoutedTokens = pgTable('scouted_tokens', {
   symbol: text('symbol'),
   name: text('name'),
   description: text('description'),
-  
+
   // Enriched Social Metadata (V22.1 Dual-Path)
   twitter: text('twitter'),
   telegram: text('telegram'),
@@ -104,7 +118,7 @@ export const scoutedTokens = pgTable('scouted_tokens', {
   isActive: boolean('is_active').default(true).notNull(),
   isPrivate: boolean('is_private').default(false).notNull(),
   metadata: jsonb('metadata'),
-  
+
   auditId: uuid('audit_id').defaultRandom().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -113,12 +127,14 @@ export const scoutedTokens = pgTable('scouted_tokens', {
 // 🔑 API KEYS TABLE (B2B ecosystem)
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
   keyHash: text('key_hash').notNull().unique(),
   name: text('name').notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-  
+
   auditId: uuid('audit_id').defaultRandom().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -127,8 +143,12 @@ export const apiKeys = pgTable('api_keys', {
 // 📊 USAGE LOGS TABLE
 export const usageLogs = pgTable('usage_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
-  apiKeyId: uuid('api_key_id').references(() => apiKeys.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
+  apiKeyId: uuid('api_key_id')
+    .references(() => apiKeys.id)
+    .notNull(),
   endpoint: text('endpoint').notNull(),
   creditsUsed: integer('credits_used').default(0).notNull(),
   timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow().notNull(),

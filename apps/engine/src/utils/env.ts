@@ -25,7 +25,10 @@ const envSchema = z.object({
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
   EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
-  IS_SIMULATION: z.enum(['true', 'false']).default('true').transform((val) => val === 'true'),
+  IS_SIMULATION: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
   // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
   ALLOWED_ORIGINS: z.string().optional(),
   PLATFORM_FEE_WALLET: z.string().optional(),

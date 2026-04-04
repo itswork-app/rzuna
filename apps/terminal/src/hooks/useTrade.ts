@@ -49,7 +49,9 @@ export function useTrade(): UseTradeReturn {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error((errData as { error?: string }).error || `Trade failed: ${res.statusText}`);
+          throw new Error(
+            (errData as { error?: string }).error || `Trade failed: ${res.statusText}`,
+          );
         }
 
         const data = (await res.json()) as { result: TradeResult };
@@ -58,7 +60,7 @@ export function useTrade(): UseTradeReturn {
         setIsExecuting(false);
       }
     },
-    [publicKey]
+    [publicKey],
   );
 
   return { executeTrade, isExecuting };

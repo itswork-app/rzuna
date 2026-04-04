@@ -20,8 +20,8 @@ export default function PrivyWrapper({ children }: { children: ReactNode }) {
           },
           ethereum: {
             createOnLogin: 'users-without-wallets',
-          }
-        }
+          },
+        },
       }}
     >
       {children}

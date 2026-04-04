@@ -22,7 +22,14 @@ const { mockDb } = vi.hoisted(() => {
 
 vi.mock('@rzuna/database', () => ({
   db: mockDb,
-  users: { id: 'id', walletAddress: 'wallet_address', tier: 'tier', currentMonthVolume: 'volume', totalFeesPaid: 'fees', lastRankReset: 'reset' },
+  users: {
+    id: 'id',
+    walletAddress: 'wallet_address',
+    tier: 'tier',
+    currentMonthVolume: 'volume',
+    totalFeesPaid: 'fees',
+    lastRankReset: 'reset',
+  },
   aiQuota: { id: 'id', userId: 'user_id', creditsRemaining: 'credits' },
   subscriptions: { id: 'id', userId: 'user_id', status: 'status' },
   eq: vi.fn(),
@@ -45,8 +52,8 @@ describe('🏛️ RankService (Institutional Hardening)', () => {
   });
 
   it('SHOULD consume quota correctly', async () => {
-    mockDb.then.mockImplementationOnce((onFulfilled: any) => 
-      Promise.resolve([{ id: 'q1', creditsRemaining: 5 }]).then(onFulfilled)
+    mockDb.then.mockImplementationOnce((onFulfilled: any) =>
+      Promise.resolve([{ id: 'q1', creditsRemaining: 5 }]).then(onFulfilled),
     );
     const result = await rankService.consumeQuota('u1');
     expect(result).toBe(true);
@@ -59,9 +66,7 @@ describe('🏛️ RankService (Institutional Hardening)', () => {
       subscriptionStatus: SubscriptionStatus.NONE,
     } as any);
 
-    mockDb.then.mockImplementationOnce((onFulfilled: any) => 
-      Promise.resolve([]).then(onFulfilled)
-    );
+    mockDb.then.mockImplementationOnce((onFulfilled: any) => Promise.resolve([]).then(onFulfilled));
 
     const newRank = await rankService.performMonthlyReset('w1');
     expect(newRank).toBe(UserRank.SILVER);

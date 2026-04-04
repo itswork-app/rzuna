@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 
 const TelemetryProvider = dynamic(
   () => import('./TelemetryProvider').then((mod) => mod.TelemetryProvider),
-  { ssr: false }
+  { ssr: false },
 );
 
 export function SafeTelemetry({ children }: { children: React.ReactNode }) {

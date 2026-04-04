@@ -93,7 +93,9 @@ export class JupiterAdapter {
     if (!route.swapTransaction) throw new Error('Swap transaction missing');
 
     const keypair = Keypair.fromSecretKey(bs58.decode(env.WALLET_PRIVATE_KEY));
-    const transaction = VersionedTransaction.deserialize(Buffer.from(route.swapTransaction, 'base64'));
+    const transaction = VersionedTransaction.deserialize(
+      Buffer.from(route.swapTransaction, 'base64'),
+    );
     transaction.sign([keypair]);
 
     // ⚡ Jito Dynamic Tipping (PR 8: getRecentJitoTip integration)
@@ -102,7 +104,9 @@ export class JupiterAdapter {
 
     const tipInstruction = SystemProgram.transfer({
       fromPubkey: keypair.publicKey,
-      toPubkey: new PublicKey(env.JITO_TIP_PAYMENT_ADDRESS || 'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
+      toPubkey: new PublicKey(
+        env.JITO_TIP_PAYMENT_ADDRESS || 'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY',
+      ),
       lamports: tipLamports,
     });
 
@@ -113,7 +117,10 @@ export class JupiterAdapter {
     tipTx.sign(keypair);
 
     try {
-      const result = await this.submitBundle([bs58.encode(transaction.serialize()), bs58.encode(tipTx.serialize())]);
+      const result = await this.submitBundle([
+        bs58.encode(transaction.serialize()),
+        bs58.encode(tipTx.serialize()),
+      ]);
       return {
         signature: result,
         inAmount: route.inAmount,
@@ -124,7 +131,9 @@ export class JupiterAdapter {
       };
     } catch (err) {
       console.warn('Jito bundle failed, falling back to standard RPC', err);
-      const signature = await this.connection.sendRawTransaction(transaction.serialize(), { skipPreflight: true });
+      const signature = await this.connection.sendRawTransaction(transaction.serialize(), {
+        skipPreflight: true,
+      });
       return {
         signature,
         inAmount: route.inAmount,

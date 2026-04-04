@@ -12,7 +12,7 @@ export function useProfile() {
   const { publicKey } = useWallet();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Use a stable supabase client instance
   const supabase = useMemo(() => createClient(), []);
 
@@ -47,11 +47,11 @@ export function useProfile() {
         .select('*')
         .eq('wallet_address', publicKey.toBase58())
         .single();
-      
+
       if (data && !error) {
         const userProfile = mapToUserProfile(data);
         setProfile(userProfile);
-        
+
         // Sync to cookie for Middleware (Edge) consumption
         document.cookie = `x-rzuna-subscription=${userProfile.status}; path=/; domain=.aivo.sh; max-age=3600; SameSite=Lax`;
         // Fallback for localhost
@@ -80,18 +80,18 @@ export function useProfile() {
       .channel(`profile:${publicKey.toBase58()}`)
       .on(
         'postgres_changes',
-        { 
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'profiles', 
-          filter: `wallet_address=eq.${publicKey.toBase58()}` 
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `wallet_address=eq.${publicKey.toBase58()}`,
         },
         (payload: { new: any }) => {
           const updatedProfile = mapToUserProfile(payload.new);
           setProfile(updatedProfile);
           document.cookie = `x-rzuna-subscription=${updatedProfile.status}; path=/; domain=.aivo.sh; max-age=3600; SameSite=Lax`;
           document.cookie = `x-rzuna-subscription=${updatedProfile.status}; path=/; max-age=3600; SameSite=Lax`;
-        }
+        },
       )
       .subscribe();
 

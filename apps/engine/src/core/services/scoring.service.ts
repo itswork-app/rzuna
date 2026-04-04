@@ -21,7 +21,7 @@ export class ScoringService {
     if (event.vSolInBondingCurve > 50) score += 20;
     if (event.marketCapSol > 100) score += 15;
     if (event.txType === 'buy') score += 10;
-    
+
     // Hard Red Flag: If dev dumped, penalize
     if (event.txType === 'sell' && event.traderPublicKey === event.devPublicKey) {
       score = Math.min(score, 30);

@@ -8,15 +8,27 @@ export enum UserRank {
   DIAMOND = 'DIAMOND',
   MYTHIC = 'MYTHIC',
 }
-export const UserRankSchema = z.nativeEnum(UserRank);
-
+export const UserRankSchema = z.enum([
+  UserRank.BRONZE,
+  UserRank.SILVER,
+  UserRank.GOLD,
+  UserRank.PLATINUM,
+  UserRank.DIAMOND,
+  UserRank.MYTHIC,
+]);
+// ...
 export enum SubscriptionStatus {
   NONE = 'NONE',
   STARLIGHT = 'STARLIGHT',
   STARLIGHT_PLUS = 'STARLIGHT_PLUS',
   VIP = 'VIP',
 }
-export const SubscriptionStatusSchema = z.nativeEnum(SubscriptionStatus);
+export const SubscriptionStatusSchema = z.enum([
+  SubscriptionStatus.NONE,
+  SubscriptionStatus.STARLIGHT,
+  SubscriptionStatus.STARLIGHT_PLUS,
+  SubscriptionStatus.VIP,
+]);
 
 export const UserVolumeSchema = z.object({
   currentMonthVolume: z.number(),

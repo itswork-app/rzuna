@@ -1,9 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import posthog from 'posthog-js';
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
@@ -47,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticating(true);
     try {
       const message = new TextEncoder().encode(
-        `rzuna institutional access\nWallet: ${publicKey.toBase58()}\nTimestamp: ${Date.now()}`
+        `rzuna institutional access\nWallet: ${publicKey.toBase58()}\nTimestamp: ${Date.now()}`,
       );
       const signature = await signMessage(message);
 
@@ -63,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[SIWS] Authentication failed:', err);
       Sentry.captureException(err, {
         tags: { type: 'siws_auth_failure' },
-        extra: { wallet: publicKey?.toBase58() }
+        extra: { wallet: publicKey?.toBase58() },
       });
       return false;
     } finally {

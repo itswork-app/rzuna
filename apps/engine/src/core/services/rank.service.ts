@@ -30,29 +30,40 @@ export class RankService {
 
   async getUser(walletAddress: string) {
     // 1. Fetch User Base Rank
-    const rows = await db.select().from(users).where(eq(users.walletAddress, walletAddress)).limit(1);
+    const rows = await db
+      .select()
+      .from(users)
+      .where(eq(users.walletAddress, walletAddress))
+      .limit(1);
     let user = rows[0];
 
     if (!user) {
-      const [newUser] = await db.insert(users).values({
-        walletAddress,
-        tier: 'BRONZE',
-      }).returning();
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          walletAddress,
+          tier: 'BRONZE',
+        })
+        .returning();
       user = newUser;
     }
 
     // 2. Fetch Subscription (V22.1 Bridge)
-    const subRows = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id)).limit(1);
+    const subRows = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, user.id))
+      .limit(1);
     const sub = subRows[0] || { status: 'NONE' };
 
     // 3. Fetch Quota
     const quotas = await db.select().from(aiQuota).where(eq(aiQuota.userId, user.id));
     const quota = quotas[0] || null;
 
-    return { 
-      ...user, 
+    return {
+      ...user,
       subscriptionStatus: sub.status as SubscriptionStatus,
-      aiQuota: quota 
+      aiQuota: quota,
     };
   }
 
@@ -61,10 +72,11 @@ export class RankService {
     const quota = quotas[0];
     if (!quota || quota.creditsRemaining <= 0) return false;
 
-    await db.update(aiQuota)
-      .set({ 
+    await db
+      .update(aiQuota)
+      .set({
         creditsRemaining: sql`${aiQuota.creditsRemaining} - 1`,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(aiQuota.userId, userId));
 
@@ -76,12 +88,13 @@ export class RankService {
    */
   async addVolume(walletAddress: string, amount: number, feePaid: number = 0): Promise<UserRank> {
     const user = await this.getUser(walletAddress);
-    
-    await db.update(users)
+
+    await db
+      .update(users)
       .set({
         currentMonthVolume: sql`${users.currentMonthVolume} + ${amount.toString()}`,
         totalFeesPaid: sql`${users.totalFeesPaid} + ${feePaid.toString()}`,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(users.walletAddress, walletAddress));
 
@@ -99,7 +112,7 @@ export class RankService {
     const isProtected = [
       SubscriptionStatus.STARLIGHT,
       SubscriptionStatus.STARLIGHT_PLUS,
-      SubscriptionStatus.VIP
+      SubscriptionStatus.VIP,
     ].includes(user.subscriptionStatus);
 
     if (!isProtected) {
@@ -107,12 +120,13 @@ export class RankService {
       else if (newRank === UserRank.SILVER) newRank = UserRank.BRONZE;
     }
 
-    await db.update(users)
+    await db
+      .update(users)
       .set({
         tier: newRank,
         currentMonthVolume: '0',
         lastRankReset: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(users.walletAddress, walletAddress));
 

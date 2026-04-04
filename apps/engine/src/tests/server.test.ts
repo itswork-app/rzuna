@@ -85,11 +85,13 @@ vi.mock('@rzuna/database', () => ({
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue([{ 
-      id: 'u-123', 
-      walletAddress: 'test-wallet', 
-      tier: 'BRONZE' 
-    }]),
+    limit: vi.fn().mockResolvedValue([
+      {
+        id: 'u-123',
+        walletAddress: 'test-wallet',
+        tier: 'BRONZE',
+      },
+    ]),
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue([{ id: 'u-123' }]),
@@ -143,7 +145,6 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     console.info(SENTRY_MOCK_URL);
   });
 
-
   it('🛡️ app.ts: CORS origins logic', async () => {
     // CORS origins are resolved at registration (buildApp).
     // We need a fresh instance with the custom env.
@@ -172,7 +173,6 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().feeRate).toBeDefined();
   });
-
 
   it('🛡️ app.ts: /metrics and /health coverage', async () => {
     await app.inject({ method: 'GET', url: '/health' });
@@ -205,8 +205,6 @@ describe('🚀 RZUNA Core Foundation (Baseline)', () => {
     const r3 = await app.inject({ method: 'GET', url: '/signals', query: { wallet: 'v' } });
     expect(r3.statusCode).toBe(200);
   });
-
-
 
   it('🛡️ app.ts: Engine logAlpha hook coverage', async () => {
     await (app as any).engine.hooks.logAudit({

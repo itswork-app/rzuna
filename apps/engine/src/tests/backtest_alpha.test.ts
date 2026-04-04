@@ -14,27 +14,29 @@ const mockScoringService = {
 };
 
 const mockReasoningService = {
-  analyzeToken: vi.fn().mockResolvedValue({ narrative: 'Strong Buy', riskFactors: [], catalysts: [] }),
+  analyzeToken: vi
+    .fn()
+    .mockResolvedValue({ narrative: 'Strong Buy', riskFactors: [], catalysts: [] }),
 };
 
-vi.mock('../core/services/rank.service.js', () => ({ 
+vi.mock('../core/services/rank.service.js', () => ({
   RankService: class {
     getUser = mockRankService.getUser;
     getTradingFeeBps = mockRankService.getTradingFeeBps;
     consumeQuota = mockRankService.consumeQuota;
-  }
+  },
 }));
 
-vi.mock('../core/services/scoring.service.js', () => ({ 
+vi.mock('../core/services/scoring.service.js', () => ({
   ScoringService: class {
     calculateInitialScore = mockScoringService.calculateInitialScore;
-  }
+  },
 }));
 
 vi.mock('../agents/reasoning.service.js', () => ({
   ReasoningService: class {
     analyzeToken = mockReasoningService.analyzeToken;
-  }
+  },
 }));
 
 // Mock Database

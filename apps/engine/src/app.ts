@@ -3,7 +3,11 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
-import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod';
 import { env } from './utils/env.js';
 import { RankService } from './core/services/rank.service.js';
 import { ScoringService } from './core/services/scoring.service.js';
@@ -34,7 +38,7 @@ export const buildApp = async () => {
   const rankService = new RankService();
   const scoringService = new ScoringService();
   const engine = new IntelligenceEngine();
-  
+
   fastify.decorate('rankService', rankService);
   fastify.decorate('scoringService', scoringService);
   fastify.decorate('engine', engine);

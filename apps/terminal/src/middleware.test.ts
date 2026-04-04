@@ -8,12 +8,12 @@ vi.mock('next/server', () => {
     const finalUrl = url instanceof URL ? url : new URL(url);
     const headers = new Headers();
     headers.set('location', finalUrl.toString());
-    return { 
-      url: finalUrl.toString(), 
+    return {
+      url: finalUrl.toString(),
       hostname: finalUrl.hostname,
       pathname: finalUrl.pathname,
       searchParams: finalUrl.searchParams,
-      headers 
+      headers,
     };
   });
 
@@ -23,19 +23,23 @@ vi.mock('next/server', () => {
     NextRequest: class MockNextRequest {
       public nextUrl: URL & { clone: () => URL };
       public headers: { get: (name: string) => string | null };
-      public cookies: { get: (name: string) => { value: string } | undefined; set: (name: string, value: string) => void };
+      public cookies: {
+        get: (name: string) => { value: string } | undefined;
+        set: (name: string, value: string) => void;
+      };
       private _cookies = new Map<string, string>();
 
       constructor(public url: string) {
         const parsed = new URL(url);
         this.nextUrl = Object.assign(parsed, {
-          clone: () => new URL(url)
+          clone: () => new URL(url),
         }) as unknown as URL & { clone: () => URL };
-        
+
         this.headers = {
-          get: (name: string) => (name.toLowerCase() === 'host' ? (parsed.host || 'trade.aivo.sh') : null),
+          get: (name: string) =>
+            name.toLowerCase() === 'host' ? parsed.host || 'trade.aivo.sh' : null,
         };
-        
+
         this.cookies = {
           get: (name: string) => {
             const val = this._cookies.get(name);
@@ -50,7 +54,7 @@ vi.mock('next/server', () => {
     NextResponse: {
       next: mockNext,
       redirect: mockRedirect,
-    }
+    },
   };
 });
 
@@ -68,7 +72,7 @@ describe('rzuna Middleware (Institutional)', () => {
   it('ejects non-VIP users from vip subdomain', async () => {
     const request = new NextRequest('https://vip.aivo.sh/dashboard');
     request.cookies.set('x-rzuna-authenticated', 'true');
-    
+
     const response = await middleware(request);
     const location = response.headers.get('location') || '';
     expect(location).toContain('/dashboard');
@@ -79,7 +83,7 @@ describe('rzuna Middleware (Institutional)', () => {
     const request = new NextRequest('https://vip.aivo.sh/dashboard');
     request.cookies.set('x-rzuna-subscription', 'VIP');
     request.cookies.set('x-rzuna-authenticated', 'true');
-    
+
     await middleware(request);
     expect(NextResponse.next).toHaveBeenCalled();
   });

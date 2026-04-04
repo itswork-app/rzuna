@@ -22,12 +22,12 @@ export class PumpapiAdapter {
   async getTokenMetadata(mint: string): Promise<PumpMetadata | null> {
     try {
       console.info(`🔍 [Pumpapi] Fetching metadata for ${mint}...`);
-      
+
       const response = await fetch(`${this.baseUrl}/coins/${mint}`, {
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'RZUNA-Engine/1.9.0'
-        }
+          Accept: 'application/json',
+          'User-Agent': 'RZUNA-Engine/1.9.0',
+        },
       });
 
       if (!response.ok) {
@@ -35,7 +35,7 @@ export class PumpapiAdapter {
       }
 
       const data = await response.json();
-      
+
       return {
         mint: data.mint,
         name: data.name,

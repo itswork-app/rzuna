@@ -8,18 +8,19 @@ import type { NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
-  
+
   // Strip port for local dev
   const hostname = host.split(':')[0];
-  
+
   // Institutional Subdomain Mapping
   const isVipSubdomain = hostname === 'vip.aivo.sh' || hostname === 'vip.localhost';
   const isTradeSubdomain = hostname === 'trade.aivo.sh' || hostname === 'trade.localhost';
-  
+
   // 1. VIP Subdomain Logic
   if (isVipSubdomain) {
     const subscription = request.cookies.get('x-rzuna-subscription')?.value || 'NONE';
-    const isAuthenticated = request.cookies.get('sb-access-token') || request.cookies.get('x-rzuna-authenticated');
+    const isAuthenticated =
+      request.cookies.get('sb-access-token') || request.cookies.get('x-rzuna-authenticated');
 
     // Strict Ejection: Only VIP tier allowed on vip.aivo.sh
     if (subscription !== 'VIP') {
@@ -33,11 +34,11 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname === '/') {
-       const url = request.nextUrl.clone();
-       url.pathname = '/dashboard';
-       const res = NextResponse.redirect(url.toString());
-       res.headers.set('X-RZUNA-VIP-MODE', 'true');
-       return res;
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      const res = NextResponse.redirect(url.toString());
+      res.headers.set('X-RZUNA-VIP-MODE', 'true');
+      return res;
     }
   }
 

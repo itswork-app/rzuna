@@ -34,20 +34,24 @@ const TestComponent = () => {
 
 describe('AuthProvider (Institutional)', () => {
   const mockPush = vi.fn();
-  
+
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<typeof useRouter>);
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<
+      typeof useRouter
+    >);
     vi.mocked(usePathname).mockReturnValue('/dashboard');
   });
 
   it('provides authentication status to children', () => {
-    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<typeof useWallet>);
-    
+    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<
+      typeof useWallet
+    >);
+
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
     expect(screen.getByTestId('auth-status')).toHaveTextContent('Unauthenticated');
   });
@@ -63,7 +67,7 @@ describe('AuthProvider (Institutional)', () => {
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     const loginButton = screen.getByText('Login');
@@ -77,13 +81,15 @@ describe('AuthProvider (Institutional)', () => {
   });
 
   it('ejects unauthenticated users from dashboard', () => {
-    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<typeof useWallet>);
+    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<
+      typeof useWallet
+    >);
     vi.mocked(usePathname).mockReturnValue('/dashboard');
 
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     expect(mockPush).toHaveBeenCalledWith('/');
@@ -91,12 +97,14 @@ describe('AuthProvider (Institutional)', () => {
 
   it('performs logout and clears institutional session', () => {
     const disconnect = vi.fn();
-    vi.mocked(useWallet).mockReturnValue({ connected: true, disconnect } as unknown as ReturnType<typeof useWallet>);
-    
+    vi.mocked(useWallet).mockReturnValue({ connected: true, disconnect } as unknown as ReturnType<
+      typeof useWallet
+    >);
+
     render(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     const logoutButton = screen.getByText('Logout');

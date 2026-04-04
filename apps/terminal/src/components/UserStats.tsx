@@ -36,7 +36,9 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
             <Activity className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Network Pulse</p>
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+              Network Pulse
+            </p>
             <p className="text-white font-mono text-xl font-bold">12.4k tps</p>
           </div>
         </div>
@@ -52,12 +54,16 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
             <Zap className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">AI Reasoning Quota</p>
-            <p className="text-white font-mono text-xl font-bold">{quotaRemaining}/{quotaLimit} remaining</p>
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+              AI Reasoning Quota
+            </p>
+            <p className="text-white font-mono text-xl font-bold">
+              {quotaRemaining}/{quotaLimit} remaining
+            </p>
           </div>
         </div>
         <div className="w-full bg-purple-500/5 h-1.5 rounded-full overflow-hidden">
-          <div 
+          <div
             className="bg-purple-500 h-full transition-all duration-1000 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
             style={{ width: `${quotaPercentage}%` }}
           ></div>
@@ -72,12 +78,17 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
           </div>
           <div>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Trust Rank</p>
-            <p className="text-white font-mono text-xl font-bold">{profile?.rank || 'Alpha Voyager'}</p>
+            <p className="text-white font-mono text-xl font-bold">
+              {profile?.rank || 'Alpha Voyager'}
+            </p>
           </div>
         </div>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className={`w-full h-1.5 rounded-full transition-colors duration-500 ${i <= (profile?.rankLevel || 2) ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-amber-500/10'}`}></div>
+            <div
+              key={i}
+              className={`w-full h-1.5 rounded-full transition-colors duration-500 ${i <= (profile?.rankLevel || 2) ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-amber-500/10'}`}
+            ></div>
           ))}
         </div>
       </div>

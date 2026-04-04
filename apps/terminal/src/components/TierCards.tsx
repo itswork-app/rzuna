@@ -15,29 +15,34 @@ interface Tier {
 }
 
 const Tiers: Tier[] = [
-  { 
-    id: 'STARLIGHT', 
-    name: 'Starlight', 
-    price: 19, 
-    icon: Star, 
-    color: 'zinc', 
-    perks: ['85+ Signal Access', 'Standard Detection', 'Basic Analytics'] 
+  {
+    id: 'STARLIGHT',
+    name: 'Starlight',
+    price: 19,
+    icon: Star,
+    color: 'zinc',
+    perks: ['85+ Signal Access', 'Standard Detection', 'Basic Analytics'],
   },
-  { 
-    id: 'STARLIGHT_PLUS', 
-    name: 'Starlight+', 
-    price: 49, 
-    icon: Shield, 
-    color: 'blue', 
-    perks: ['90+ Signal Access', 'Priority Notifications', '2x Rank Multiplier', 'Early Alpha Access'] 
+  {
+    id: 'STARLIGHT_PLUS',
+    name: 'Starlight+',
+    price: 49,
+    icon: Shield,
+    color: 'blue',
+    perks: [
+      '90+ Signal Access',
+      'Priority Notifications',
+      '2x Rank Multiplier',
+      'Early Alpha Access',
+    ],
   },
-  { 
-    id: 'VIP', 
-    name: 'VIP Alliance', 
-    price: 149, 
-    icon: Crown, 
-    color: 'purple', 
-    perks: ['L2 AI Reasoning', 'Instant Jito Swaps', 'Private Alpha Channel', 'Direct Dev Support'] 
+  {
+    id: 'VIP',
+    name: 'VIP Alliance',
+    price: 149,
+    icon: Crown,
+    color: 'purple',
+    perks: ['L2 AI Reasoning', 'Instant Jito Swaps', 'Private Alpha Channel', 'Direct Dev Support'],
   },
 ];
 
@@ -51,7 +56,9 @@ export function TierCards({ onUpgrade }: { onUpgrade: (id: string, price: number
           key={tier.id}
           whileHover={{ y: -8 }}
           className={`relative overflow-hidden bg-[#11111a] border ${
-            profile?.status === tier.id ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]' : 'border-white/5'
+            profile?.status === tier.id
+              ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]'
+              : 'border-white/5'
           } p-8 rounded-[32px] flex flex-col transition-all duration-300 group`}
         >
           {profile?.status === tier.id && (
@@ -59,8 +66,10 @@ export function TierCards({ onUpgrade }: { onUpgrade: (id: string, price: number
               ACTIVE TIER
             </div>
           )}
-          
-          <div className={`w-14 h-14 bg-${tier.color}-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+
+          <div
+            className={`w-14 h-14 bg-${tier.color}-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+          >
             <tier.icon size={28} className={`text-${tier.color}-400`} />
           </div>
 

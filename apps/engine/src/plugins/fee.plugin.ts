@@ -131,7 +131,10 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
       const profile = await rankService.getUser(walletAddress);
       await checkJupiterEnabled(walletAddress, fastify, reply);
 
-      const feeBps = rankService.getTradingFeeBps(profile.tier as any, profile.subscriptionStatus as any);
+      const feeBps = rankService.getTradingFeeBps(
+        profile.tier as any,
+        profile.subscriptionStatus as any,
+      );
       const feeRate = feeBps / 10000;
       const solPrice = await getLiveSOLPrice();
 
@@ -143,7 +146,7 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
       let newRank = profile.tier as any;
       if (status === 'success') {
         newRank = await rankService.addVolume(walletAddress, amountUSD, tradingFeeUSD);
-        
+
         // Log to Drizzle trades table
         await db.insert(trades).values({
           userId: profile.id,
@@ -224,14 +227,15 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
       // 3. Database Transaction Safety (Subscriptions + Treasury)
       await db.insert(subscriptions).values({
         userId: profile.id,
-        tier: tier as any,
-        status: tier as any,
+        tier: tier,
+        status: tier,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       });
 
       // 4. Update Profile Status (redundant but safe)
-      await db.update(users)
-        .set({ tier: tier as any, updatedAt: new Date() })
+      await db
+        .update(users)
+        .set({ tier: tier, updatedAt: new Date() })
         .where(eq(users.walletAddress, walletAddress));
 
       return await reply.send({ status: 'success', tier });
@@ -245,7 +249,10 @@ export const feePlugin: FastifyPluginAsync = async (fastify) => {
     const { wallet } = request.params as { wallet: string };
     try {
       const profile = await rankService.getUser(wallet);
-      const feeBps = rankService.getTradingFeeBps(profile.tier as any, profile.subscriptionStatus as any);
+      const feeBps = rankService.getTradingFeeBps(
+        profile.tier as any,
+        profile.subscriptionStatus as any,
+      );
       return await reply.send({ ...profile, feeRate: `${(feeBps / 100).toFixed(2)}%` });
     } catch (error) {
       fastify.log.error(error);
@@ -263,7 +270,11 @@ async function executeVerification(
   wallet: string,
   amount: number,
 ): Promise<boolean> {
-  const [existingTx] = await db.select({ id: trades.id }).from(trades).where(eq(trades.id, signature)).limit(1);
+  const [existingTx] = await db
+    .select({ id: trades.id })
+    .from(trades)
+    .where(eq(trades.id, signature))
+    .limit(1);
   if (existingTx) return false;
   return await verifyOnChainPayment(signature, treasury, wallet, amount, 'USDC');
 }

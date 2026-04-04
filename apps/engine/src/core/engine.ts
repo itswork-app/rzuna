@@ -1,6 +1,9 @@
 import { EventEmitter } from 'events';
 import { SolanaAdapter } from '../infrastructure/adapters/solana.adapter.js';
-import { PumpPortalAdapter, type PumpPortalEvent } from '../infrastructure/adapters/pumpportal.adapter.js';
+import {
+  PumpPortalAdapter,
+  type PumpPortalEvent,
+} from '../infrastructure/adapters/pumpportal.adapter.js';
 import { PumpapiAdapter } from '../infrastructure/adapters/pumpapi.adapter.js';
 import { ScoringService } from './services/scoring.service.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
@@ -30,19 +33,16 @@ export class IntelligenceEngine extends EventEmitter {
   public readonly hooks = {
     logAudit: async (data: any) => {
       console.info('🛡️ [Engine:Bridge] Audit Log:', data.type, data.score);
-    }
+    },
   };
 
   async start() {
     console.info('🛡️ [Engine] Starting Dual-Path Orchestrator V22.1...');
-    
-    this.pumpPortal.on('transaction', (event: PumpPortalEvent) => this.handleStream(event));
-    this.solana.on('mint', (event) => this.handleStream(event as any));
 
-    await Promise.all([
-      this.solana.start(),
-      this.pumpPortal.start()
-    ]);
+    this.pumpPortal.on('transaction', (event: PumpPortalEvent) => this.handleStream(event));
+    this.solana.on('mint', (event) => this.handleStream(event));
+
+    await Promise.all([this.solana.start(), this.pumpPortal.start()]);
   }
 
   /**
@@ -56,14 +56,14 @@ export class IntelligenceEngine extends EventEmitter {
     const startTime = performance.now();
     try {
       const initialScore = this.scorer.calculateInitialScore(event);
-      
+
       if (initialScore.score >= 88) {
         const aiResult = await this.reasoning.analyzeToken(event as any, initialScore.score);
         const metadata = await this.pumpapi.getTokenMetadata(event.mint);
-        
+
         await this.persistEnrichedToken(event, initialScore, aiResult.narrative, metadata);
-        
-        const signal: AlphaSignal = { 
+
+        const signal: AlphaSignal = {
           mint: event.mint,
           symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
           name: event.name || metadata?.name || 'UNKNOWN',
@@ -81,7 +81,7 @@ export class IntelligenceEngine extends EventEmitter {
             catalysts: aiResult.catalysts || [],
           },
           // Legacy bridge properties (hidden in types but passed for safety)
-          ...({ event, latency: performance.now() - startTime } as any)
+          ...({ event, latency: performance.now() - startTime } as any),
         };
         this.activeSignals.set(event.mint, signal);
         this.emit('signal', signal);
@@ -91,31 +91,39 @@ export class IntelligenceEngine extends EventEmitter {
     }
   }
 
-  private async persistEnrichedToken(event: PumpPortalEvent, score: any, reasoning: string, metadata: any) {
-    await db.insert(scoutedTokens).values({
-      mintAddress: event.mint,
-      symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
-      name: event.name || metadata?.name || 'UNKNOWN',
-      description: metadata?.description,
-      twitter: metadata?.twitter,
-      telegram: metadata?.telegram,
-      website: metadata?.website,
-      baseScore: Math.floor(score.score),
-      aiReasoning: reasoning,
-      isPrivate: score.isPremium,
-      isActive: true,
-      metadata: { ...event, ...metadata },
-    }).onConflictDoUpdate({
-      target: scoutedTokens.mintAddress,
-      set: {
-        baseScore: Math.floor(score.score),
-        aiReasoning: reasoning,
+  private async persistEnrichedToken(
+    event: PumpPortalEvent,
+    score: any,
+    reasoning: string,
+    metadata: any,
+  ) {
+    await db
+      .insert(scoutedTokens)
+      .values({
+        mintAddress: event.mint,
+        symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
+        name: event.name || metadata?.name || 'UNKNOWN',
+        description: metadata?.description,
         twitter: metadata?.twitter,
         telegram: metadata?.telegram,
         website: metadata?.website,
-        updatedAt: new Date(),
-      }
-    });
+        baseScore: Math.floor(score.score),
+        aiReasoning: reasoning,
+        isPrivate: score.isPremium,
+        isActive: true,
+        metadata: { ...event, ...metadata },
+      })
+      .onConflictDoUpdate({
+        target: scoutedTokens.mintAddress,
+        set: {
+          baseScore: Math.floor(score.score),
+          aiReasoning: reasoning,
+          twitter: metadata?.twitter,
+          telegram: metadata?.telegram,
+          website: metadata?.website,
+          updatedAt: new Date(),
+        },
+      });
   }
 
   // 🏛️ V22.1 Lifecycle Control
@@ -131,25 +139,30 @@ export class IntelligenceEngine extends EventEmitter {
     console.info('🛡️ [Engine] VIP Geyser active via SolanaAdapter (Auto-mode).');
   }
 
-  getTieredSignals(rank: UserRank = UserRank.BRONZE, isStarlight: boolean = false, isVIP: boolean = false, profile: any = {}): AlphaSignal[] {
+  getTieredSignals(
+    rank: UserRank = UserRank.BRONZE,
+    isStarlight: boolean = false,
+    isVIP: boolean = false,
+    profile: any = {},
+  ): AlphaSignal[] {
     try {
       const signals = Array.from(this.activeSignals.values())
-        .map(s => {
+        .map((s) => {
           const signal = { ...s };
-          const hasAccess = isVIP || isStarlight || (profile?.aiQuotaLimit > profile?.aiQuotaUsed);
-          
+          const hasAccess = isVIP || isStarlight || profile?.aiQuotaLimit > profile?.aiQuotaUsed;
+
           if (!hasAccess && signal.aiReasoning) {
             signal.aiReasoning = {
               ...signal.aiReasoning,
-              narrative: '[HIDDEN] Upgrade to VIP or check quota per AIVO OS reasoning'
+              narrative: '[HIDDEN] Upgrade to VIP or check quota per AIVO OS reasoning',
             };
           }
           return signal;
         })
-        .filter(s => {
+        .filter((s) => {
           if (!s.isPremium) return true;
           if (isVIP || isStarlight) return true;
-          
+
           // Probability-based access for High-Rank but Free users
           const prob = rank === UserRank.MYTHIC ? 0.7 : rank === UserRank.DIAMOND ? 0.5 : 0.1;
           return Math.random() < prob;

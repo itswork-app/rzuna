@@ -1,6 +1,6 @@
 import { withAxiom } from 'next-axiom';
-import { withSentryConfig } from "@sentry/nextjs";
-import type { NextConfig } from "next";
+import { withSentryConfig } from '@sentry/nextjs';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -14,8 +14,8 @@ const sentryConfig = {
 
   // Suppresses source map uploading logs during bundling
   silent: true,
-  org: "rzuna",
-  project: "rzuna-web",
+  org: 'rzuna',
+  project: 'rzuna-web',
 };
 
 // Handle withSentryConfig wrapping withAxiom

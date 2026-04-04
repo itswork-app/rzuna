@@ -28,14 +28,14 @@ interface TokenSignal {
   };
 }
 
-export function TokenCard({ 
-  signal, 
+export function TokenCard({
+  signal,
   onConsumeQuota,
-  sensorMode = false
-}: { 
-  signal: TokenSignal, 
-  onConsumeQuota: () => void,
-  sensorMode?: boolean
+  sensorMode = false,
+}: {
+  signal: TokenSignal;
+  onConsumeQuota: () => void;
+  sensorMode?: boolean;
 }) {
   const [isReasoningVisible, setIsReasoningVisible] = useState(false);
   const { executeTrade, isExecuting } = useTrade();
@@ -44,12 +44,16 @@ export function TokenCard({
   const handleBuy = async () => {
     if (!connected) return alert('Please connect wallet first.');
     try {
-      posthog.capture('INSTITUTIONAL_BUY_CLICK', { mint: signal.event.mint, symbol: signal.event.metadata?.symbol });
+      posthog.capture('INSTITUTIONAL_BUY_CLICK', {
+        mint: signal.event.mint,
+        symbol: signal.event.metadata?.symbol,
+      });
       const result = await executeTrade(signal);
       console.log('Trade result:', result);
       alert(`Institutional Trade Initialized: ${result.signature?.slice(0, 8)}...`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error');
+      const message =
+        err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error';
       alert(`Trade failed: ${message}`);
     }
   };
@@ -62,7 +66,7 @@ export function TokenCard({
     >
       <Card className="relative overflow-hidden group border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-        
+
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
             <CardTitle className="text-white group-hover:text-shadow-silver transition-all">
@@ -79,24 +83,35 @@ export function TokenCard({
             )}
           </div>
           <div className="flex flex-col items-end gap-1">
-            <Badge variant="institutional" className="bg-white/5 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            <Badge
+              variant="institutional"
+              className="bg-white/5 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            >
               {signal.score}
             </Badge>
-            <span className="text-[8px] uppercase font-black text-muted-foreground tracking-[0.2em]">Alpha Score</span>
+            <span className="text-[8px] uppercase font-black text-muted-foreground tracking-[0.2em]">
+              Alpha Score
+            </span>
           </div>
         </CardHeader>
 
         <CardContent>
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Liquidity</p>
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                Liquidity
+              </p>
               <div className="flex items-center gap-2">
                 <Zap size={10} className="text-white/40" />
-                <p className="text-xs font-mono text-white">${signal.event.initialLiquidity?.toLocaleString()}</p>
+                <p className="text-xs font-mono text-white">
+                  ${signal.event.initialLiquidity?.toLocaleString()}
+                </p>
               </div>
             </div>
             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Social Pulse</p>
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                Social Pulse
+              </p>
               <div className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
                 <p className="text-xs font-mono text-white">{signal.event.socialScore}%</p>
@@ -113,7 +128,9 @@ export function TokenCard({
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Brain size={12} className="text-white/60" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/60">L2 Reasoning</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
+                    L2 Reasoning
+                  </span>
                 </div>
                 <p className="text-[11px] text-gray-400 italic leading-relaxed">
                   &quot;{signal.aiReasoning?.narrative}&quot;
@@ -135,16 +152,22 @@ export function TokenCard({
           </AnimatePresence>
 
           <div className="flex gap-2">
-            <Button 
+            <Button
               variant="default"
               size="lg"
               onClick={handleBuy}
               disabled={isExecuting}
               className="flex-1 bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[10px] rounded-xl group/btn"
             >
-              {isExecuting ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+              {isExecuting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
                 <span className="flex items-center gap-2">
-                   Institutional Buy <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                  Institutional Buy{' '}
+                  <ArrowRight
+                    size={14}
+                    className="group-hover/btn:translate-x-1 transition-transform"
+                  />
                 </span>
               )}
             </Button>

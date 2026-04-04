@@ -68,8 +68,8 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
     }
   };
 
-  const isPremium = profile?.status &&
-    ['STARLIGHT', 'STARLIGHT_PLUS', 'VIP'].includes(profile.status);
+  const isPremium =
+    profile?.status && ['STARLIGHT', 'STARLIGHT_PLUS', 'VIP'].includes(profile.status);
 
   if (!isPremium) {
     return (
@@ -92,10 +92,14 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
           </p>
         </div>
         <button
-          onClick={() => { setIsEnabled(!isEnabled); }}
+          onClick={() => {
+            setIsEnabled(!isEnabled);
+          }}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isEnabled ? 'bg-cyan-600' : 'bg-gray-700'}`}
         >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+          />
         </button>
       </div>
 
@@ -117,7 +121,11 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
               disabled={isTesting || !chatId}
               className="px-4 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-cyan-400 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {isTesting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
               Test
             </button>
           </div>
@@ -134,7 +142,9 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
         </div>
 
         <p className="text-gray-600 text-[10px] leading-relaxed">
-          To get your Chat ID, start a conversation with <span className="text-cyan-400 font-bold">@RzunaAlphaBot</span> on Telegram and send <code className="bg-black/40 px-1 rounded text-cyan-400">/start</code>.
+          To get your Chat ID, start a conversation with{' '}
+          <span className="text-cyan-400 font-bold">@RzunaAlphaBot</span> on Telegram and send{' '}
+          <code className="bg-black/40 px-1 rounded text-cyan-400">/start</code>.
         </p>
 
         <button

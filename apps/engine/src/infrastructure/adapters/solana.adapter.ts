@@ -119,7 +119,10 @@ export class SolanaAdapter extends EventEmitter {
                 const detectedMint = accountKeys.find(
                   (k) =>
                     k !== PUMP_FUN_ID.toBase58() &&
-                    !['11111111111111111111111111111111', 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'].includes(k) &&
+                    ![
+                      '11111111111111111111111111111111',
+                      'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+                    ].includes(k) &&
                     k.length > 32,
                 );
 
@@ -159,7 +162,10 @@ export class SolanaAdapter extends EventEmitter {
           const detectedMint = accountKeys.find(
             (k: string) =>
               k !== PUMP_FUN_ID &&
-              !['11111111111111111111111111111111', 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'].includes(k) &&
+              ![
+                '11111111111111111111111111111111',
+                'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+              ].includes(k) &&
               k.length > 32,
           );
 

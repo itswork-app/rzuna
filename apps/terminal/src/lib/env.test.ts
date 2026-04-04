@@ -25,7 +25,7 @@ describe('getApiUrl Helper (Institutional)', () => {
     vi.stubEnv('NEXT_PUBLIC_API_URL', '');
     // Mocking window.location.hostname
     global.window = {
-      location: { hostname: 'localhost' }
+      location: { hostname: 'localhost' },
     } as unknown as Window & typeof globalThis;
 
     expect(getApiUrl()).toBe('http://localhost:3001');
@@ -34,7 +34,7 @@ describe('getApiUrl Helper (Institutional)', () => {
   it('resolves PROD_API_URL on aivo.sh subdomain in browser (Priority 3)', () => {
     vi.stubEnv('NEXT_PUBLIC_API_URL', '');
     global.window = {
-      location: { hostname: 'trade.aivo.sh' }
+      location: { hostname: 'trade.aivo.sh' },
     } as unknown as Window & typeof globalThis;
 
     expect(getApiUrl()).toBe('https://api.aivo.sh');
@@ -43,7 +43,7 @@ describe('getApiUrl Helper (Institutional)', () => {
   it('resolves PROD_API_URL on aivo.sh root domain in browser (Priority 3.1)', () => {
     vi.stubEnv('NEXT_PUBLIC_API_URL', '');
     global.window = {
-      location: { hostname: 'aivo.sh' }
+      location: { hostname: 'aivo.sh' },
     } as unknown as Window & typeof globalThis;
 
     expect(getApiUrl()).toBe('https://api.aivo.sh');
@@ -52,7 +52,7 @@ describe('getApiUrl Helper (Institutional)', () => {
   it('falls back to environment-based URL during SSR (Priority 4)', () => {
     vi.stubEnv('NEXT_PUBLIC_API_URL', '');
     delete (global as unknown as { window?: unknown }).window;
-    
+
     vi.stubEnv('NODE_ENV', 'production');
     expect(getApiUrl()).toBe('https://api.aivo.sh');
 

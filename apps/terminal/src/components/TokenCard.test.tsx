@@ -11,7 +11,10 @@ vi.mock('@solana/wallet-adapter-react', () => ({
 
 // Mock the trade hook
 vi.mock('@/hooks/useTrade', () => ({
-  useTrade: vi.fn().mockReturnValue({ executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }), isExecuting: false }),
+  useTrade: vi.fn().mockReturnValue({
+    executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }),
+    isExecuting: false,
+  }),
 }));
 
 describe('TokenCard Component (Institutional)', () => {
@@ -26,7 +29,7 @@ describe('TokenCard Component (Institutional)', () => {
       mint: 'So11111111111111111111111111111111111111112',
       signature: 'TRADEXY123',
       timestamp: new Date().toISOString(),
-      initialLiquidity: 1250.50,
+      initialLiquidity: 1250.5,
       socialScore: 88,
       metadata: {
         name: 'Solana Coin',
@@ -39,10 +42,12 @@ describe('TokenCard Component (Institutional)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useWallet).mockReturnValue({ connected: true } as unknown as ReturnType<typeof useWallet>);
-    vi.mocked(useTrade).mockReturnValue({ 
-      executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }), 
-      isExecuting: false 
+    vi.mocked(useWallet).mockReturnValue({ connected: true } as unknown as ReturnType<
+      typeof useWallet
+    >);
+    vi.mocked(useTrade).mockReturnValue({
+      executeTrade: vi.fn().mockResolvedValue({ signature: 'SIG123' }),
+      isExecuting: false,
     } as unknown as ReturnType<typeof useTrade>);
   });
 
@@ -75,36 +80,42 @@ describe('TokenCard Component (Institutional)', () => {
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
     const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
-    
+
     // Check if it renders properly as part of handleBuy trace log or similar logic
     // Actually the handleBuy uses alert, so we might need to mock alert or rely on interaction
     const oldAlert = window.alert;
     window.alert = vi.fn();
     fireEvent.click(buyBtn);
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Institutional Trade Initialized'));
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining('Institutional Trade Initialized'),
+      );
     });
     window.alert = oldAlert;
   });
 
   it('prevents buy action if wallet is not connected', async () => {
-    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<typeof useWallet>);
-    
+    vi.mocked(useWallet).mockReturnValue({ connected: false } as unknown as ReturnType<
+      typeof useWallet
+    >);
+
     const oldAlert = window.alert;
     window.alert = vi.fn();
-    
+
     render(<TokenCard signal={mockSignal} onConsumeQuota={mockOnConsumeQuota} />);
     const buyBtn = screen.getByText(/Institutional Buy/i);
     fireEvent.click(buyBtn);
-    
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Please connect wallet first'));
+
+    expect(window.alert).toHaveBeenCalledWith(
+      expect.stringContaining('Please connect wallet first'),
+    );
     window.alert = oldAlert;
   });
 
   it('handles trade errors that are not instances of Error', async () => {
     vi.mocked(useTrade).mockReturnValue({
       executeTrade: vi.fn().mockRejectedValue('Fatal Error String'),
-      isExecuting: false
+      isExecuting: false,
     } as unknown as ReturnType<typeof useTrade>);
 
     const oldAlert = window.alert;
@@ -123,7 +134,7 @@ describe('TokenCard Component (Institutional)', () => {
   it('handles objects that are neither Error nor string', async () => {
     vi.mocked(useTrade).mockReturnValue({
       executeTrade: vi.fn().mockRejectedValue({ something: 'else' }),
-      isExecuting: false
+      isExecuting: false,
     } as unknown as ReturnType<typeof useTrade>);
 
     const oldAlert = window.alert;
@@ -142,7 +153,7 @@ describe('TokenCard Component (Institutional)', () => {
   it('handles trade errors with standard Error object', async () => {
     vi.mocked(useTrade).mockReturnValue({
       executeTrade: vi.fn().mockRejectedValue(new Error('System Overload')),
-      isExecuting: false
+      isExecuting: false,
     } as unknown as ReturnType<typeof useTrade>);
 
     const oldAlert = window.alert;

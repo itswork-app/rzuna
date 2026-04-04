@@ -26,9 +26,7 @@ export const validateApiKey = async (request: FastifyRequest, reply: FastifyRepl
   request.apiKey = keyRecord;
 
   // Track usage async (Atomic update in Phase 3.4)
-  void db.update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, keyRecord.id));
+  void db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, keyRecord.id));
 };
 
 // 🏛️ Extend FastifyRequest to include apiKey

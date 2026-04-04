@@ -36,7 +36,7 @@ export class PumpPortalAdapter extends EventEmitter {
     this.ws.on('message', (data: string) => {
       try {
         const payload = JSON.parse(data);
-        
+
         // Machine Filtering: We only want creation or big buy events
         if (payload.txType === 'create' || payload.txType === 'buy' || payload.txType === 'sell') {
           const event: PumpPortalEvent = {

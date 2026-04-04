@@ -23,7 +23,9 @@ vi.mock('@solana/web3.js', () => ({
     serialize = vi.fn().mockReturnValue(Buffer.from('tx'));
   },
   VersionedTransaction: {
-    deserialize: vi.fn().mockReturnValue({ sign: vi.fn(), serialize: vi.fn().mockReturnValue(Buffer.from('tx')) }),
+    deserialize: vi
+      .fn()
+      .mockReturnValue({ sign: vi.fn(), serialize: vi.fn().mockReturnValue(Buffer.from('tx')) }),
   },
 }));
 
@@ -36,7 +38,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
     // 1. Setup Simulation Mode
     // @ts-expect-error - Mocking env
     env.IS_SIMULATION = true;
-    
+
     const service = new JupiterService();
     const mockRoute = {
       inMint: 'SOL',
@@ -45,7 +47,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
       outAmount: 2000,
       priceImpactPct: 0.1,
       routePlan: ['Jup'],
-      swapTransaction: 'tx_base64'
+      swapTransaction: 'tx_base64',
     };
 
     const spy = vi.spyOn(console, 'info');
@@ -65,7 +67,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
     env.IS_SIMULATION = false;
     // @ts-expect-error - Mocking env
     env.EXECUTION_MODE = 'dry_run';
-    
+
     const service = new JupiterService('dry_run');
     const mockRoute = {
       inMint: 'SOL',
@@ -74,7 +76,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
       outAmount: 2000,
       priceImpactPct: 0.1,
       routePlan: ['Jup'],
-      swapTransaction: 'tx_base64'
+      swapTransaction: 'tx_base64',
     };
 
     const spy = vi.spyOn(console, 'info');
@@ -98,12 +100,12 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
     env.WALLET_PRIVATE_KEY = '58D8919641...'; // Fake base58
 
     const service = new JupiterService('real');
-    
+
     // We mock the real execution path since we don't have a real keypair/RPC
     const realSpy = vi.spyOn(service as any, 'executeReal').mockResolvedValue({
       signature: 'REAL_SIG',
       dryRun: false,
-      status: 'success'
+      status: 'success',
     });
 
     const mockRoute = {
@@ -113,7 +115,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
       outAmount: 2000,
       priceImpactPct: 0.1,
       routePlan: ['Jup'],
-      swapTransaction: 'tx_base64'
+      swapTransaction: 'tx_base64',
     };
 
     // 2. Execute
@@ -134,7 +136,7 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
       outAmount: 2000000,
       priceImpactPct: 0.1,
       routePlan: ['Jup'],
-      platformFeeBps: 100 // 1%
+      platformFeeBps: 100, // 1%
     };
 
     const result = await service.executeSwap(mockRoute as any);
@@ -145,12 +147,12 @@ describe('🛡️ Safety Layer: Simulation & Dry-Run Compliance', () => {
 
   it('SHOULD simulate Jito tipping logic correctly', async () => {
     const service = new JupiterService('dry_run');
-    
+
     // Mock getRecentJitoTip
     const tipSpy = vi.spyOn(service, 'getRecentJitoTip').mockResolvedValue(0.001);
-    
+
     const tip = await service.getRecentJitoTip();
-    
+
     expect(tip).toBe(0.001);
     expect(tipSpy).toHaveBeenCalled();
   });
