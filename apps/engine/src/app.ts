@@ -32,7 +32,18 @@ export const buildApp = async () => {
   await fastify.register(websocket);
   await fastify.register(cors, { origin: true, credentials: true });
   await fastify.register(helmet);
-  await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+  await fastify.register(rateLimit, {
+    max: async (request: any) => {
+      const tier = request.apiKey?.tier || 'FREE';
+      if (tier === 'ENTERPRISE') return 10000;
+      if (tier === 'PRO') return 1000;
+      return 100;
+    },
+    keyGenerator: (request: any) => {
+      return (request.headers['x-api-key'] as string) || request.ip;
+    },
+    timeWindow: '1 minute',
+  });
 
   // Services
   const rankService = new RankService();

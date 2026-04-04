@@ -70,5 +70,8 @@ ALTER TABLE public.scouted_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read for profiles (Public Dashboard)
+DROP POLICY IF EXISTS "Public Profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public Profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Tokens are viewable by everyone" ON public.scouted_tokens;
 CREATE POLICY "Tokens are viewable by everyone" ON public.scouted_tokens FOR SELECT USING (true);
