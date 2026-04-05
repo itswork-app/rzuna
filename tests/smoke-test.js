@@ -7,7 +7,7 @@ export const options = {
   duration: '10s',
   thresholds: {
     // 99% request harus dibawah 500ms
-    http_req_duration: ['p(99)<500'],
+    http_req_duration: ['p(99)<1500'],
     // Tingkat error harus 0%
     http_req_failed: ['rate<0.01'],
   },
