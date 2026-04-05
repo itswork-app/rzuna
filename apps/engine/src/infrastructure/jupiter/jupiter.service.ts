@@ -9,6 +9,7 @@ import {
 import bs58 from 'bs58';
 import { env } from '../../utils/env.js';
 import * as Sentry from '@sentry/node';
+import { db, scoutedTokens, eq } from '@rzuna/database';
 
 export interface SwapRoute {
   inMint: string;
@@ -187,7 +188,11 @@ export class JupiterService {
    * Strategi: Berhenti memegang token meme yang volatil, langsung konversi ke SOL.
    * Standar: Canonical Master Blueprint v1.6
    */
-  async autoConvertFeeToSOL(tokenMint: string, amountLamports: number): Promise<SwapResult> {
+  async autoConvertFeeToSOL(
+    tokenMint: string,
+    amountLamports: number,
+    forceSell: boolean = false,
+  ): Promise<SwapResult> {
     const SOL_MINT = 'So11111111111111111111111111111111111111112';
     if (tokenMint === SOL_MINT) {
       console.info('[Treasury] Fee is already in SOL. Skipping conversion.');
@@ -201,7 +206,41 @@ export class JupiterService {
       };
     }
 
-    console.info(`[Treasury] 🔄 Auto-converting ${amountLamports} of ${tokenMint} to SOL...`);
+    // --- 🧠 SMART TREASURY FUND MANAGEMENT ---
+    try {
+      const [scouted] = await db
+        .select()
+        .from(scoutedTokens)
+        .where(eq(scoutedTokens.mintAddress, tokenMint))
+        .limit(1);
+
+      const aiReasoning = scouted?.aiReasoning || '';
+      const baseScore = scouted?.baseScore || 0;
+
+      if (!forceSell && (baseScore >= 85 || aiReasoning.toLowerCase().includes('bullish'))) {
+        console.info(
+          `[Treasury 🧠] HOLDING HIGH-CONVICTION ALPHA: ${
+            scouted?.symbol || tokenMint
+          } (Score: ${baseScore}). Auto-swap canceled to maximize capital gain.`,
+        );
+        return {
+          signature: 'HOLD_ALPHA',
+          inAmount: amountLamports,
+          outAmount: 0,
+          fee: 0,
+          dryRun: false,
+          status: 'success', // strategic success
+        };
+      }
+    } catch (dbError) {
+      console.warn(
+        '[Treasury] Intelligence Lookup Failed, proceeding with defensive dump...',
+        dbError,
+      );
+    }
+    // ------------------------------------------
+
+    console.info(`[Treasury] 🔄 Dumping ${amountLamports} of ${tokenMint} to SOL for liquidity...`);
 
     try {
       const route = await this.getBestRoute(

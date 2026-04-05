@@ -8,12 +8,14 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
+import { Redis } from 'ioredis';
 import { env } from './utils/env.js';
 import { RankService } from './core/services/rank.service.js';
 import { ScoringService } from './core/services/scoring.service.js';
 import { IntelligenceEngine } from './core/engine.js';
 import { sdkRoutes } from './routes/sdk.js';
 import { signalRoutes } from './routes/signals.js';
+import { adminRoutes } from './routes/admin.js';
 import { feePlugin } from './plugins/fee.plugin.js';
 
 /**
@@ -32,11 +34,12 @@ export const buildApp = async () => {
   await fastify.register(websocket);
   await fastify.register(cors, { origin: true, credentials: true });
   await fastify.register(helmet);
+  const redisConfig = env.REDIS_URL ? { redis: new Redis(env.REDIS_URL) } : {};
+
   await fastify.register(rateLimit, {
+    ...redisConfig,
     max: async (request: any) => {
-      const tier = request.apiKey?.tier || 'FREE';
-      if (tier === 'ENTERPRISE') return 10000;
-      if (tier === 'PRO') return 1000;
+      // Standar limit perlindungan global
       return 100;
     },
     keyGenerator: (request: any) => {
@@ -65,6 +68,7 @@ export const buildApp = async () => {
   await fastify.register(feePlugin);
   await fastify.register(sdkRoutes);
   await fastify.register(signalRoutes);
+  await fastify.register(adminRoutes, { tuner: engine.tuner });
 
   // Initialize engine
   void engine.start();

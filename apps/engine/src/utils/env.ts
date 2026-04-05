@@ -19,16 +19,21 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   AXIOM_TOKEN: z.string().optional(),
   AXIOM_DATASET: z.string().optional(),
+  // 🗄️ UPSTASH REDIS (HOT-PATH CACHE)
+  REDIS_URL: z.string().optional(),
+
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().default('https://app.posthog.com'),
   JITO_BLOCK_ENGINE_URL: z.string().default('https://mainnet.block-engine.jito.wtf'),
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(), // Blueprint V22.1: primary reasoning
+  OPENROUTER_BASE_URL: z.string().default('https://openrouter.ai/api/v1'),
   EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
   IS_SIMULATION: z
     .enum(['true', 'false'])
     .default('true')
-    .transform((val) => val === 'true'),
+    .transform((val: string) => val === 'true'),
   // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
   ALLOWED_ORIGINS: z.string().optional(),
   PLATFORM_FEE_WALLET: z.string().optional(),
@@ -41,6 +46,7 @@ const envSchema = z.object({
     .string()
     .regex(/^postgresql?:\/\/.+/i, 'Invalid Database URL')
     .optional(),
+  GODMODE_ADMIN_WALLETS: z.string().optional(),
 });
 
 /**

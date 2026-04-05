@@ -1,9 +1,12 @@
 import { z } from 'zod';
 
 export const AlphaReasoningSchema = z.object({
+  verdict: z.enum(['ALPHA', 'WATCH', 'REJECT']).optional(),
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
   narrative: z.string(),
   riskFactors: z.array(z.string()),
   catalysts: z.array(z.string()),
+  entryStrategy: z.string().optional(),
 });
 
 export const AlphaSignalSchema = z.object({

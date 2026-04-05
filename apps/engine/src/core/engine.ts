@@ -7,7 +7,12 @@ import {
 import { PumpapiAdapter } from '../infrastructure/adapters/pumpapi.adapter.js';
 import { ScoringService } from './services/scoring.service.js';
 import { CreatorReputationService } from './services/reputation.service.js';
+import { TokenSecurityService } from './services/security.service.js';
+import { ElizaBrain } from '../agents/eliza.brain.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
+import { TreasuryWorker } from '../agents/workers/treasury.worker.js';
+import { LearningWorker } from '../agents/workers/learning.worker.js';
+import { TuningService } from './services/tuning.service.js';
 import { db, scoutedTokens } from '@rzuna/database';
 import { UserRank, type AlphaSignal } from '@rzuna/contracts';
 
@@ -20,7 +25,7 @@ export { AlphaSignal };
 
 /**
  * 🏛️ IntelligenceEngine: Dual-Path Sensor Orchestrator
- * Standar: Canonical Master Blueprint v22.1 (Singularity)
+ * Standar: Canonical Master Blueprint v22.2 (Singularity)
  */
 export class IntelligenceEngine extends EventEmitter {
   public solana = new SolanaAdapter();
@@ -30,21 +35,41 @@ export class IntelligenceEngine extends EventEmitter {
   private reasoning = new ReasoningService();
   private activeSignals: Map<string, AlphaSignal> = new Map();
   private recentTraders: Map<string, string[]> = new Map();
+  private tradeTimestamps: Map<string, number[]> = new Map(); // mint -> timestamps
   private reputation = new CreatorReputationService();
+  public security = new TokenSecurityService();
+  public tuner = new TuningService();
+  public eliza = new ElizaBrain();
+  private treasuryWorker = new TreasuryWorker();
+  private learningWorker = new LearningWorker(this.tuner);
 
-  // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
+  // 🏛️ Legacy Bridge for Audit Hooks
   public readonly hooks = {
-    logAudit: async (data: any) => {
+    logAudit: async (data: { type: string; score: number }) => {
       console.info('🛡️ [Engine:Bridge] Audit Log:', data.type, data.score);
     },
   };
 
   async start() {
-    console.info('🛡️ [Engine] Starting Dual-Path Orchestrator V22.1...');
+    console.info('🛡️ [Engine] Starting Dual-Path Orchestrator V22.2 (Adaptive Singularity)...');
+
+    // 💧 Hydrate memory and config on boot
+    await Promise.all([this.reputation.hydrateFromRedis(), this.tuner.refreshConfig()]);
 
     this.pumpPortal.on('transaction', (event: PumpPortalEvent) => this.handleStream(event));
     this.solana.on('mint', (event) => this.handleStream(event));
 
+    // Brain/Social Sidecar Wiring
+    this.on('signal', (signal: AlphaSignal) => {
+      void this.eliza.processSignal(signal);
+    });
+
+    this.eliza.on('broadcast', (message) => {
+      console.info(`\n📢 [ElizaOS: ${message.platform}] ${message.content}\n`);
+    });
+
+    this.treasuryWorker.start();
+    this.learningWorker.start();
     await Promise.all([this.solana.start(), this.pumpPortal.start()]);
   }
 
@@ -56,44 +81,101 @@ export class IntelligenceEngine extends EventEmitter {
   }
 
   private async handleStream(event: PumpPortalEvent) {
+    const config = this.tuner.getConfig();
     const startTime = performance.now();
     try {
-      const initialScore = this.scorer.calculateInitialScore(event);
+      // Level 1: Adaptive Heuristic Filter
+      const initialScore = this.scorer.calculateInitialScore(event, config);
 
-      if (initialScore.score >= this.scorer.L1_THRESHOLD) {
+      if (this.scorer.shouldPersist(initialScore.score, false, false, config.l1Threshold)) {
         const metadata = await this.pumpapi.getTokenMetadata(event.mint);
         const creatorWallet = metadata?.creator || event.traderPublicKey;
 
-        // Creator Reputation (O(1) lookup)
+        // Creator Reputation
         const rep = this.reputation.getScoreModifier(creatorWallet);
 
         // Stateful Wash Tracker
         const traders = this.recentTraders.get(event.mint) || [];
         const isRepetitive = traders.includes(event.traderPublicKey);
 
-        // Re-score with metadata, reputation, and wash state
-        const enrichedScore = this.scorer.calculateInitialScore({
-          ...event,
-          ...metadata,
-          devPublicKey: creatorWallet,
-          isRepetitive,
-          _reputationModifier: rep.modifier,
-          _reputationFlag: rep.redFlag,
-        });
+        // Volume Velocity
+        const now = Date.now();
+        const timestamps = this.tradeTimestamps.get(event.mint) || [];
+        timestamps.push(now);
+        const oneMinAgo = now - 60_000;
+        const recentTimestamps = timestamps.filter((t) => t > oneMinAgo);
+        this.tradeTimestamps.set(event.mint, recentTimestamps);
+        const tradesPerMinute = recentTimestamps.length;
+
+        // On-chain security check
+        const securityReport = await this.security.getSecurityReport(event.mint);
+
+        // Re-score with ALL enrichment data
+        const enrichedScore = this.scorer.calculateInitialScore(
+          {
+            ...event,
+            ...metadata,
+            devPublicKey: creatorWallet,
+            isRepetitive,
+            _reputationModifier: rep.modifier,
+            _reputationFlag: rep.redFlag,
+            _tradesPerMinute: tradesPerMinute,
+            _securityScore: securityReport?.score,
+            _securityFlags: securityReport?.redFlags,
+          },
+          config,
+        );
 
         // Update tracking
         traders.push(event.traderPublicKey);
         if (traders.length > 20) traders.shift();
         this.recentTraders.set(event.mint, traders);
 
-        // Record behavior for reputation
+        // Record behavior
         if (event.txType === 'create') this.reputation.recordCreation(creatorWallet);
-        if (enrichedScore.redFlags.includes('DEV_DUMP')) this.reputation.recordRugpull(creatorWallet);
-        if (enrichedScore.redFlags.includes('SELF_BUY')) this.reputation.recordWashTrade(creatorWallet);
+        if (enrichedScore.redFlags.includes('DEV_DUMP'))
+          this.reputation.recordRugpull(creatorWallet);
+        if (enrichedScore.redFlags.includes('SELF_BUY'))
+          this.reputation.recordWashTrade(creatorWallet);
 
-        if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
+        if (!this.scorer.shouldPersist(enrichedScore.score, false, false, config.l1Threshold))
+          return;
 
-        const aiResult = await this.reasoning.analyzeToken(event as any, enrichedScore.score);
+        // L2 AI Reasoning
+        let aiResult: ReasoningResult;
+        try {
+          aiResult = await this.reasoning.analyzeToken({
+            mint: event.mint,
+            symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
+            name: event.name || metadata?.name || 'UNKNOWN',
+            txType: event.txType,
+            traderPublicKey: event.traderPublicKey,
+            l1Score: enrichedScore.score,
+            vSol: event.vSolInBondingCurve || 0,
+            mcapSol: event.marketCapSol || 0,
+            twitter: metadata?.twitter,
+            website: metadata?.website,
+            telegram: metadata?.telegram,
+            mintRevoked: securityReport?.mintAuthorityRevoked,
+            freezeRevoked: securityReport?.freezeAuthorityRevoked,
+            topHolderPct: securityReport?.topHolderPct,
+            holderCount: securityReport?.holderCount,
+            creatorReputation: rep.reputation,
+            redFlags: enrichedScore.redFlags,
+            tradesPerMinute,
+          });
+        } catch {
+          aiResult = {
+            verdict: 'WATCH',
+            narrative: '[L2 Unavailable] Signal passed L1 heuristic filter only.',
+            confidence: 'LOW',
+            riskFactors: enrichedScore.redFlags,
+            catalysts: [],
+            generatedByAI: false,
+          };
+        }
+
+        if (aiResult.verdict === 'REJECT') return;
 
         await this.persistEnrichedToken(event, enrichedScore, aiResult.narrative, metadata);
 
@@ -114,8 +196,10 @@ export class IntelligenceEngine extends EventEmitter {
             riskFactors: aiResult.riskFactors || [],
             catalysts: aiResult.catalysts || [],
           },
-          // Legacy bridge properties (hidden in types but passed for safety)
-          ...({ event, latency: performance.now() - startTime } as any),
+          ...({ event, latency: performance.now() - startTime } as {
+            event: PumpPortalEvent;
+            latency: number;
+          }),
         };
         this.activeSignals.set(event.mint, signal);
         this.emit('signal', signal);
@@ -127,9 +211,16 @@ export class IntelligenceEngine extends EventEmitter {
 
   private async persistEnrichedToken(
     event: PumpPortalEvent,
-    score: any,
+    score: { score: number; isPremium: boolean },
     reasoning: string,
-    metadata: any,
+    metadata: {
+      symbol?: string;
+      name?: string;
+      description?: string;
+      twitter?: string;
+      telegram?: string;
+      website?: string;
+    } | null,
   ) {
     await db
       .insert(scoutedTokens)
@@ -160,15 +251,14 @@ export class IntelligenceEngine extends EventEmitter {
       });
   }
 
-  // 🏛️ V22.1 Lifecycle Control
   stop() {
     console.info('🛡️ [Engine] Stopping Orchestrator...');
+    this.treasuryWorker.stop();
     void this.solana.stop();
     void this.pumpPortal.stop();
     this.removeAllListeners();
   }
 
-  // 🏛️ Backward Compatibility Methods (V22.1 Bridge)
   async ensureVipGeyser() {
     console.info('🛡️ [Engine] VIP Geyser active via SolanaAdapter (Auto-mode).');
   }
@@ -183,7 +273,8 @@ export class IntelligenceEngine extends EventEmitter {
       const signals = Array.from(this.activeSignals.values())
         .map((s) => {
           const signal = { ...s };
-          const hasAccess = isVIP || isStarlight || profile?.aiQuotaLimit > profile?.aiQuotaUsed;
+          const hasAccess =
+            isVIP || isStarlight || (profile?.aiQuotaLimit || 0) > (profile?.aiQuotaUsed || 0);
 
           if (!hasAccess && signal.aiReasoning) {
             signal.aiReasoning = {
@@ -197,7 +288,6 @@ export class IntelligenceEngine extends EventEmitter {
           if (!s.isPremium) return true;
           if (isVIP || isStarlight) return true;
 
-          // Probability-based access for High-Rank but Free users
           const prob = rank === UserRank.MYTHIC ? 0.7 : rank === UserRank.DIAMOND ? 0.5 : 0.1;
           return Math.random() < prob;
         });
