@@ -6,11 +6,11 @@ Standardized deployment procedures for the RZUNA monorepo, strictly aligned with
 
 ## 🏛️ Deployment Strategy (Master Blueprint Section VI)
 
-| Application | Domain(s) | Root Directory | Build Command |
+| Application | Domain(s) | Project ID | Build Command |
 | :--- | :--- | :--- | :--- |
-| **B2C Terminal** | `aivo.sh`, `app.aivo.sh` | `/` | `pnpm build --filter=@rzuna/terminal` |
-| **B2B Dashboard** | `b2b.aivo.sh`, `developers.aivo.sh` | `/` | `pnpm build --filter=@rzuna/dashboard` |
-| **Admin Panel** | `admin.aivo.sh` | `/` | `pnpm build --filter=@rzuna/admin` |
+| **B2C Terminal** | `aivo.sh`, `app.aivo.sh` | `prj_sVrMFL10r6PZ4JB4YQniFIUQAWCt` | `pnpm build --filter=@rzuna/terminal` |
+| **B2B Dashboard** | `b2b.aivo.sh`, `developers.aivo.sh` | `prj_iIsKJyahNH5lq4ei11ImVmPfhuIA` | `pnpm build --filter=@rzuna/dashboard` |
+| **Admin Panel** | `admin.aivo.sh` | `prj_wtYAZm40MtYSwQfNxhRuqolyVgJv` | `pnpm build --filter=@rzuna/admin` |
 
 ---
 
