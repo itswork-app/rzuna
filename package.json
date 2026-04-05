@@ -3,7 +3,8 @@
   "version": "8.15.4",
   "packageManager": "pnpm@8.15.4",
   "engines": {
-    "node": "^20.18.0"
+    "node": "20.x",
+    "pnpm": "^8.15.4"
   },
   "description": "",
   "main": "index.js",
