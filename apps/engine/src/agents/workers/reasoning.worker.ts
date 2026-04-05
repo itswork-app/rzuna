@@ -125,7 +125,7 @@ Transaction: ${context.txType} by ${context.traderPublicKey?.slice(0, 8) || 'unk
       console.error('[Reasoning Worker] Zod validation failed:', parsed.error.issues);
       parentPort?.postMessage({
         verdict: 'WATCH',
-        narrative: `[INVALID AI OUTPUT] Falling back to L1. Zod errors: ${parsed.error.issues.map((i) => i.message).join(', ')}`,
+        narrative: `[INVALID AI OUTPUT] Falling back to L1. Zod errors: ${parsed.error.issues.map((i: any) => i.message).join(', ')}`,
         catalysts: [],
         riskFactors: context.redFlags || [],
         confidence: 'LOW',

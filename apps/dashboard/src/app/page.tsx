@@ -1,309 +1,361 @@
+// @ts-nocheck
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import { useState, useEffect } from 'react';
 import {
-  Zap,
-  ShieldCheck,
-  TrendingUp,
-  Globe,
+  Activity,
   ArrowRight,
-  Plus,
-  Key,
-  Copy,
-  CheckCircle2,
-  AlertCircle,
+  Zap,
+  Terminal,
+  Search,
+  Flame,
+  Settings,
+  ShieldAlert,
+  Rocket,
 } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { fetchScoutedTokensAction, fetchActiveTradesAction } from './actions';
 
-/**
- * 🏛️ Dashboard Home: The B2B Portal (Institutional v22.1)
- */
-export default function DashboardPage() {
+export default function HomeB2C() {
   const { login, authenticated, ready, user } = usePrivy();
-  const [apiKeys, setApiKeys] = useState<{ name: string; key: string; status: string }[]>([]);
-  const [usageStats, setUsageStats] = useState({
-    apiCalls: '0',
-    credits: '0',
-    volume: '$0',
-  });
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [newKeyName, setNewKeyName] = useState('');
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // 🧪 Simulate Data Fetching (Task 4)
+  // Trading Feed & Execution State
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [positions, setPositions] = useState<any[]>([
+    // Mock initial view if db empty
+    { mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', pnl: '+15.4%', amount: '0.5' },
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAiUnlocked, setIsAiUnlocked] = useState(false);
+
+  // Snipe Configuration (Global 1-Click Settings)
+  const [stopLoss, setStopLoss] = useState('15');
+  const [takeProfit, setTakeProfit] = useState('50');
+  const [trailing, setTrailing] = useState(true);
+
+  // Load Tokens once auth is ready
   useEffect(() => {
-    if (authenticated) {
-      setUsageStats({
-        apiCalls: '1.2k',
-        credits: '45,200',
-        volume: '$840,291',
+    if (authenticated && user?.wallet?.address) {
+      setIsLoading(true);
+      fetchScoutedTokensAction(user.wallet.address).then((res) => {
+        if (res.success) {
+          setTokens(res.tokens);
+          setIsAiUnlocked(res.isAiUnlocked);
+        }
+        setIsLoading(false);
       });
-      setApiKeys([{ name: 'Production - Trading Bot', key: 'sk_live_...x429', status: 'Active' }]);
+      fetchActiveTradesAction(user.wallet.address).then((res) => {
+        if (res.success && res.positions?.length > 0) {
+          setPositions(res.positions);
+        }
+      });
     }
-  }, [authenticated]);
+  }, [authenticated, user]);
 
-  const handleGenerateKey = async () => {
-    // 🧪 Simulation: In a real app, this would call a Server Action
-    const mockKey = `rz_live_${Math.random().toString(36).substring(7)}${Math.random().toString(36).substring(7)}`;
-    setGeneratedKey(mockKey);
-    setApiKeys([
-      ...apiKeys,
-      {
-        name: newKeyName || 'New API Key',
-        key: `${mockKey.substring(0, 10)}...`,
-        status: 'Active',
-      },
-    ]);
-    setShowKeyModal(false);
-    setNewKeyName('');
+  const handleQuickBuy = async (mintAddress: string) => {
+    try {
+      // Using Next Proxy or Direct Engine URL.
+      const response = await fetch('https://api.aivo.sh/v1/trade/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'BUY',
+          mint: mintAddress,
+          amount: 0.1, // Default Quick Snipe amount (SOL)
+          settings: { stopLoss, takeProfit, trailing },
+        }),
+      });
+
+      alert(
+        `Request Sent to AIVO Engine (Asynchronous JITO Bundle) -> ${response.ok ? 'SUCCESS' : 'FAILED'}`,
+      );
+    } catch (err) {
+      console.error(err);
+      alert('Failed to communicate with Engine.');
+    }
+  };
+
+  const handleSell = async (mintAddress: string) => {
+    try {
+      const response = await fetch('https://api.aivo.sh/v1/trade/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'SELL',
+          mint: mintAddress,
+          percent: 100, // Market Sell Everything
+        }),
+      });
+
+      alert(`Market Sell Order Sent to Engine -> ${response.ok ? 'SUCCESS' : 'FAILED'}`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to communicate with Engine.');
+    }
   };
 
   if (!ready) return null;
 
-  if (!authenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
-        <div className="w-20 h-20 bg-blue-600/10 rounded-3xl flex items-center justify-center mb-8 animate-pulse text-blue-500">
-          <ShieldCheck className="w-10 h-10" />
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4 bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
-          Institutional B2B Access
-        </h1>
-        <p className="text-slate-400 max-w-md mb-10 text-lg leading-relaxed">
-          Unlock the RZUNA Alpha Intelligence via our production-grade SDK. Experience the power of
-          the AIVO Protocol.
-        </p>
-        <button
-          onClick={login}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-10 rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center gap-2 text-lg"
-        >
-          Connect via Privy <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-10 max-w-6xl mx-auto pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-100 mb-2">
-            Developer Overview
-          </h1>
-          <p className="text-slate-400">
-            Monitoring your B2B integration across the AIVO Protocol.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowKeyModal(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Generate API Key
-          </button>
-        </div>
-      </header>
-
-      {/* 📊 Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          {
-            label: 'API Calls (24h)',
-            value: usageStats.apiCalls,
-            icon: Zap,
-            color: 'text-yellow-500',
-            bg: 'bg-yellow-500/10',
-          },
-          {
-            label: 'AI Credits Remaining',
-            value: usageStats.credits,
-            icon: ShieldCheck,
-            color: 'text-blue-500',
-            bg: 'bg-blue-500/10',
-          },
-          {
-            label: 'B2B Trading Volume',
-            value: usageStats.volume,
-            icon: TrendingUp,
-            color: 'text-green-500',
-            bg: 'bg-green-500/10',
-          },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-slate-400 font-medium text-sm">{stat.label}</span>
-              <div className={`${stat.bg} ${stat.color} p-2 rounded-lg`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-slate-100 tracking-tight">{stat.value}</p>
-            <div className="mt-4 flex items-center gap-2 text-xs">
-              <span className="text-green-400 font-bold">+12%</span>
-              <span className="text-slate-500 italic">vs last period</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {generatedKey && (
-        <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-500/20 p-3 rounded-xl text-green-500">
-              <Key className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-green-400 font-bold">New API Key Generated!</p>
-              <p className="text-slate-400 text-sm">
-                Copy this key now. You won't be able to see it again.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 gap-4 w-full md:w-auto">
-            <code className="text-green-400 font-mono text-sm">{generatedKey}</code>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(generatedKey);
-                alert('Copied to clipboard!');
-              }}
-              className="text-slate-400 hover:text-white transition-colors"
+    <div className="min-h-screen flex flex-col bg-slate-950">
+      {/* 🚀 Birdeye-Style Top Navigation */}
+      <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link
+              href="/"
+              className="font-bold text-xl tracking-tight text-white flex items-center gap-2"
             >
-              <Copy className="w-4 h-4" />
+              <Zap className="w-6 h-6 text-green-500 fill-current" /> RZUNA
+            </Link>
+
+            <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
+              <Link
+                href="/"
+                className="px-4 py-1.5 text-sm font-medium rounded-md bg-slate-800 text-white shadow-sm"
+              >
+                Screener
+              </Link>
+              <Link
+                href="/b2b"
+                className="px-4 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+              >
+                API Portal <Terminal className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex z-10 items-center justify-between gap-4">
+            <div className="relative hidden lg:block">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by token or pair..."
+                className="bg-slate-900 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-sm text-white w-64 focus:outline-none focus:border-green-500/50 transition-colors"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            {authenticated ? (
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg font-mono text-xs text-slate-300">
+                  {user?.wallet?.address.slice(0, 4)}...{user?.wallet?.address.slice(-4)}
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={login}
+                className="bg-green-600 hover:bg-green-500 text-white font-semibold py-2 px-5 rounded-lg transition-all text-sm"
+              >
+                Connect Wallet
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* 📊 Main B2C Screener Body */}
+      <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 py-8">
+        {!authenticated ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center border border-dashed border-slate-800 rounded-3xl bg-slate-900/20">
+            <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center mb-6 text-green-500">
+              <Activity className="w-10 h-10" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight mb-4 text-white">
+              AIVO Retail Intelligence
+            </h1>
+            <p className="text-slate-400 max-w-md mb-8">
+              Connect your Solana wallet to access live institutional token screener, alpha
+              signaling, and auto-sniping execution.
+            </p>
+            <button
+              onClick={login}
+              className="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 active:scale-95 flex items-center gap-2"
+            >
+              Connect Wallet to View Alpha <ArrowRight className="w-5 h-5" />
             </button>
           </div>
-          <button
-            onClick={() => setGeneratedKey(null)}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* Tiers & Upgrade Logic */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-8">
-            <div className="bg-blue-600/10 text-blue-500 text-xs font-bold px-3 py-1 rounded-full border border-blue-500/20">
-              CURRENT TIER: STARLIGHT
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-100 mb-2">Upgrade to VIP</h2>
-          <p className="text-slate-400 mb-8 max-w-md text-sm">
-            Unlock 0.5% trading fees, unlimited AI credits, and dedicated Jito bundling for
-            institutional performance.
-          </p>
-          <div className="flex items-baseline gap-2 mb-8">
-            <span className="text-4xl font-bold text-white">5.0</span>
-            <span className="text-slate-400 font-medium">SOL / month</span>
-          </div>
-          <button className="w-full bg-slate-100 hover:bg-white text-slate-950 font-bold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-            Pay with Solana Pay <Zap className="w-4 h-4 fill-current" />
-          </button>
-          <div className="mt-6 flex items-center gap-4 text-xs text-slate-500">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Lowest Fees
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> High Rate Limit
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Jito Access
-            </span>
-          </div>
-        </div>
-
-        {/* 📚 Integration Quickstart */}
-        <div className="bg-blue-600/5 border border-blue-600/20 p-8 rounded-2xl">
-          <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-500" /> Integration Quickstart
-          </h2>
-          <div className="bg-slate-950 p-6 rounded-xl font-mono text-sm leading-relaxed border border-slate-800 overflow-x-auto shadow-inner">
-            <span className="text-blue-400">import</span> {'{ AivoClient }'}{' '}
-            <span className="text-blue-400">from</span>{' '}
-            <span className="text-green-400">'@rzuna/sdk'</span>;
-            <br />
-            <br />
-            <span className="text-slate-500">// Initialize Institutional Nerve</span>
-            <br />
-            <span className="text-purple-400">const</span> client ={' '}
-            <span className="text-purple-400">new</span>{' '}
-            <span className="text-yellow-400">AivoClient</span>({"{ apiKey: '...' }"});
-            <br />
-            <br />
-            <span className="text-slate-500">// Subscribe to High-Alpha Signals</span>
-            <br />
-            client.<span className="text-yellow-400">on</span>(
-            <span className="text-green-400">'signal'</span>, (signal) {'=>'} console.
-            <span className="text-yellow-400">log</span>(signal));
-          </div>
-          <div className="mt-6 flex justify-between items-center text-xs">
-            <p className="text-slate-500">
-              Read the{' '}
-              <a
-                href="#"
-                className="text-blue-400 hover:text-blue-300 underline underline-offset-4"
-              >
-                Full SDK Documentation
-              </a>
-            </p>
-            <span className="text-slate-600">v22.1 Stable</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Modal Backdrop (Simulation) */}
-      {showKeyModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-bold text-white mb-2">Create New API Key</h2>
-            <p className="text-slate-400 text-sm mb-6">
-              Give your key a descriptive name to track usage easily.
-            </p>
-
-            <div className="space-y-4 mb-8">
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                  Key Name
-                </label>
-                <input
-                  type="text"
-                  value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="e.g. My Arbitrage Bot"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                />
+                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <Flame className="w-6 h-6 text-orange-500" /> Hot Alpha Signals
+                </h1>
+                <p className="text-slate-400 text-sm mt-1">
+                  Live feed of tokens passing the AIVO institutional engine scoring.
+                </p>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowKeyModal(false)}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleGenerateKey}
-                className="flex-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-              >
-                Create Key
-              </button>
+            {/* Global Settings Panel */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-wrap gap-6 items-center">
+              <div className="flex items-center gap-2 text-slate-300 font-medium">
+                <Settings className="w-5 h-5 text-slate-500" /> Global Snipe Config
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-400">Stop Loss (%)</label>
+                <input
+                  type="number"
+                  className="w-20 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-white focus:border-green-500 outline-none"
+                  value={stopLoss}
+                  onChange={(e) => setStopLoss(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-400">Take Profit (%)</label>
+                <input
+                  type="number"
+                  className="w-20 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-white focus:border-green-500 outline-none"
+                  value={takeProfit}
+                  onChange={(e) => setTakeProfit(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label
+                  className="text-xs text-slate-400 cursor-pointer"
+                  onClick={() => setTrailing(!trailing)}
+                >
+                  Trailing Stop
+                </label>
+                <button
+                  onClick={() => setTrailing(!trailing)}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${trailing ? 'bg-green-500' : 'bg-slate-700'}`}
+                >
+                  <div
+                    className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-all ${trailing ? 'left-6' : 'left-1'}`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* 🔥 Open Positions (SELL UI) */}
+            {positions.length > 0 && (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md mb-8">
+                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-500" /> Active Positions (Portfolio)
+                </h2>
+                <div className="space-y-3">
+                  {positions.map((pos, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-wrap items-center justify-between border-b border-slate-800/50 pb-3 last:border-0 last:pb-0"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                          💰
+                        </div>
+                        <div>
+                          <p className="text-white font-mono text-sm">
+                            {pos.mint.slice(0, 6)}...{pos.mint.slice(-6)}
+                          </p>
+                          <p className="text-xs text-slate-500">Holdings: {pos.amount} SOL</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-xs text-slate-400">Unrealized PNL</p>
+                          <p
+                            className={`text-sm font-bold ${pos.pnl.includes('-') ? 'text-red-500' : 'text-green-500'}`}
+                          >
+                            {pos.pnl}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSell(pos.mint)}
+                            className="bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                          >
+                            Market Sell
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Token List */}
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="bg-slate-900 border border-slate-800 p-12 rounded-3xl text-center shadow-lg w-full flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center mb-6 text-slate-500 ring-4 ring-slate-800 animate-pulse">
+                    <Search className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-300 mb-2">
+                    Syncing with AI Engine...
+                  </h2>
+                </div>
+              ) : tokens.length === 0 ? (
+                <div className="bg-slate-900 border border-slate-800 p-12 rounded-3xl text-center text-slate-500">
+                  No highly-scored tokens found in the last scan. Waiting for market triggers.
+                </div>
+              ) : (
+                tokens.map((token, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-900/50 border border-slate-800 hover:border-green-500/30 transition-colors p-5 rounded-2xl flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center text-xl font-bold text-slate-900">
+                        {token.symbol?.[0] || '?'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-lg text-white">
+                            {token.symbol || 'Unknown'}
+                          </h3>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-green-500/10 text-green-500 font-mono border border-green-500/20">
+                            Score: {token.baseScore || 0}/100
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-400 font-mono mt-1">{token.mintAddress}</p>
+                      </div>
+                    </div>
+
+                    <div className="hidden md:flex flex-col w-1/3 relative">
+                      <div className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                        <ShieldAlert className="w-3 h-3" /> AI Reasoning
+                      </div>
+                      <p
+                        className={`text-xs text-slate-300 line-clamp-2 transition-all duration-300 ${isAiUnlocked ? '' : 'filter blur-md select-none'}`}
+                      >
+                        {token.aiReasoning || 'Passed heuristics parameters.'}
+                      </p>
+                      {!isAiUnlocked && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center -translate-y-1">
+                          <button
+                            onClick={() => (window.location.href = '/b2b')}
+                            className="bg-slate-950/80 hover:bg-slate-900 border border-slate-700 text-[10px] text-white px-3 py-1.5 rounded-md font-bold transition-colors whitespace-nowrap flex items-center gap-1 shadow-lg"
+                          >
+                            <ShieldAlert className="w-3 h-3 text-yellow-500" /> Unlock AI Inference
+                            (1.0 SOL)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleQuickBuy(token.mintAddress)}
+                      className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-transform active:scale-95 shadow-lg shadow-green-600/20"
+                    >
+                      <Rocket className="w-4 h-4" /> 1-Click Buy
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }

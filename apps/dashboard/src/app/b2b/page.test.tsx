@@ -13,6 +13,23 @@ vi.mock('@privy-io/react-auth', () => ({
   }),
 }));
 
+// 🏛️ Mock Server Actions
+vi.mock('./actions', () => ({
+  syncUserAction: vi.fn().mockResolvedValue({ success: true, userId: 'mock-user-123' }),
+  fetchDashboardStateAction: vi.fn().mockResolvedValue({
+    success: true,
+    state: {
+      apiKeys: [{ name: 'Test Key', key: 'aivo_...123', status: 'Active' }],
+      usageStats: { apiCalls: '1.2k', credits: '45,200', volume: '$840,291' },
+    },
+  }),
+  generateApiKeyAction: vi.fn().mockResolvedValue({
+    success: true,
+    rawKey: 'aivo_live_testrawkey',
+    key: { id: 'mock-key-1', name: 'New Test Key', status: 'Active' },
+  }),
+}));
+
 describe('Institutional Dashboard (The Alpha)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,9 +48,9 @@ describe('Institutional Dashboard (The Alpha)', () => {
     expect(await screen.findByText(/Key Name/i)).toBeInTheDocument();
   });
 
-  it('simulates historical usage data rendering', async () => {
+  it('simulates historical usage data rendering from Server Actions', async () => {
     render(<Page />);
-    // Stats loaded from default state in Task 4 mockup
+    // Stats loaded from mocked fetchDashboardStateAction
     expect(await screen.findByText(/840,291/i)).toBeInTheDocument();
     expect(screen.getByText(/45,200/i)).toBeInTheDocument();
   });

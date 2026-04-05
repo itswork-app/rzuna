@@ -28,7 +28,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
   fastify.addHook('preHandler', validateApiKey);
 
   // 🚀 Dynamic Rate Limiting (Tier-based)
-  fastify.addHook('preHandler', async (request, reply) => {
+  fastify.addHook('preHandler', async (request: any, reply: any) => {
     const [user] = await db
       .select()
       .from(users)
@@ -70,7 +70,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
   /**
    * 🧠 GET /sdk/intelligence/:mint
    */
-  fastify.get('/sdk/intelligence/:mint', async (request, reply) => {
+  fastify.get('/sdk/intelligence/:mint', async (request: any, reply: any) => {
     const { mint } = request.params as { mint: string };
 
     const [token] = await db
@@ -98,7 +98,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
    * 💹 POST /sdk/trade/swap
    * REVENUE INTEGRITY: Dynamic Fees B2B (0.5% - 1.5%) + Jito Guarantee
    */
-  fastify.post('/sdk/trade/swap', async (request, reply) => {
+  fastify.post('/sdk/trade/swap', async (request: any, reply: any) => {
     const params = request.body as {
       type: string;
       mint: string;
@@ -169,7 +169,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
   /**
    * 📊 GET /sdk/usage
    */
-  fastify.get('/sdk/usage', async (request, reply) => {
+  fastify.get('/sdk/usage', async (request: any, reply: any) => {
     const logs = await db.select().from(usageLogs).where(eq(usageLogs.apiKeyId, request.apiKey.id));
     const [user] = await db
       .select()
@@ -180,7 +180,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
     return {
       apiKey: request.apiKey.name,
       totalCalls: logs.length,
-      creditsUsed: logs.reduce((sum, l) => sum + l.creditsUsed, 0),
+      creditsUsed: logs.reduce((sum: number, l: any) => sum + l.creditsUsed, 0),
       tier: user?.tier || 'BRONZE',
     };
   });
