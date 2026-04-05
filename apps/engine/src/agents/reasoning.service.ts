@@ -78,7 +78,11 @@ export class ReasoningService {
     return new Promise((resolve, reject) => {
       const workerPath = path.resolve(__dirname, 'workers/reasoning.worker.js');
       const worker = new Worker(workerPath, {
-        workerData: { context, apiKey: env.OPENAI_API_KEY },
+        workerData: {
+          context,
+          apiKey: env.OPENROUTER_API_KEY || env.OPENAI_API_KEY,
+          baseUrl: env.OPENROUTER_API_KEY ? env.OPENROUTER_BASE_URL : undefined,
+        },
       });
 
       // Timeout: 10 seconds max

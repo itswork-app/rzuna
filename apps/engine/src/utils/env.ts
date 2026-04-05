@@ -24,6 +24,8 @@ const envSchema = z.object({
   JITO_BLOCK_ENGINE_URL: z.string().default('https://mainnet.block-engine.jito.wtf'),
   JITO_TIP_PAYMENT_ADDRESS: z.string().default('Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'),
   OPENAI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(), // Blueprint V22.1: primary reasoning
+  OPENROUTER_BASE_URL: z.string().default('https://openrouter.ai/api/v1'),
   EXECUTION_MODE: z.enum(['dry_run', 'real']).default('dry_run'),
   IS_SIMULATION: z
     .enum(['true', 'false'])
