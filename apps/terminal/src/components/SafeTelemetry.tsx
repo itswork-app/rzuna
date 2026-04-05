@@ -9,5 +9,6 @@ const TelemetryProvider = dynamic(
 );
 
 export function SafeTelemetry({ children }: { children: React.ReactNode }) {
-  return <TelemetryProvider>{children}</TelemetryProvider>;
+  const Provider: any = TelemetryProvider;
+  return <Provider>{children}</Provider>;
 }

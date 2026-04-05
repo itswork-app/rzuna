@@ -16,6 +16,7 @@ import { IntelligenceEngine } from './core/engine.js';
 import { sdkRoutes } from './routes/sdk.js';
 import { signalRoutes } from './routes/signals.js';
 import { adminRoutes } from './routes/admin.js';
+import { tradeRoutes } from './routes/trade.js';
 import { feePlugin } from './plugins/fee.plugin.js';
 
 /**
@@ -69,6 +70,7 @@ export const buildApp = async () => {
   await fastify.register(sdkRoutes);
   await fastify.register(signalRoutes);
   await fastify.register(adminRoutes, { tuner: engine.tuner });
+  await fastify.register(tradeRoutes, { prefix: '/v1/trade' });
 
   // Initialize engine
   void engine.start();

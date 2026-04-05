@@ -117,7 +117,7 @@ export class TokenSecurityService {
         return { topHolderPct: 100, holderCount: 0 };
       }
 
-      const totalSupply = holders.reduce((sum, h) => sum + Number(h.amount), 0);
+      const totalSupply = holders.reduce((sum: number, h: any) => sum + Number(h.amount), 0);
       const topHolderAmt = Number(holders[0].amount);
       const topHolderPct = totalSupply > 0 ? (topHolderAmt / totalSupply) * 100 : 100;
 

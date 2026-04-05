@@ -3,6 +3,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Trophy, Crown, Star } from 'lucide-react';
+
+// Cast icons for React 19 compatibility
+const ShieldIcon = Shield as any;
+const TrophyIcon = Trophy as any;
+const CrownIcon = Crown as any;
+const StarIcon = Star as any;
+
 import { UserRank, SubscriptionStatus } from '@rzuna/contracts';
 
 interface RankWidgetProps {
@@ -30,7 +37,7 @@ export function RankWidget({ rank, status, currentVolume, nextThreshold }: RankW
           color: 'text-purple-400',
           border: 'border-purple-500/50',
           shadow: 'shadow-purple-500/20',
-          icon: <Crown size={18} className="animate-pulse" />,
+          icon: <CrownIcon size={18} className="animate-pulse" />,
         };
       if (status !== SubscriptionStatus.NONE)
         return {
@@ -38,7 +45,7 @@ export function RankWidget({ rank, status, currentVolume, nextThreshold }: RankW
           color: 'text-purple-300',
           border: 'border-purple-400/30',
           shadow: 'shadow-purple-400/10',
-          icon: <Star size={18} />,
+          icon: <StarIcon size={18} />,
         };
     }
 
@@ -49,7 +56,7 @@ export function RankWidget({ rank, status, currentVolume, nextThreshold }: RankW
         color: 'text-amber-400',
         border: 'border-amber-500/50',
         shadow: 'shadow-amber-500/20',
-        icon: <Trophy size={18} />,
+        icon: <TrophyIcon size={18} />,
       };
     if (rank === UserRank.SILVER)
       return {
@@ -57,14 +64,14 @@ export function RankWidget({ rank, status, currentVolume, nextThreshold }: RankW
         color: 'text-blue-400',
         border: 'border-blue-500/50',
         shadow: 'shadow-blue-500/20',
-        icon: <Star size={18} />,
+        icon: <StarIcon size={18} />,
       };
     return {
       label: rank,
       color: 'text-zinc-400',
       border: 'border-zinc-700',
       shadow: 'shadow-transparent',
-      icon: <Shield size={18} />,
+      icon: <ShieldIcon size={18} />,
     };
   };
 

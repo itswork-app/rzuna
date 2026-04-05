@@ -9,20 +9,27 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { TokenCard } from '@/components/TokenCard';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { UserStats } from '@/components/UserStats';
 import { TelegramSettings } from '@/components/TelegramSettings';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
+// Cast icons for React 19 compatibility
+const ShieldCheckIcon = ShieldCheck as any;
+const LockIcon = Lock as any;
+const ArrowRightIcon = ArrowRight as any;
+const Loader2Icon = Loader2 as any;
+const ZapIcon = Zap as any;
+const BrainIcon = Brain as any;
+const Tally2Icon = Tally2 as any;
+const ActivityIcon = Activity as any;
+
 export default function DashboardPage() {
   const { connected, publicKey } = useWallet();
   const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
-  const { profile, isLoading: profileLoading, mutate } = useProfile();
-  const isVipDomain = typeof window !== 'undefined' && window.location.hostname.includes('vip');
-  const isTradeDomain = typeof window !== 'undefined' && window.location.hostname.includes('trade');
+  const { profile, mutate } = useProfile();
   const supabase = createClient();
 
   const handleConsumeQuota = async () => {
@@ -44,7 +51,7 @@ export default function DashboardPage() {
           className="max-w-md w-full bg-[#0a0a10] border border-white/5 rounded-3xl p-10 text-center shadow-3xl backdrop-blur-3xl"
         >
           <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto mb-8">
-            <Lock className="w-10 h-10 text-white/40" />
+            <LockIcon className="w-10 h-10 text-white/40" />
           </div>
           <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">
             Connection Locked
@@ -67,7 +74,7 @@ export default function DashboardPage() {
       <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#1a1a2e] border border-purple-500/20 rounded-2xl p-8 text-center shadow-2xl backdrop-blur-xl">
           <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShieldCheck className="w-8 h-8 text-purple-400" />
+            <ShieldCheckIcon className="w-8 h-8 text-purple-400" />
           </div>
           <h1 className="text-3xl font-black text-white mb-4 tracking-tighter">VERIFY OWNERSHIP</h1>
           <p className="text-gray-400 mb-8 leading-relaxed">
@@ -80,10 +87,10 @@ export default function DashboardPage() {
             className="w-full h-14 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
           >
             {isAuthenticating ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Loader2Icon className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                Sign Mission Order <ArrowRight className="w-5 h-5" />
+                Sign Mission Order <ArrowRightIcon className="w-5 h-5" />
               </>
             )}
           </button>
@@ -117,7 +124,7 @@ export default function DashboardPage() {
             <CardContent className="p-4 flex flex-col md:flex-row items-center gap-6">
               <div className="flex items-center gap-3 pr-6 border-r border-white/10">
                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                  <Activity className="w-5 h-5 text-white/60" />
+                  <ActivityIcon className="w-5 h-5 text-white/60" />
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
@@ -152,7 +159,7 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-end justify-between">
                 <h2 className="text-4xl font-black text-white">{profile?.aiQuotaLimit || 0}</h2>
-                <Zap className="w-5 h-5 text-white/20 mb-1" />
+                <ZapIcon className="w-5 h-5 text-white/20 mb-1" />
               </div>
             </CardContent>
           </Card>
@@ -165,7 +172,7 @@ export default function DashboardPage() {
                 <h2 className="text-4xl font-black text-white uppercase">
                   {profile?.rank || 'BASE'}
                 </h2>
-                <ShieldCheck className="w-5 h-5 text-white/20 mb-1" />
+                <ShieldCheckIcon className="w-5 h-5 text-white/20 mb-1" />
               </div>
             </CardContent>
           </Card>
@@ -178,7 +185,7 @@ export default function DashboardPage() {
                 <h2 className="text-4xl font-black text-white">
                   ${(profile?.volume?.currentMonthVolume || 0).toLocaleString()}
                 </h2>
-                <Tally2 className="w-5 h-5 text-white/20 mb-1" />
+                <Tally2Icon className="w-5 h-5 text-white/20 mb-1" />
               </div>
             </CardContent>
           </Card>
@@ -189,7 +196,7 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-end justify-between">
                 <h2 className="text-4xl font-black text-white">{signals.length}</h2>
-                <Brain className="w-5 h-5 text-white animate-pulse mb-1" />
+                <BrainIcon className="w-5 h-5 text-white animate-pulse mb-1" />
               </div>
             </CardContent>
           </Card>
@@ -209,7 +216,7 @@ export default function DashboardPage() {
 
           {signalsLoading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-6 bg-white/1 border border-white/5 rounded-[40px]">
-              <Loader2 className="w-16 h-16 text-white/20 animate-spin" />
+              <Loader2Icon className="w-16 h-16 text-white/20 animate-spin" />
               <p className="text-muted-foreground font-black text-[10px] uppercase tracking-[0.5em] animate-pulse">
                 Syncing Narrative Data
               </p>

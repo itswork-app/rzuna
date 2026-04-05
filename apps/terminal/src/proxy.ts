@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
  * rzuna Multi-Subdomain & SIWS Guard Middleware
  * Blueprint v1.6: PR 10 Hardened Implementation
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
 

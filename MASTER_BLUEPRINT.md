@@ -1,4 +1,4 @@
-# 📜 CONSTITUTION OF AIVO PROTOCOL (V22.1) - CANONICAL SINGULARITY
+# 📜 CONSTITUTION OF AIVO PROTOCOL (V22.2) - ADAPTIVE SINGULARITY
 
 **Project Code:** Antigravity | **Repo:** rzuna/antigravity | **Founder:** Bobby
 
@@ -40,14 +40,17 @@
 ## IV. REVENUE & PRODUCT MATRIX
 
 - **B2B Tiers:** Starlight ($99), Starlight+ ($499), VIP ($1,499).
-- **B2C Ranks:** Bronze (2.0% fee) s/d Mythic (1.0% fee).
+- **B2C Tiers (Volume-Based & Freemium):**
+  - **Bronze & Silver:** Fee trading 2.0% (Bronze) -> 1.5% (Silver). Memiliki akses ke Screener & Quick Buy. *AI Reasoning* diburamkan.
+  - **Gold & Diamond (High Volume):** Mencapai ambang volume trading `$10,000+`. Otomatis membuka fitur *AI Reasoning* secara **GRATIS** dan menurunkan fee menjadi lantai terendah yakni 1.0%.
+  - **AIVO Shortcut Pass (Paid):** Pembayaran satu kali 1.0 SOL. Mengurangi fee secara instan ke batas terendah 1.0% dan mengekspos *AI Reasoning* sedari Awal (Jalan pintas untuk pengelana kasual).
 - **Utility:** $AIVO payment discount 20% + 10% Burn mechanism.
 
 ## V. B2B ECOSYSTEM LAWS (THE NERVE)
 
 1. **Strict Authentication:** API access is MANDATORY via `x-api-key` header, validated against the `api_keys` table.
 2. **Usage Tracking:** Every call must be logged atomically in `usage_logs` to trigger rate limiting or billing.
-3. **Revenue Integrity:** B2B fees (1.5% - 0.5%) are locked at the Engine level and logged to `treasury_logs`.
+3. **Revenue Integrity:** B2B fees (2.0% - 1.0%) are locked at the Engine level and logged to `treasury_logs`.
 4. **Rate Limiting:** Dynamic limits based on B2B Tier: Starlight (10 RPM), Starlight+ (100 RPM), VIP (Unlimited/High).
 
 ## VI. DOMAIN MAPPING & SAAS ARCHITECTURE (`aivo.sh`)
@@ -70,3 +73,18 @@ Sistem arsitektur berbasis *Micro-Frontend & Dedicated Backend* untuk jualan B2B
 4. **`admin.aivo.sh` (Vercel + Zero Trust)**
    - **Target:** `apps/admin`
    - **Fungsi:** Panel kendali internal (God Mode). Sangat krusial diamankan berlapis (contoh: Vercel Auth / Cloudflare Access).
+
+## VII. GODMODE & AI SELF-LEARNING (THE ADAPTATION)
+
+1. **Dynamic Config System:**
+   - Semua ambang batas (`L1_THRESHOLD`) dan bobot scoring dipindahkan ke **Redis Config Cabinet**.
+   - Perubahan di dashboard Admin (`apps/admin`) langsung berdampak pada Engine tanpa *restart*.
+
+2. **AI Learning Loop (ElizaOS):**
+   - **Batch Processing:** Audit performa dilakukan setiap jendela **4 Jam / 150 Tokens**.
+   - **Heuristic Delta:** Eliza membandingkan skor prediksi dengan pergerakan harga riil.
+   - **Auto-Tuning Toggle:** Opsi otonom di Godmode untuk membiarkan Eliza memperbarui bobot scoring secara otomatis berdasarkan tren statistik harian.
+
+3. **Config Versioning:**
+   - Setiap perubahan *weight* disimpan sebagai **Snapshot Version**.
+   - Sistem mendukung **Rollback** instan ke versi stabil sebelumnya jika terjadi anomali deteksi.

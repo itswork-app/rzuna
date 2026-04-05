@@ -3,6 +3,10 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 
+// Cast icons for React 19 compatibility
+const AlertTriangleIcon = AlertTriangle as any;
+const RefreshCcwIcon = RefreshCcw as any;
+
 interface Props {
   children?: ReactNode;
 }
@@ -33,10 +37,10 @@ export class GlobalErrorBoundary extends Component<Props, State> {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,#3d0000,transparent_50%)] pointer-events-none opacity-40" />
 
           <div className="max-w-xl w-full bg-[#0a0a0f]/80 border border-red-900/30 rounded-3xl p-12 shadow-[0_0_100px_rgba(255,0,0,0.05)] backdrop-blur-2xl relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent opacity-50" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-red-500/50 to-transparent opacity-50" />
 
             <div className="w-20 h-20 bg-red-500/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/10 shadow-[0_0_30px_rgba(239,68,68,0.1)] group-hover:scale-110 transition-transform duration-500">
-              <AlertTriangle className="w-10 h-10 text-red-500/80" />
+              <AlertTriangleIcon className="w-10 h-10 text-red-500/80" />
             </div>
 
             <h1 className="text-4xl font-black text-white mb-4 tracking-tight uppercase italic flex items-center justify-center gap-3">
@@ -70,7 +74,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               }}
               className="w-full h-16 bg-white/5 hover:bg-red-600 group-hover:bg-red-600/10 text-white border border-white/10 hover:border-red-500/50 rounded-2xl font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 shadow-xl active:scale-[0.98]"
             >
-              <RefreshCcw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-700" />
+              <RefreshCcwIcon className="w-6 h-6 group-hover:rotate-180 transition-transform duration-700" />
               Re-Infiltrate Dashboard
             </button>
           </div>

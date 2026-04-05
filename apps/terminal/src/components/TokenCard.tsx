@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { ExternalLink, Loader2, Brain, Zap, ArrowRight } from 'lucide-react';
+
+// Cast icons for React 19 compatibility
+const ExternalLinkIcon = ExternalLink as any;
+const Loader2Icon = Loader2 as any;
+const BrainIcon = Brain as any;
+const ZapIcon = Zap as any;
+const ArrowRightIcon = ArrowRight as any;
 import { useTrade } from '@/hooks/useTrade';
 import { useWallet } from '@solana/wallet-adapter-react';
 import posthog from 'posthog-js';
@@ -65,7 +72,7 @@ export function TokenCard({
       className={sensorMode ? 'opacity-70 grayscale-[0.3]' : ''}
     >
       <Card className="relative overflow-hidden group border-white/10 bg-[#0a0a0f]/80 backdrop-blur-2xl">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
@@ -97,18 +104,18 @@ export function TokenCard({
 
         <CardContent>
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+            <div className="bg-white/2 border border-white/5 rounded-xl p-3">
               <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                 Liquidity
               </p>
               <div className="flex items-center gap-2">
-                <Zap size={10} className="text-white/40" />
+                <ZapIcon size={10} className="text-white/40" />
                 <p className="text-xs font-mono text-white">
                   ${signal.event.initialLiquidity?.toLocaleString()}
                 </p>
               </div>
             </div>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+            <div className="bg-white/2 border border-white/5 rounded-xl p-3">
               <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                 Social Pulse
               </p>
@@ -124,10 +131,10 @@ export function TokenCard({
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mb-6 p-4 bg-white/[0.03] border border-white/10 rounded-xl"
+                className="mb-6 p-4 bg-white/3 border border-white/10 rounded-xl"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <Brain size={12} className="text-white/60" />
+                  <BrainIcon size={12} className="text-white/60" />
                   <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
                     L2 Reasoning
                   </span>
@@ -160,11 +167,11 @@ export function TokenCard({
               className="flex-1 bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[10px] rounded-xl group/btn"
             >
               {isExecuting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2Icon className="w-4 h-4 animate-spin" />
               ) : (
                 <span className="flex items-center gap-2">
                   Institutional Buy{' '}
-                  <ArrowRight
+                  <ArrowRightIcon
                     size={14}
                     className="group-hover/btn:translate-x-1 transition-transform"
                   />
@@ -182,7 +189,7 @@ export function TokenCard({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <ExternalLink className="w-4 h-4 text-white/60" />
+                <ExternalLinkIcon className="w-4 h-4 text-white/60" />
               </a>
             </Button>
           </div>

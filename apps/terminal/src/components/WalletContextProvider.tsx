@@ -15,11 +15,15 @@ export const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ child
 
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
 
+  const ConnectionProviderAny = ConnectionProvider as any;
+  const WalletProviderAny = WalletProvider as any;
+  const WalletModalProviderAny = WalletModalProvider as any;
+
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <ConnectionProviderAny endpoint={endpoint}>
+      <WalletProviderAny wallets={wallets} autoConnect>
+        <WalletModalProviderAny>{children}</WalletModalProviderAny>
+      </WalletProviderAny>
+    </ConnectionProviderAny>
   );
 };

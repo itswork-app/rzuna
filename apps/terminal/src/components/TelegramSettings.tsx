@@ -2,6 +2,12 @@
 
 import React, { useState } from 'react';
 import { Send, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+
+// Cast icons for React 19 compatibility
+const SendIcon = Send as any;
+const CheckCircleIcon = CheckCircle as any;
+const XCircleIcon = XCircle as any;
+const Loader2Icon = Loader2 as any;
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
@@ -122,21 +128,21 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
               className="px-4 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-cyan-400 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {isTesting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2Icon className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="w-4 h-4" />
+                <SendIcon className="w-4 h-4" />
               )}
               Test
             </button>
           </div>
           {testStatus === 'success' && (
             <p className="text-green-400 text-xs mt-2 flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> Connection verified
+              <CheckCircleIcon className="w-3 h-3" /> Connection verified
             </p>
           )}
           {testStatus === 'error' && (
             <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
-              <XCircle className="w-3 h-3" /> Check your Chat ID and try again
+              <XCircleIcon className="w-3 h-3" /> Check your Chat ID and try again
             </p>
           )}
         </div>
@@ -152,7 +158,7 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
           disabled={isSaving}
           className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
         >
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Telegram Settings'}
+          {isSaving ? <Loader2Icon className="w-4 h-4 animate-spin" /> : 'Save Telegram Settings'}
         </button>
       </div>
     </div>
