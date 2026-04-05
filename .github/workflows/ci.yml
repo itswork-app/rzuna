@@ -73,7 +73,7 @@ jobs:
     name: 🚀 Hetzner CCX Deployment (Backend)
     runs-on: ubuntu-latest
     needs: [audit]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ready-live-institutional-sync'
     steps:
       - name: 🚚 Deploy to VPS
         uses: appleboy/ssh-action@master
@@ -86,10 +86,12 @@ jobs:
             mkdir -p /opt/rzuna
             cd /opt/rzuna
             if [ ! -d ".git" ]; then
+              echo "🛡️ Cleaning legacy files before fresh clone..."
+              find . -maxdepth 1 ! -name "." -exec rm -rf {} +
               git clone https://github.com/itswork-app/rzuna.git .
             fi
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard FETCH_HEAD
             chmod +x start.sh
             ./start.sh
             docker system prune -f
