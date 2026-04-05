@@ -122,7 +122,7 @@ export class ElizaBrain extends EventEmitter {
         metadata: {
           mint: signal.mint,
           score: signal.score,
-          confidence: signal.aiReasoning.confidence,
+          confidence: signal.aiReasoning.confidence || 'UNKNOWN',
         }
       };
 
