@@ -8,7 +8,6 @@ export default function AdminPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white font-sans">
       <div className="w-full max-w-4xl p-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl">
         <h1 className="text-4xl font-extrabold tracking-tight mb-4 inline-flex items-center gap-3">
-<<<<<<< HEAD
           <span className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">
             R
           </span>
@@ -17,14 +16,6 @@ export default function AdminPage() {
         <p className="text-slate-400 text-lg mb-8 max-w-2xl">
           Advanced Alpha Protocol Institutional Control. This environment is designated for "Zero
           Trust" administration as per V22.1 Master Blueprint.
-=======
-          <span className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">R</span>
-          RZUNA ADMIN PORTAL
-        </h1>
-        <p className="text-slate-400 text-lg mb-8 max-w-2xl">
-          Advanced Alpha Protocol Institutional Control. This environment is designated for 
-          "Zero Trust" administration as per V22.1 Master Blueprint.
->>>>>>> origin/main
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
