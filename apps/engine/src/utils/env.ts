@@ -33,7 +33,7 @@ const envSchema = z.object({
   IS_SIMULATION: z
     .enum(['true', 'false'])
     .default('true')
-    .transform((val) => val === 'true'),
+    .transform((val: string) => val === 'true'),
   // CORS: comma-separated origins e.g. "https://aivo.sh,https://trade.aivo.sh"
   ALLOWED_ORIGINS: z.string().optional(),
   PLATFORM_FEE_WALLET: z.string().optional(),
@@ -46,6 +46,7 @@ const envSchema = z.object({
     .string()
     .regex(/^postgresql?:\/\/.+/i, 'Invalid Database URL')
     .optional(),
+  GODMODE_ADMIN_WALLETS: z.string().optional(),
 });
 
 /**

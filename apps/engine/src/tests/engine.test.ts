@@ -25,7 +25,7 @@ vi.mock('../infrastructure/adapters/pumpapi.adapter.js', () => ({
       symbol: 'RZUNA',
       name: 'Rzuna',
       description: 'Institutional Alpha',
-      creator: 'creator_wallet_123',
+      // creator: removed to let engine use event.traderPublicKey as dev
     });
   },
 }));
@@ -41,6 +41,19 @@ vi.mock('../agents/reasoning.service.js', () => ({
       generatedByAI: true,
     });
     getUsageStats = vi.fn().mockReturnValue({ callsThisMinute: 0, maxPerMinute: 20 });
+  },
+}));
+
+vi.mock('../infrastructure/jupiter/jupiter.service.js', () => ({
+  JupiterService: class {
+    constructor() {}
+    getBestRoute = vi.fn();
+    executeSwap = vi.fn();
+    autoConvertFeeToSOL = vi.fn().mockResolvedValue({
+      signature: 'mock_sig',
+      status: 'success',
+      dryRun: true,
+    });
   },
 }));
 
@@ -96,19 +109,25 @@ describe('IntelligenceEngine (Bank Standard Nerve)', () => {
       txType: 'buy',
       initialBuy: 100,
       solAmount: 1,
-      vSolInBondingCurve: 95,
-      vTokensInBondingCurve: 1000,
-      marketCapSol: 150,
-      baseScore: 50,
-      symbol: 'TEST',
-      name: 'Test Token',
-      twitter: 'https://x.com/test',
-      website: 'https://test.io',
+      vSolInBondingCurve: 150, // Massive liquidity (>100)
+      vTokensInBondingCurve: 1000000,
+      marketCapSol: 1000, // Massive market cap (>500)
+      symbol: 'RZUNA',
+      name: 'Rzuna Alpha',
+      twitter: 'https://x.com/rzuna',
+      website: 'https://rzuna.io',
+      telegram: 'https://t.me/rzuna',
     };
 
     let signalEmitted = false;
     engine.on('signal', () => {
       signalEmitted = true;
+    });
+
+    vi.spyOn((engine as any).scorer, 'calculateInitialScore').mockReturnValue({
+      score: 90,
+      redFlags: [],
+      isPremium: true,
     });
 
     await engine.start();
@@ -167,6 +186,61 @@ describe('IntelligenceEngine (Bank Standard Nerve)', () => {
 
     const signals = engine.getTieredSignals(UserRank.MYTHIC, false, false);
     expect(signals.length).toBeLessThan(11);
+  });
+
+  it('SHOULD record rugpull in reputation service when DEV_DUMP is detected', async () => {
+    // 🏛️ Setup: Mock scorer to return DEV_DUMP
+    const spy = vi.spyOn((engine as any).reputation, 'recordRugpull');
+    vi.spyOn((engine as any).scorer, 'calculateInitialScore').mockReturnValue({
+      score: 90,
+      redFlags: ['DEV_DUMP'],
+      isPremium: true,
+    });
+
+    await engine.handleAlphaEvent({
+      mint: 'So11111111111111111111111111111111111111112',
+      traderPublicKey: 'dev_1',
+    } as any);
+    expect(spy).toHaveBeenCalledWith('dev_1');
+  });
+
+  it('SHOULD record wash trade in reputation service when SELF_BUY is detected', async () => {
+    const spy = vi.spyOn((engine as any).reputation, 'recordWashTrade');
+    vi.spyOn((engine as any).scorer, 'calculateInitialScore').mockReturnValue({
+      score: 90,
+      redFlags: ['SELF_BUY'],
+      isPremium: true,
+    });
+
+    await engine.handleAlphaEvent({
+      mint: 'So11111111111111111111111111111111111111112',
+      traderPublicKey: 'dev_2',
+    } as any);
+    expect(spy).toHaveBeenCalledWith('dev_2');
+  });
+
+  it('SHOULD fallback to WATCH narrative when AI reasoning fails', async () => {
+    vi.spyOn((engine as any).reasoning, 'analyzeToken').mockRejectedValueOnce(new Error('AI Down'));
+    // 🛡️ Force High Score for CI stability
+    vi.spyOn((engine as any).scorer, 'calculateInitialScore').mockReturnValue({
+      score: 90,
+      redFlags: [],
+      isPremium: true,
+    });
+
+    let caughtSignal: any = null;
+    engine.on('signal', (s) => {
+      caughtSignal = s;
+    });
+
+    await engine.handleAlphaEvent({
+      mint: 'So11111111111111111111111111111111111111112',
+      traderPublicKey: 'trader_1',
+    } as any);
+
+    expect(caughtSignal).not.toBeNull();
+    expect(caughtSignal.aiReasoning.narrative).toContain('[L2 Unavailable]');
+    expect(caughtSignal.aiReasoning.verdict).toBe('WATCH');
   });
 
   it('SHOULD stop the engine safely', () => {

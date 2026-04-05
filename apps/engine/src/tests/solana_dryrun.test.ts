@@ -1,8 +1,67 @@
 import { describe, it, expect } from 'vitest';
 import { ScoringService } from '../core/services/scoring.service.js';
+import { ScoringConfig } from '../core/services/tuning.service.js';
+import https from 'node:https';
+
+// 🔥 Live API helper: bypasses vitest global fetch mock by using node:https directly
+function handleResponse(
+  res: import('node:http').IncomingMessage,
+  resolve: (val: { status: number; json: () => Promise<any> }) => void,
+) {
+  let data = '';
+  res.on('data', (chunk: Buffer) => (data += chunk.toString()));
+  res.on('end', () => {
+    resolve({
+      status: res.statusCode || 500,
+      json: async () => JSON.parse(data),
+    });
+  });
+}
+
+async function liveFetch(url: string): Promise<{ status: number; json: () => Promise<any> }> {
+  return new Promise((resolve, reject) => {
+    const opts = { headers: { Accept: 'application/json', 'User-Agent': 'RZUNA-Engine/1.9.0' } };
+    const req = https.get(url, opts, (res) => handleResponse(res, resolve));
+    req.on('error', reject);
+  });
+}
+
+const DEFAULT_TEST_CONFIG: ScoringConfig = {
+  version: '1.0.0-dryrun',
+  updatedAt: Date.now(),
+  author: 'DRYRUN',
+  l1Threshold: 65,
+  autoTuning: false,
+  weights: {
+    baseScore: 30,
+    vSolGT20: 10,
+    vSolGT50: 10,
+    vSolGT100: 5,
+    mcapGT10: 10,
+    mcapGT50: 5,
+    mcapGT500: 5,
+    txBuy: 8,
+    txCreate: 3,
+    twitter: 5,
+    website: 3,
+    telegram: 3,
+    symbolQuality: 2,
+    nameQuality: 2,
+  },
+};
 
 const PUMPAPI_BASE = 'https://frontend-api-v3.pump.fun';
-const PUMPPORTAL_HTTP = 'https://pumpportal.fun/api/data';
+
+interface ScoredToken {
+  mint: string;
+  symbol: string;
+  name: string;
+  score: number;
+  isPremium: boolean;
+  latencyMs: number;
+  twitter: string;
+  website: string;
+}
 
 /**
  * 🏛️ BATTLE-TEST DRY RUN: Real Solana Data Pipeline
@@ -13,10 +72,7 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
   const scorer = new ScoringService();
 
   it('SHOULD fetch and score LIVE new tokens from Pump.fun', async () => {
-    // Fetch latest tokens from Pump.fun
-    const res = await fetch(`${PUMPAPI_BASE}/coins?offset=0&limit=20&sort=created_timestamp`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'RZUNA-Engine/1.9.0' },
-    });
+    const res = await liveFetch(`${PUMPAPI_BASE}/coins?offset=0&limit=20&sort=created_timestamp`);
 
     expect(res.status).toBe(200);
     const tokens = await res.json();
@@ -27,7 +83,7 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
     console.info('═'.repeat(70));
     console.info(`  Tokens fetched: ${tokens.length}`);
 
-    const scored: any[] = [];
+    const scored: ScoredToken[] = [];
 
     for (const token of tokens) {
       const start = performance.now();
@@ -37,11 +93,11 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
         name: token.name,
         txType: 'create' as const,
         vSolInBondingCurve: token.virtual_sol_reserves ? token.virtual_sol_reserves / 1e9 : 0,
-        marketCapSol: token.usd_market_cap ? token.usd_market_cap / 150 : 0, // approx
+        marketCapSol: token.usd_market_cap ? token.usd_market_cap / 150 : 0,
         traderPublicKey: token.creator || '',
       };
 
-      const result = scorer.calculateInitialScore(event);
+      const result = scorer.calculateInitialScore(event, DEFAULT_TEST_CONFIG);
       const latency = performance.now() - start;
 
       scored.push({
@@ -56,7 +112,6 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
       });
     }
 
-    // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
 
     console.info('\n  📊 Scoring Results (top 10):');
@@ -68,7 +123,7 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
       );
     });
 
-    const avg = scored.reduce((s, e) => s + e.latencyMs, 0) / scored.length;
+    const avg = scored.reduce((sum, e) => sum + e.latencyMs, 0) / scored.length;
     const alphas = scored.filter((s) => s.score >= 88);
 
     console.info('  ' + '-'.repeat(66));
@@ -77,17 +132,14 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
     console.info(`  Premium signals     : ${scored.filter((s) => s.isPremium).length}`);
     console.info('═'.repeat(70) + '\n');
 
-    // Assertions
-    expect(avg).toBeLessThan(10); // Scoring MUST be <10ms
+    expect(avg).toBeLessThan(10);
     expect(scored.every((s) => s.score >= 0 && s.score <= 100)).toBe(true);
   });
 
   it('SHOULD enrich a real token with full metadata from Pump.fun', async () => {
-    // Get 1 latest token
-    const list = await fetch(`${PUMPAPI_BASE}/coins?offset=0&limit=1&sort=created_timestamp`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'RZUNA-Engine/1.9.0' },
-    });
-    const [first] = await list.json();
+    const list = await liveFetch(`${PUMPAPI_BASE}/coins?offset=0&limit=1&sort=created_timestamp`);
+    const tokens = await list.json();
+    const first = Array.isArray(tokens) ? tokens[0] : null;
     const mint = first?.mint;
 
     if (!mint) {
@@ -96,9 +148,7 @@ describe('🔥 Battle-Test: Live Solana Dry Run', () => {
     }
 
     const start = performance.now();
-    const res = await fetch(`${PUMPAPI_BASE}/coins/${mint}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'RZUNA-Engine/1.9.0' },
-    });
+    const res = await liveFetch(`${PUMPAPI_BASE}/coins/${mint}`);
     const latency = performance.now() - start;
     const data = await res.json();
 

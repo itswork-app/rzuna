@@ -1,45 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TokenSecurityService } from '../core/services/security.service.js';
 
-// Mock @solana/web3.js
-vi.mock('@solana/web3.js', () => {
-  return {
-    Connection: class {
-      async getParsedAccountInfo() {
-        return {
-          value: {
-            data: {
-              parsed: {
-                info: {
-                  mintAuthority: null, // revoked
-                  freezeAuthority: null, // revoked
-                },
-              },
-            },
-          },
-        };
-      }
-      async getTokenLargestAccounts() {
-        return {
-          value: [
-            { amount: '6000', address: 'holder1' },
-            { amount: '2000', address: 'holder2' },
-            { amount: '2000', address: 'holder3' },
-          ],
-        };
-      }
-    },
-    PublicKey: class {
-      constructor(public key: string) {}
-    },
-  };
-});
-
 describe('TokenSecurityService (On-Chain Authority Checks)', () => {
   let service: TokenSecurityService;
 
   beforeEach(() => {
     service = new TokenSecurityService();
+    // Default spy for success cases
+    vi.spyOn((service as any).connection, 'getParsedAccountInfo').mockResolvedValue({
+      value: {
+        data: {
+          parsed: {
+            info: {
+              mintAuthority: null, // revoked
+              freezeAuthority: null, // revoked
+            },
+          },
+        },
+      },
+    });
+    vi.spyOn((service as any).connection, 'getTokenLargestAccounts').mockResolvedValue({
+      value: [
+        { amount: '6000', address: 'holder1' },
+        { amount: '2000', address: 'holder2' },
+        { amount: '2000', address: 'holder3' },
+      ],
+    });
   });
 
   it('SHOULD return positive score when authorities are revoked and well-distributed', async () => {
@@ -70,5 +56,30 @@ describe('TokenSecurityService (On-Chain Authority Checks)', () => {
     // Top holder has 6000 out of 10000 = 60%
     expect(report!.topHolderPct).toBe(60);
     expect(report!.redFlags).toContain('HIGH_CONCENTRATION');
+  });
+
+  it('SHOULD handle null account info gracefully', async () => {
+    const validMint = 'So11111111111111111111111111111111111111112';
+    const connSpy = vi
+      .spyOn((service as any).connection, 'getParsedAccountInfo')
+      .mockResolvedValueOnce({ value: null });
+    const report = await service.getSecurityReport(validMint);
+
+    expect(report!.mintAuthorityRevoked).toBe(false);
+    expect(report!.freezeAuthorityRevoked).toBe(false);
+    // Score should be negative because authorities NOT revoked
+    expect(report!.score).toBeLessThan(0);
+    connSpy.mockRestore();
+  });
+
+  it('SHOULD catch on-chain errors and return fallback score', async () => {
+    const validMint = 'So11111111111111111111111111111111111111112';
+    const connSpy = vi
+      .spyOn((service as any).connection, 'getParsedAccountInfo')
+      .mockRejectedValueOnce(new Error('RPC Error'));
+    const report = await service.getSecurityReport(validMint);
+    // Should be null due to top-level catch block returning null
+    expect(report).toBeNull();
+    connSpy.mockRestore();
   });
 });
