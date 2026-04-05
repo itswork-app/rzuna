@@ -9,17 +9,17 @@ import fp from 'fastify-plugin';
 export const websocketPlugin = fp(async (fastify: FastifyInstance) => {
   await fastify.register(websocket);
 
-  fastify.get('/ws/signals', { websocket: true }, (connection, req) => {
+  fastify.get('/ws/signals', { websocket: true }, (socket, req) => {
     console.info('🛡️ [WS] Institutional Client Connected');
 
     // Subscribe to Engine signal events
     const onNewSignal = (signal: any) => {
-      connection.socket.send(JSON.stringify({ type: 'SIGNAL_UPDATE', data: signal }));
+      socket.send(JSON.stringify({ type: 'SIGNAL_UPDATE', data: signal }));
     };
 
     fastify.engine.on('signal', onNewSignal);
 
-    connection.socket.on('close', () => {
+    socket.on('close', () => {
       console.info('🛡️ [WS] Client Disconnected');
       fastify.engine.off('signal', onNewSignal);
     });
