@@ -25,6 +25,7 @@ vi.mock('../infrastructure/adapters/pumpapi.adapter.js', () => ({
       symbol: 'RZUNA',
       name: 'Rzuna',
       description: 'Institutional Alpha',
+      creator: 'creator_wallet_123',
     });
   },
 }));
@@ -32,9 +33,27 @@ vi.mock('../infrastructure/adapters/pumpapi.adapter.js', () => ({
 vi.mock('../agents/reasoning.service.js', () => ({
   ReasoningService: class {
     analyzeToken = vi.fn().mockResolvedValue({
+      verdict: 'ALPHA',
       narrative: 'High Potential Alpha Sensor triggered',
       riskFactors: ['Low Liquidity'],
       catalysts: ['Viral Narrative'],
+      confidence: 'HIGH',
+      generatedByAI: true,
+    });
+    getUsageStats = vi.fn().mockReturnValue({ callsThisMinute: 0, maxPerMinute: 20 });
+  },
+}));
+
+vi.mock('./services/security.service.js', () => ({
+  TokenSecurityService: class {
+    getSecurityReport = vi.fn().mockResolvedValue({
+      mintAuthorityRevoked: true,
+      freezeAuthorityRevoked: true,
+      topHolderPct: 30,
+      holderCount: 50,
+      isLpLocked: true,
+      redFlags: [],
+      score: 8,
     });
   },
 }));

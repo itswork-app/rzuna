@@ -111,13 +111,32 @@ export class IntelligenceEngine extends EventEmitter {
 
         if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
 
-        // L2 AI Reasoning with fallback
+        // L2 AI Reasoning with full context
         let aiResult: ReasoningResult;
         try {
-          aiResult = await this.reasoning.analyzeToken(event as any, enrichedScore.score);
+          aiResult = await this.reasoning.analyzeToken({
+            mint: event.mint,
+            symbol: event.symbol || metadata?.symbol || 'UNKNOWN',
+            name: event.name || metadata?.name || 'UNKNOWN',
+            txType: event.txType,
+            traderPublicKey: event.traderPublicKey,
+            l1Score: enrichedScore.score,
+            vSol: event.vSolInBondingCurve || 0,
+            mcapSol: event.marketCapSol || 0,
+            twitter: metadata?.twitter,
+            website: metadata?.website,
+            telegram: metadata?.telegram,
+            mintRevoked: securityReport?.mintAuthorityRevoked,
+            freezeRevoked: securityReport?.freezeAuthorityRevoked,
+            topHolderPct: securityReport?.topHolderPct,
+            holderCount: securityReport?.holderCount,
+            creatorReputation: rep.reputation,
+            redFlags: enrichedScore.redFlags,
+            tradesPerMinute,
+          });
         } catch {
-          // AI fallback — proceed without AI if OpenAI is down
           aiResult = {
+            verdict: 'WATCH',
             narrative: '[L2 Unavailable] Signal passed L1 heuristic filter only.',
             confidence: 'LOW',
             riskFactors: enrichedScore.redFlags,
@@ -125,6 +144,9 @@ export class IntelligenceEngine extends EventEmitter {
             generatedByAI: false,
           };
         }
+
+        // Confidence gate: AI says REJECT → do NOT emit signal
+        if (aiResult.verdict === 'REJECT') return;
 
         await this.persistEnrichedToken(event, enrichedScore, aiResult.narrative, metadata);
 
