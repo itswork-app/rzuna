@@ -60,7 +60,9 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
       }
 
       if (currentHits > maxRps) {
-        return reply.status(429).send({ error: 'TOO_MANY_REQUESTS', message: `Tier ${tier} limit is ${maxRps} RPS` });
+        return reply
+          .status(429)
+          .send({ error: 'TOO_MANY_REQUESTS', message: `Tier ${tier} limit is ${maxRps} RPS` });
       }
     }
   });
@@ -116,9 +118,10 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
 
     // 1. Platform Fee (AIVO Pure Profit)
     let feeBps = 150; // default 1.5% (Starlight)
-    if (user?.tier === 'DIAMOND' || user?.tier === 'MYTHIC') feeBps = 50; // 0.5% (VIP)
+    if (user?.tier === 'DIAMOND' || user?.tier === 'MYTHIC')
+      feeBps = 50; // 0.5% (VIP)
     else if (user?.tier === 'GOLD' || user?.tier === 'PLATINUM') feeBps = 100; // 1.0%
-    
+
     const feeRate = feeBps / 10000;
     const tradingFeeUSD = amountUSD * feeRate;
 
@@ -126,7 +129,7 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
     const solPrice = await getLiveSOLPrice();
     const jitoTipUSD = (params.jitoTipSOL || 0) * solPrice;
     const networkFeeUSD = (params.networkFeeSOL || 0.000005) * solPrice;
-    
+
     // 3. Final Bundled Cost sent to B2B Client
     // Sesuai rule: Platform fee murni untuk treasury Sasya, lepas dari MEV deduction
     const totalBundledCostUSD = tradingFeeUSD + jitoTipUSD + networkFeeUSD;

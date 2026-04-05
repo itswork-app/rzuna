@@ -188,7 +188,11 @@ export class JupiterService {
    * Strategi: Berhenti memegang token meme yang volatil, langsung konversi ke SOL.
    * Standar: Canonical Master Blueprint v1.6
    */
-  async autoConvertFeeToSOL(tokenMint: string, amountLamports: number, forceSell: boolean = false): Promise<SwapResult> {
+  async autoConvertFeeToSOL(
+    tokenMint: string,
+    amountLamports: number,
+    forceSell: boolean = false,
+  ): Promise<SwapResult> {
     const SOL_MINT = 'So11111111111111111111111111111111111111112';
     if (tokenMint === SOL_MINT) {
       console.info('[Treasury] Fee is already in SOL. Skipping conversion.');
@@ -229,7 +233,10 @@ export class JupiterService {
         };
       }
     } catch (dbError) {
-      console.warn('[Treasury] Intelligence Lookup Failed, proceeding with defensive dump...', dbError);
+      console.warn(
+        '[Treasury] Intelligence Lookup Failed, proceeding with defensive dump...',
+        dbError,
+      );
     }
     // ------------------------------------------
 

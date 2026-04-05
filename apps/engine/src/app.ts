@@ -33,9 +33,7 @@ export const buildApp = async () => {
   await fastify.register(websocket);
   await fastify.register(cors, { origin: true, credentials: true });
   await fastify.register(helmet);
-  const redisConfig = env.REDIS_URL
-    ? { redis: new Redis(env.REDIS_URL) }
-    : {};
+  const redisConfig = env.REDIS_URL ? { redis: new Redis(env.REDIS_URL) } : {};
 
   await fastify.register(rateLimit, {
     ...redisConfig,
