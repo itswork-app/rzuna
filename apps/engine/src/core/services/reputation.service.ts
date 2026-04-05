@@ -132,7 +132,9 @@ export class CreatorReputationService {
 
   /** Stats for monitoring */
   getStats() {
-    let blacklisted = 0, suspicious = 0, trusted = 0;
+    let blacklisted = 0,
+      suspicious = 0,
+      trusted = 0;
     this.profiles.forEach((p) => {
       if (p.reputation === 'BLACKLISTED') blacklisted++;
       else if (p.reputation === 'SUSPICIOUS') suspicious++;

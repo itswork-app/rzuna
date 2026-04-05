@@ -120,8 +120,10 @@ export class IntelligenceEngine extends EventEmitter {
 
         // Record behavior for reputation
         if (event.txType === 'create') this.reputation.recordCreation(creatorWallet);
-        if (enrichedScore.redFlags.includes('DEV_DUMP')) this.reputation.recordRugpull(creatorWallet);
-        if (enrichedScore.redFlags.includes('SELF_BUY')) this.reputation.recordWashTrade(creatorWallet);
+        if (enrichedScore.redFlags.includes('DEV_DUMP'))
+          this.reputation.recordRugpull(creatorWallet);
+        if (enrichedScore.redFlags.includes('SELF_BUY'))
+          this.reputation.recordWashTrade(creatorWallet);
 
         if (enrichedScore.score < this.scorer.L1_THRESHOLD) return;
 

@@ -92,7 +92,9 @@ export class TokenSecurityService {
     }
   }
 
-  private async checkAuthorities(mint: string): Promise<{ mintRevoked: boolean; freezeRevoked: boolean }> {
+  private async checkAuthorities(
+    mint: string,
+  ): Promise<{ mintRevoked: boolean; freezeRevoked: boolean }> {
     const info = await this.connection.getParsedAccountInfo(new PublicKey(mint));
     const data = (info?.value?.data as any)?.parsed?.info;
 
@@ -104,7 +106,9 @@ export class TokenSecurityService {
     };
   }
 
-  private async checkHolderConcentration(mint: string): Promise<{ topHolderPct: number; holderCount: number }> {
+  private async checkHolderConcentration(
+    mint: string,
+  ): Promise<{ topHolderPct: number; holderCount: number }> {
     try {
       const accounts = await this.connection.getTokenLargestAccounts(new PublicKey(mint));
       const holders = accounts.value;

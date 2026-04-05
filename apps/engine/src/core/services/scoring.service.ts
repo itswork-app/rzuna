@@ -57,8 +57,10 @@ export class ScoringService {
 
     // ── Token Age (injected by engine) ──
     if (event._ageMinutes !== undefined) {
-      if (event._ageMinutes < 1) score -= 5; // Too new, risky
-      else if (event._ageMinutes >= 5 && event._ageMinutes <= 60) score += 3; // Sweet spot
+      if (event._ageMinutes < 1)
+        score -= 5; // Too new, risky
+      else if (event._ageMinutes >= 5 && event._ageMinutes <= 60)
+        score += 3; // Sweet spot
       else if (event._ageMinutes > 1440) score -= 3; // Stale (>24hr)
     }
 
@@ -81,7 +83,11 @@ export class ScoringService {
     // ═══════════════════════════════════════════
 
     // R1: Developer dumping their own token
-    if (event.txType === 'sell' && event.traderPublicKey && event.traderPublicKey === event.devPublicKey) {
+    if (
+      event.txType === 'sell' &&
+      event.traderPublicKey &&
+      event.traderPublicKey === event.devPublicKey
+    ) {
       score = Math.min(score, 20);
       redFlags.push('DEV_DUMP');
     }
@@ -110,7 +116,11 @@ export class ScoringService {
     // ═══════════════════════════════════════════
 
     // W1: Buyer is the same as the token creator (self-buying to inflate volume)
-    if (event.txType === 'buy' && event.traderPublicKey && event.traderPublicKey === event.devPublicKey) {
+    if (
+      event.txType === 'buy' &&
+      event.traderPublicKey &&
+      event.traderPublicKey === event.devPublicKey
+    ) {
       score -= 20;
       redFlags.push('SELF_BUY');
     }
@@ -122,7 +132,11 @@ export class ScoringService {
     }
 
     // W3: Rapid successive same-wallet transactions (bot pattern)
-    if (event.txType === 'buy' && event.traderPublicKey && event.traderPublicKey === event.bondingCurveKey) {
+    if (
+      event.txType === 'buy' &&
+      event.traderPublicKey &&
+      event.traderPublicKey === event.bondingCurveKey
+    ) {
       score -= 15;
       redFlags.push('BOT_PATTERN');
     }
