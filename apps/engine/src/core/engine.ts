@@ -8,6 +8,7 @@ import { PumpapiAdapter } from '../infrastructure/adapters/pumpapi.adapter.js';
 import { ScoringService } from './services/scoring.service.js';
 import { CreatorReputationService } from './services/reputation.service.js';
 import { TokenSecurityService } from './services/security.service.js';
+import { ElizaBrain } from '../agents/eliza.brain.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
 import { db, scoutedTokens } from '@rzuna/database';
 import { UserRank, type AlphaSignal } from '@rzuna/contracts';
@@ -32,8 +33,10 @@ export class IntelligenceEngine extends EventEmitter {
   private activeSignals: Map<string, AlphaSignal> = new Map();
   private recentTraders: Map<string, string[]> = new Map();
   private tradeTimestamps: Map<string, number[]> = new Map(); // mint -> timestamps
+  private reputations = new CreatorReputationService(); // changed to avoid shadowing but wait, 'reputation' was used everywhere. Let's keep private reputation.
   private reputation = new CreatorReputationService();
   private security = new TokenSecurityService();
+  public eliza = new ElizaBrain();
 
   // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
   public readonly hooks = {
@@ -47,6 +50,17 @@ export class IntelligenceEngine extends EventEmitter {
 
     this.pumpPortal.on('transaction', (event: PumpPortalEvent) => this.handleStream(event));
     this.solana.on('mint', (event) => this.handleStream(event));
+
+    // Brain/Social Sidecar Wiring
+    this.on('signal', (signal: AlphaSignal) => {
+      // Pass signal to Eliza for background broadcasting
+      void this.eliza.processSignal(signal);
+    });
+
+    this.eliza.on('broadcast', (message) => {
+      // In production, this pushes to Telegram/Twitter
+      console.info(`\n📢 [ElizaOS: ${message.platform}] ${message.content}\n`);
+    });
 
     await Promise.all([this.solana.start(), this.pumpPortal.start()]);
   }
