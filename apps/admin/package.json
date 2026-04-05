@@ -16,16 +16,16 @@
     "@rzuna/ui": "workspace:*",
     "@sentry/nextjs": "^10.47.0",
     "lucide-react": "^0.475.0",
-    "next": "15.2.1",
+    "next": "15.5.7",
     "next-axiom": "^1.10.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react": "19.0.1",
+    "react-dom": "19.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.5.2",
-    "@types/react": "19.0.0",
-    "@types/react-dom": "19.0.0",
+    "@types/react": "19.0.1",
+    "@types/react-dom": "19.0.1",
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
