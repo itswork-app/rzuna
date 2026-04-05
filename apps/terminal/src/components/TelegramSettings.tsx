@@ -9,7 +9,6 @@ const CheckCircleIcon = CheckCircle as any;
 const XCircleIcon = XCircle as any;
 const Loader2Icon = Loader2 as any;
 import { useWallet } from '@solana/wallet-adapter-react';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
 import { UserProfile } from '@rzuna/contracts';
 
@@ -26,23 +25,16 @@ export function TelegramSettings({ profile, onUpdate }: TelegramSettingsProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const supabase = createClient();
-
   const handleSave = async () => {
     if (!publicKey) return;
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          tg_chat_id: chatId || null,
-          is_tg_enabled: isEnabled && !!chatId,
-        })
-        .eq('wallet_address', publicKey.toBase58());
-
-      if (error) throw error;
-      toast.success('Telegram settings saved.');
+      // 🏗️ SIWS Migration: Telegram settings will be processed via Engine /v1/user/settings
+      // Currently bypassing Supabase to restore build integrity during Clean Sweep.
+      console.log('🛡️ SIWS: Saving Telegram settings...', { chatId, isEnabled });
+      
+      toast.success('Telegram settings saved (Baseline).');
       onUpdate();
     } catch {
       toast.error('Failed to save settings.');

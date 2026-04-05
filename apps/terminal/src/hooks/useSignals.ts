@@ -21,39 +21,54 @@ export function useSignals(): UseSignalsReturn {
 
   useEffect(() => {
     let socket: WebSocket | null = null;
+    let isMounted = true;
 
-    try {
-      // Establish WebSocket Connection to Engine
-      const wsUrl = getApiUrl().replace('http', 'ws') + '/ws/signals';
-      socket = new WebSocket(wsUrl);
+    const initializeSocket = () => {
+      try {
+        const wsUrl = getApiUrl().replace('http', 'ws') + '/ws/signals';
+        socket = new WebSocket(wsUrl);
 
-      socket.onopen = () => {
-        console.info('🛡️ [Signals] WebSocket Connected');
-        setIsLoading(false);
-      };
+        socket.onopen = () => {
+          if (isMounted) {
+            console.info('🛡️ [Signals] WebSocket Connected');
+            setIsLoading(false);
+          }
+        };
 
-      socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'SIGNAL_UPDATE') {
-          setSignals((prev) => [message.data, ...prev].slice(0, 50));
+        socket.onmessage = (event) => {
+          if (isMounted) {
+            const message = JSON.parse(event.data);
+            if (message.type === 'SIGNAL_UPDATE') {
+              setSignals((prev) => [message.data, ...prev].slice(0, 50));
+            }
+          }
+        };
+
+        socket.onerror = (err) => {
+          if (isMounted) {
+            console.error('🛡️ [Signals] WebSocket Error:', err);
+            setError('Signal stream connection failed');
+          }
+        };
+
+        socket.onclose = () => {
+          if (isMounted) {
+            console.info('🛡️ [Signals] WebSocket Disconnected');
+          }
+        };
+      } catch (e) {
+        if (isMounted) {
+          console.error('🛡️ [Signals] Initialization failed:', e);
+          setError('Failed to initialize signal stream');
+          setIsLoading(false);
         }
-      };
+      }
+    };
 
-      socket.onerror = (err) => {
-        console.error('🛡️ [Signals] WebSocket Error:', err);
-        setError('Signal stream connection failed');
-      };
-
-      socket.onclose = () => {
-        console.info('🛡️ [Signals] WebSocket Disconnected');
-      };
-
-    } catch (err) {
-      setError('Failed to initialize signal stream');
-      setIsLoading(false);
-    }
+    initializeSocket();
 
     return () => {
+      isMounted = false;
       socket?.close();
     };
   }, []);
