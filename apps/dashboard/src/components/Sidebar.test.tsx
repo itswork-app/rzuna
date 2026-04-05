@@ -2,15 +2,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Sidebar } from './Sidebar';
 
-// 🏛️ Mock Privy Auth
-vi.mock('@privy-io/react-auth', () => ({
-  usePrivy: () => ({
-    authenticated: true,
-    user: { wallet: { address: '0x1234567890abcdef' } },
-    login: vi.fn(),
-    logout: vi.fn(),
-    ready: true,
+// 🏛️ Mock Solana Wallet Adapter
+vi.mock('@solana/wallet-adapter-react', () => ({
+  useWallet: () => ({
+    connected: true,
+    publicKey: { toBase58: () => '0x1234567890abcdef' },
+    disconnect: vi.fn(),
+    sendTransaction: vi.fn(),
   }),
+}));
+
+vi.mock('@solana/wallet-adapter-react-ui', () => ({
+  useWalletModal: () => ({
+    setVisible: vi.fn(),
+  }),
+  WalletMultiButton: () => <button>Connect Wallet</button>,
 }));
 
 vi.mock('next/navigation', () => ({

@@ -60,7 +60,7 @@ export function useTrade(): UseTradeReturn {
         setIsExecuting(false);
       }
     },
-    [publicKey],
+    [publicKey, connection, isExecuting],
   );
 
   return { executeTrade, isExecuting };

@@ -2,6 +2,11 @@ import React from 'react';
 import { Activity, Zap, Shield } from 'lucide-react';
 import { UserProfile } from '@rzuna/contracts';
 
+// Cast icons for React 19 compatibility
+const ActivityIcon = Activity as any;
+const ZapIcon = Zap as any;
+const ShieldIcon = Shield as any;
+
 interface UserStatsProps {
   profile: UserProfile | null;
   isLoading: boolean;
@@ -33,7 +38,7 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
       <div className="bg-[#1a1a2e]/50 border border-cyan-500/10 rounded-xl p-6 backdrop-blur-sm shadow-xl">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-cyan-500/10 rounded-lg text-cyan-400">
-            <Activity className="w-6 h-6" />
+            <ActivityIcon className="w-6 h-6" />
           </div>
           <div>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
@@ -51,7 +56,7 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
       <div className="bg-[#1a1a2e]/50 border border-purple-500/10 rounded-xl p-6 backdrop-blur-sm shadow-xl">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400">
-            <Zap className="w-6 h-6" />
+            <ZapIcon className="w-6 h-6" />
           </div>
           <div>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
@@ -74,7 +79,7 @@ export function UserStats({ profile, isLoading }: UserStatsProps) {
       <div className="bg-[#1a1a2e]/50 border border-amber-500/10 rounded-xl p-6 backdrop-blur-sm shadow-xl">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400">
-            <Shield className="w-6 h-6" />
+            <ShieldIcon className="w-6 h-6" />
           </div>
           <div>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Trust Rank</p>

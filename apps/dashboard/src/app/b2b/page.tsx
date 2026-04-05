@@ -1,8 +1,8 @@
-// @ts-nocheck
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useState, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import React, { useState, useEffect } from 'react';
 import { SystemProgram, Transaction, PublicKey } from '@solana/web3.js';
 import {
   Zap,
@@ -35,8 +35,8 @@ import Link from 'next/link';
  * Wired directly to @rzuna/database Server Actions.
  */
 export default function DashboardPage() {
-  const { login, authenticated, ready, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { connected, publicKey } = useWallet();
+  const { setVisible } = useWalletModal();
 
   // App State
   const [internalUserId, setInternalUserId] = useState<string | null>(null);
@@ -54,19 +54,34 @@ export default function DashboardPage() {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Cast Icons for React 19
+  const ZapIcon = Zap as any;
+  const ShieldIcon = ShieldCheck as any;
+  const TrendingIcon = TrendingUp as any;
+  const GlobeIcon = Globe as any;
+  const ArrowIcon = ArrowRight as any;
+  const PlusIcon = Plus as any;
+  const KeyIcon = Key as any;
+  const CopyIcon = Copy as any;
+  const CheckIcon = CheckCircle2 as any;
+  const AlertIcon = AlertCircle as any;
+  const LoaderIcon = Loader2 as any;
+  const NavLink = Link as any;
+
   // 1. Sync User on Login
   useEffect(() => {
     async function syncUser() {
-      if (authenticated && user?.wallet?.address) {
+      if (connected && publicKey) {
+        const address = publicKey.toBase58();
         setLoading(true);
-        const res = await syncUserAction(user.wallet.address);
+        const res = await syncUserAction(address);
         if (res.success && res.userId) {
           setInternalUserId(res.userId);
         }
       }
     }
     syncUser();
-  }, [authenticated, user]);
+  }, [connected, publicKey]);
 
   // 2. Fetch Board State after User is Synced
   useEffect(() => {
@@ -88,7 +103,6 @@ export default function DashboardPage() {
     if (!internalUserId) return;
     setErrorMsg(null);
 
-    // We can show button spinner here if preferred, but for now we'll do basic blocking
     const res = await generateApiKeyAction(internalUserId, newKeyName || 'New API Key');
 
     if (res.success && res.rawKey && res.key) {
@@ -108,13 +122,11 @@ export default function DashboardPage() {
     }
   };
 
-  if (!ready) return null;
-
-  if (!authenticated) {
+  if (!connected) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
         <div className="w-20 h-20 bg-blue-600/10 rounded-3xl flex items-center justify-center mb-8 animate-pulse text-blue-500">
-          <ShieldCheck className="w-10 h-10" />
+          <ShieldIcon className="w-10 h-10" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-4 bg-linear-to-br from-white to-slate-400 bg-clip-text text-transparent">
           Institutional B2B Access
@@ -124,10 +136,10 @@ export default function DashboardPage() {
           the AIVO Protocol.
         </p>
         <button
-          onClick={login}
+          onClick={() => setVisible(true)}
           className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-10 rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center gap-2 text-lg"
         >
-          Connect via Privy <ArrowRight className="w-5 h-5" />
+          Connect Wallet <ArrowIcon className="w-5 h-5" />
         </button>
       </div>
     );
@@ -136,7 +148,7 @@ export default function DashboardPage() {
   if (loading && !internalUserId) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        <LoaderIcon className="w-8 h-8 text-blue-500 animate-spin" />
       </div>
     );
   }
@@ -146,31 +158,31 @@ export default function DashboardPage() {
       <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 mb-10">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link
+            <NavLink
               href="/"
               className="font-bold text-xl tracking-tight text-white flex items-center gap-2"
             >
-              <Zap className="w-6 h-6 text-blue-500 fill-current" /> RZUNA
-            </Link>
+              <ZapIcon className="w-6 h-6 text-blue-500 fill-current" /> RZUNA
+            </NavLink>
 
             <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
-              <Link
+              <NavLink
                 href="/"
                 className="px-4 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-colors"
               >
                 Screener
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 href="/b2b"
                 className="px-4 py-1.5 text-sm font-medium rounded-md bg-slate-800 text-white shadow-sm flex items-center gap-2"
               >
-                API Portal <Zap className="w-3.5 h-3.5" />
-              </Link>
+                API Portal <ZapIcon className="w-3.5 h-3.5" />
+              </NavLink>
             </div>
           </div>
           <div className="flex items-center">
             <div className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg font-mono text-xs text-slate-300">
-              {user?.wallet?.address.slice(0, 4)}...{user?.wallet?.address.slice(-4)}
+              {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
             </div>
           </div>
         </div>
@@ -194,32 +206,31 @@ export default function DashboardPage() {
               }}
               className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" /> Generate API Key
+              <PlusIcon className="w-4 h-4" /> Generate API Key
             </button>
           </div>
         </header>
 
-        {/* 📊 Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
               label: 'API Calls (Lifetime)',
               value: usageStats.apiCalls,
-              icon: Zap,
+              icon: ZapIcon,
               color: 'text-yellow-500',
               bg: 'bg-yellow-500/10',
             },
             {
               label: 'AI Credits Used',
               value: usageStats.credits,
-              icon: ShieldCheck,
+              icon: ShieldIcon,
               color: 'text-blue-500',
               bg: 'bg-blue-500/10',
             },
             {
               label: 'B2B Trading Volume',
               value: usageStats.volume,
-              icon: TrendingUp,
+              icon: TrendingIcon,
               color: 'text-green-500',
               bg: 'bg-green-500/10',
             },
@@ -231,7 +242,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start mb-4">
                 <span className="text-slate-400 font-medium text-sm">{stat.label}</span>
                 <div className={`${stat.bg} ${stat.color} p-2 rounded-lg`}>
-                  <stat.icon className="w-5 h-5" />
+                   {React.createElement(stat.icon, { className: "w-5 h-5" })}
                 </div>
               </div>
               <p className="text-3xl font-bold text-slate-100 tracking-tight">{stat.value}</p>
@@ -243,7 +254,7 @@ export default function DashboardPage() {
           <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4">
               <div className="bg-green-500/20 p-3 rounded-xl text-green-500">
-                <Key className="w-6 h-6" />
+                <KeyIcon className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-green-400 font-bold">New API Key Generated!</p>
@@ -263,7 +274,7 @@ export default function DashboardPage() {
                 }}
                 className="text-slate-400 hover:text-white transition-colors shrink-0"
               >
-                <Copy className="w-4 h-4" />
+                <CopyIcon className="w-4 h-4" />
               </button>
             </div>
             <button
@@ -275,7 +286,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 🔑 API Keys List Table */}
         {apiKeys.length > 0 && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-800">
@@ -289,7 +299,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
-                      <Key className="w-4 h-4" />
+                      <KeyIcon className="w-4 h-4" />
                     </div>
                     <div>
                       <p className="text-slate-200 font-medium">{k.name}</p>
@@ -308,7 +318,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Tiers & Upgrade Logic */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl overflow-hidden relative">
             <div className="absolute top-0 right-0 p-8">
@@ -327,26 +336,20 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={async () => {
-                if (!authenticated || !user?.wallet?.address) {
-                  login();
+                if (!connected || !publicKey) {
+                  setVisible(true);
                   return;
                 }
                 try {
-                  const activeWallet =
-                    wallets.find((w) => w.walletClientType === 'phantom') || wallets[0];
-                  if (!activeWallet) throw new Error('No Solana wallet connected');
-
-                  // Constructing the pure Web3 Transaction
                   const tx = new Transaction().add(
                     SystemProgram.transfer({
-                      fromPubkey: new PublicKey(user.wallet.address),
-                      toPubkey: new PublicKey('TREASuryY3h175xSGEpB78S98wXn7WjYzwH8RkZ1L'), // Rzuna B2B Treasury
-                      lamports: 1_000_000_000, // 1.0 SOL (Updated Shortcut Fee)
+                      fromPubkey: publicKey,
+                      toPubkey: new PublicKey('TREASuryY3h175xSGEpB78S98wXn7WjYzwH8RkZ1L'),
+                      lamports: 1_000_000_000,
                     }),
                   );
-
                   alert(
-                    `Solana Transaction Built!\nTransferring 1.0 SOL to TREASury...\n\n(Privy Wallet Gateway is now ready to sign payload: ${tx.compileMessage().serialize().toString('base64').slice(0, 50)}...)`,
+                    `Solana Transaction Built!\nTransferring 1.0 SOL to TREASury...\n\n(Native Wallet is now ready to sign payload.)`,
                   );
                 } catch (err) {
                   alert('Transaction Failed: ' + (err as Error).message);
@@ -354,14 +357,13 @@ export default function DashboardPage() {
               }}
               className="w-full bg-slate-100 hover:bg-white text-slate-950 font-bold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Pay with Solana Pay <Zap className="w-4 h-4 fill-current" />
+              Pay with Solana Pay <ZapIcon className="w-4 h-4 fill-current" />
             </button>
           </div>
 
-          {/* 📚 Integration Quickstart */}
           <div className="bg-blue-600/5 border border-blue-600/20 p-8 rounded-2xl">
             <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-blue-500" /> Integration Quickstart
+              <ZapIcon className="w-5 h-5 text-blue-500" /> Integration Quickstart
             </h2>
             <div className="bg-slate-950 p-6 rounded-xl font-mono text-sm leading-relaxed border border-slate-800 overflow-x-auto shadow-inner">
               <span className="text-blue-400">import</span> {'{ AivoClient }'}{' '}
@@ -379,13 +381,12 @@ export default function DashboardPage() {
               <span className="text-slate-500">// Subscribe to High-Alpha Signals</span>
               <br />
               client.<span className="text-yellow-400">on</span>(
-              <span className="text-green-400">'signal'</span>, (signal) {'=>'} console.
+              <span className="text-green-400">'signal'</span>, (signal) =&gt; console.
               <span className="text-yellow-400">log</span>(signal));
             </div>
           </div>
         </div>
 
-        {/* Modal Backdrop (Active) */}
         {showKeyModal && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -396,7 +397,7 @@ export default function DashboardPage() {
 
               {errorMsg && (
                 <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-6 flex items-start gap-2 text-red-500 text-sm">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <AlertIcon className="w-4 h-4 mt-0.5 shrink-0" />
                   <p>{errorMsg}</p>
                 </div>
               )}

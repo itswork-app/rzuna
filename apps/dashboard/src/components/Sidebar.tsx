@@ -1,7 +1,7 @@
 'use client';
 
-import { LayoutDashboard, Key, BarChart3, Settings, LogOut } from 'lucide-react';
-import { usePrivy } from '@privy-io/react-auth';
+import * as Lucide from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -10,17 +10,20 @@ import { cn } from '@/lib/utils';
  * 🏛️ Sidebar: Navigation & Identity (Institutional v22.1)
  */
 export function Sidebar() {
-  const { logout, user, authenticated } = usePrivy();
+  const { disconnect, publicKey, connected } = useWallet();
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Overview', icon: LayoutDashboard, href: '/' },
-    { label: 'API Keys', icon: Key, href: '/keys' },
-    { label: 'Usage', icon: BarChart3, href: '/usage' },
-    { label: 'Settings', icon: Settings, href: '/settings' },
+    { label: 'Overview', icon: Lucide.LayoutDashboard as any, href: '/' },
+    { label: 'API Keys', icon: Lucide.Key as any, href: '/keys' },
+    { label: 'Usage', icon: Lucide.BarChart3 as any, href: '/usage' },
+    { label: 'Settings', icon: Lucide.Settings as any, href: '/settings' },
   ];
 
-  if (!authenticated) return null;
+  if (!connected) return null;
+
+  const address = publicKey?.toBase58();
+  const LogOutIcon = Lucide.LogOut as any;
 
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl flex flex-col p-4 h-screen sticky top-0">
@@ -33,10 +36,11 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
-          const Icon = item.icon;
+          const Icon = item.icon as any;
           const isActive = pathname === item.href;
+          const NavLink = Link as any;
           return (
-            <Link
+            <NavLink
               key={item.href}
               href={item.href}
               className={cn(
@@ -53,7 +57,7 @@ export function Sidebar() {
                 )}
               />
               {item.label}
-            </Link>
+            </NavLink>
           );
         })}
       </nav>
@@ -64,14 +68,14 @@ export function Sidebar() {
             Account
           </p>
           <p className="text-sm text-slate-300 truncate font-mono">
-            {user?.wallet?.address?.slice(0, 6)}...{user?.wallet?.address?.slice(-4)}
+            {address?.slice(0, 6)}...{address?.slice(-4)}
           </p>
         </div>
         <button
-          onClick={logout}
+          onClick={() => disconnect()}
           className="flex items-center gap-3 px-3 py-2 w-full text-left text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
         >
-          <LogOut className="w-5 h-5" />
+          {LogOutIcon && <LogOutIcon className="w-5 h-5" />}
           Disconnect
         </button>
       </div>

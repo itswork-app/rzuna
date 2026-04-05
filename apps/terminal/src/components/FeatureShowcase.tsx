@@ -58,7 +58,10 @@ export function FeatureShowcase() {
           <div
             className={`w-12 h-12 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
           >
-            <feature.icon size={24} className={`text-${feature.color}-400`} />
+            {React.createElement(feature.icon as any, {
+              size: 24,
+              className: `text-${feature.color}-400`,
+            })}
           </div>
           <h4 className="text-xl font-bold mb-3 text-white tracking-tight">{feature.title}</h4>
           <p className="text-zinc-500 text-sm leading-relaxed font-medium">{feature.desc}</p>

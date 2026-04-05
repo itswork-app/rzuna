@@ -16,6 +16,14 @@ import posthog from 'posthog-js';
 
 import { TokenSignal as Signal } from '@rzuna/contracts';
 
+// Cast icons for React 19 compatibility
+const ArrowRightIcon = ArrowRight as any;
+const ShieldCheckIcon = ShieldCheck as any;
+const ZapIcon = Zap as any;
+const BrainIcon = Brain as any;
+const LockIcon = Lock as any;
+const ExternalLinkIcon = ExternalLink as any;
+
 export default function MarketingPage() {
   const { connected } = useWallet();
   const { isAuthenticated, isAuthenticating, login } = useAuth();
@@ -45,6 +53,8 @@ export default function MarketingPage() {
   const displaySignals = liveSignals.length > 0 ? liveSignals : signals;
   const marketingSignals = displaySignals.slice(0, 2);
 
+  const NavLink = Link as any;
+
   return (
     <main className="min-h-screen bg-[#050510] text-gray-100 selection:bg-cyan-500/30 overflow-x-hidden">
       {/* 1. HERO SECTION */}
@@ -60,7 +70,7 @@ export default function MarketingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full mb-8 backdrop-blur-md"
           >
-            <ShieldCheck size={16} className="text-cyan-400" />
+            <ShieldCheckIcon size={16} className="text-cyan-400" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">
               Institutional Grade Scouting Active
             </span>
@@ -73,7 +83,7 @@ export default function MarketingPage() {
             className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8"
           >
             Institutional <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500">
+            <span className="bg-clip-text text-transparent bg-linear-to-r from-cyan-400 via-indigo-400 to-purple-500">
               Alpha Intelligence
             </span>
           </motion.h1>
@@ -95,7 +105,7 @@ export default function MarketingPage() {
             className="flex flex-col md:flex-row items-center justify-center gap-4"
           >
             {!connected ? (
-              <WalletMultiButton className="!bg-white !text-black !h-14 !px-8 !rounded-2xl !font-black !uppercase !tracking-widest !transition-all hover:!opacity-90 active:!scale-95" />
+              <WalletMultiButton className="bg-white! text-black! h-14! px-8! rounded-2xl! font-black! uppercase! tracking-widest! transition-all! hover:opacity-90! active:scale-95!" />
             ) : !isAuthenticated ? (
               <button
                 onClick={login}
@@ -106,27 +116,27 @@ export default function MarketingPage() {
                   'Authorizing...'
                 ) : (
                   <>
-                    Sign Mission Order <ArrowRight size={20} />
+                    Sign Mission Order <ArrowRightIcon size={20} />
                   </>
                 )}
               </button>
             ) : (
-              <Link
+              <NavLink
                 href="/dashboard"
                 className="h-14 px-10 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
               >
-                Access Dashboard <ExternalLink size={20} />
-              </Link>
+                Access Dashboard <ExternalLinkIcon size={20} />
+              </NavLink>
             )}
           </motion.div>
         </div>
 
         {/* Floating Icons Decoration */}
         <div className="absolute top-[20%] left-[10%] opacity-20 hidden md:block">
-          <Brain size={48} className="text-zinc-500" />
+          <BrainIcon size={48} className="text-zinc-500" />
         </div>
         <div className="absolute bottom-[20%] right-[10%] opacity-20 hidden md:block">
-          <Zap size={48} className="text-zinc-500" />
+          <ZapIcon size={48} className="text-zinc-500" />
         </div>
       </section>
 
@@ -154,27 +164,31 @@ export default function MarketingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
             {/* Blur Overlay for marketing */}
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-full bg-transparent backdrop-blur-[4px] border border-white/5 rounded-[40px] flex items-center justify-center">
+              <div className="w-full h-full bg-transparent backdrop-blur-xs border border-white/5 rounded-[40px] flex items-center justify-center">
                 <div className="bg-black/80 border border-white/10 p-8 rounded-[32px] text-center backdrop-blur-xl shadow-2xl pointer-events-auto">
-                  <Lock size={48} className="text-cyan-400 mx-auto mb-6" />
+                  <LockIcon size={48} className="text-cyan-400 mx-auto mb-6" />
                   <h3 className="text-2xl font-black mb-2 uppercase">Deep Narrative Locked</h3>
                   <p className="text-zinc-500 text-sm mb-8 font-medium italic">
                     Subscription required for L2 AI reasoning and real-time execution.
                   </p>
-                  <Link
+                  <NavLink
                     href="#pricing"
-                    onClick={() => posthog.capture('PRICING_VIEW_CLICK', { source: 'signal_blur' })}
+                    onClick={(e: any) => {
+                      e.preventDefault();
+                      posthog.capture('PRICING_VIEW_CLICK', { source: 'signal_blur' });
+                      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                     className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 px-6 py-3 rounded-xl font-bold uppercase tracking-widest transition-all"
                   >
-                    See Pricing <ArrowRight size={16} />
-                  </Link>
+                    See Pricing <ArrowRightIcon size={16} />
+                  </NavLink>
                 </div>
               </div>
             </div>
 
             {marketingSignals.map((signal) => (
               <TokenCard
-                key={signal.id || signal.event.mint}
+                key={signal.id || (signal as any).event?.mint}
                 signal={signal}
                 onConsumeQuota={() => {}}
                 sensorMode={!isAuthenticated}

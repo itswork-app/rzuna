@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   description: 'The narrative scarcity engine for the Solana high-stakes market.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: any }) {
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -26,9 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <AuthProvider>
                 <RefineProvider>{children}</RefineProvider>
               </AuthProvider>
-              <Toaster
-                position="bottom-right"
-                toastOptions={{
+              {React.createElement(Toaster as any, {
+                position: 'bottom-right',
+                toastOptions: {
                   style: {
                     background: '#0a0a18',
                     color: '#fff',
@@ -36,8 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     fontFamily: 'Inter, sans-serif',
                     fontSize: '14px',
                   },
-                }}
-              />
+                },
+              }) as any}
             </SafeTelemetry>
           </WalletContextProvider>
         </GlobalErrorBoundary>

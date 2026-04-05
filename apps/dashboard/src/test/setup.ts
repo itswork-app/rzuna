@@ -10,12 +10,18 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@privy-io/react-auth', () => ({
-  usePrivy: () => ({
-    authenticated: true,
-    user: { wallet: { address: '0x123' } },
-    login: vi.fn(),
-    logout: vi.fn(),
-    ready: true,
+vi.mock('@solana/wallet-adapter-react', () => ({
+  useWallet: () => ({
+    connected: true,
+    publicKey: { toBase58: () => '0x123' },
+    disconnect: vi.fn(),
+    sendTransaction: vi.fn(),
   }),
+}));
+
+vi.mock('@solana/wallet-adapter-react-ui', () => ({
+  useWalletModal: () => ({
+    setVisible: vi.fn(),
+  }),
+  WalletMultiButton: () => 'Connect Wallet',
 }));

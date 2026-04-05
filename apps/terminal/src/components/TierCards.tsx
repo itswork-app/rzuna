@@ -70,7 +70,10 @@ export function TierCards({ onUpgrade }: { onUpgrade: (id: string, price: number
           <div
             className={`w-14 h-14 bg-${tier.color}-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
           >
-            <tier.icon size={28} className={`text-${tier.color}-400`} />
+            {React.createElement(tier.icon as any, {
+              size: 28,
+              className: `text-${tier.color}-400`,
+            })}
           </div>
 
           <h3 className="text-2xl font-bold mb-2 text-white">{tier.name}</h3>
@@ -78,10 +81,13 @@ export function TierCards({ onUpgrade }: { onUpgrade: (id: string, price: number
             {tier.price} <span className="text-sm font-bold text-zinc-500">USDC/MO</span>
           </div>
 
-          <ul className="space-y-4 mb-10 flex-grow">
+          <ul className="space-y-4 mb-10 grow">
             {tier.perks.map((perk) => (
               <li key={perk} className="flex items-center gap-3 text-zinc-400 text-sm font-medium">
-                <Check size={16} className="text-green-500 shrink-0" />
+                {React.createElement(Check as any, {
+                  size: 16,
+                  className: 'text-green-500 shrink-0',
+                })}
                 {perk}
               </li>
             ))}
