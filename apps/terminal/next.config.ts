@@ -3,7 +3,9 @@ import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
+  experimental: {
+    reactCompiler: true,
+  },
   // Sentry options for Next.js
   // https://github.com/getsentry/sentry-javascript/blob/develop/packages/nextjs/src/config/types.ts
 };

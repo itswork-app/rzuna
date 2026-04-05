@@ -1,47 +1,35 @@
-import React from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Instrument_Sans } from 'next/font/google';
 import './globals.css';
-import { WalletContextProvider } from '@/components/WalletContextProvider';
-import { SafeTelemetry } from '@/components/SafeTelemetry';
-
-import { AuthProvider } from '@/components/AuthProvider';
-import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
-import { RefineProvider } from '@/components/RefineProvider';
+import { Providers } from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ subsets: ['latin'] });
+const instrument = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
-  title: 'rzuna — Institutional AI Alpha',
-  description: 'The narrative scarcity engine for the Solana high-stakes market.',
+  title: 'RZUNA | Institutional Interface',
+  description: 'The front-line terminal for the RZUNA Alpha Protocol.',
 };
 
-export default function RootLayout({ children }: { children: any }) {
+/**
+ * 🏛️ Terminal Layout: The Constitutional Root (Institutional v22.1)
+ * Standardized with Sentry, Axiom, and Solana Providers.
+ */
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <GlobalErrorBoundary>
-          <WalletContextProvider>
-            <SafeTelemetry>
-              <AuthProvider>
-                <RefineProvider>{children}</RefineProvider>
-              </AuthProvider>
-              {React.createElement(Toaster as any, {
-                position: 'bottom-right',
-                toastOptions: {
-                  style: {
-                    background: '#0a0a18',
-                    color: '#fff',
-                    border: '1px solid rgba(6,182,212,0.2)',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '14px',
-                  },
-                },
-              }) as any}
-            </SafeTelemetry>
-          </WalletContextProvider>
-        </GlobalErrorBoundary>
+    <html lang="en" className="dark h-full">
+      <body className={`${instrument.variable} font-sans antialiased bg-slate-950 text-slate-100 h-full`}>
+        <Providers>
+          {children}
+          <Toaster position="bottom-right" />
+        </Providers>
       </body>
     </html>
   );
