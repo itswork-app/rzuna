@@ -16,8 +16,10 @@
     "ws": "latest"
   },
   "devDependencies": {
-    "@types/node": "^22.5.2",
+    "@types/node": "^25.5.2",
     "@types/ws": "latest",
-    "typescript": "latest"
+    "@vitest/coverage-v8": "^4.1.2",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.2"
   }
 }

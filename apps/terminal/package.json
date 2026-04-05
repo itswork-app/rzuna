@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.21.0",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-slot": "^1.2.4",
     "@refinedev/core": "^5.0.12",
@@ -38,8 +38,8 @@
     "next": "15.2.1",
     "next-axiom": "^1.10.0",
     "posthog-js": "^1.364.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "react-hot-toast": "^2.6.0",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
@@ -58,7 +58,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.27",
-    "babel-plugin-react-compiler": "1.0.0",
+
     "eslint": "^9.21.0",
     "eslint-config-next": "15.2.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -74,7 +74,7 @@
     "vitest": "^4.1.2"
   },
   "engines": {
-    "node": "20.x",
-    "pnpm": "^8.15.4"
+    "node": ">=20.0.0",
+    "pnpm": ">=8.15.4"
   }
 }

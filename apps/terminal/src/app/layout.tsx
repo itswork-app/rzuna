@@ -27,18 +27,20 @@ export default function RootLayout({ children }: { children: any }) {
               <AuthProvider>
                 <RefineProvider>{children}</RefineProvider>
               </AuthProvider>
-              {React.createElement(Toaster as any, {
-                position: 'bottom-right',
-                toastOptions: {
-                  style: {
-                    background: '#0a0a18',
-                    color: '#fff',
-                    border: '1px solid rgba(6,182,212,0.2)',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '14px',
+              {
+                React.createElement(Toaster as any, {
+                  position: 'bottom-right',
+                  toastOptions: {
+                    style: {
+                      background: '#0a0a18',
+                      color: '#fff',
+                      border: '1px solid rgba(6,182,212,0.2)',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '14px',
+                    },
                   },
-                },
-              }) as any}
+                }) as any
+              }
             </SafeTelemetry>
           </WalletContextProvider>
         </GlobalErrorBoundary>

@@ -242,7 +242,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start mb-4">
                 <span className="text-slate-400 font-medium text-sm">{stat.label}</span>
                 <div className={`${stat.bg} ${stat.color} p-2 rounded-lg`}>
-                   {React.createElement(stat.icon, { className: "w-5 h-5" })}
+                  {React.createElement(stat.icon, { className: 'w-5 h-5' })}
                 </div>
               </div>
               <p className="text-3xl font-bold text-slate-100 tracking-tight">{stat.value}</p>

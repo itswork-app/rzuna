@@ -112,15 +112,24 @@ export default function HomeB2C() {
       <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <NavLink href="/" className="font-bold text-xl tracking-tight text-white flex items-center gap-2">
+            <NavLink
+              href="/"
+              className="font-bold text-xl tracking-tight text-white flex items-center gap-2"
+            >
               <ZapIcon className="w-6 h-6 text-green-500 fill-current" /> RZUNA
             </NavLink>
 
             <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
-              <NavLink href="/" className="px-4 py-1.5 text-sm font-medium rounded-md bg-slate-800 text-white shadow-sm">
+              <NavLink
+                href="/"
+                className="px-4 py-1.5 text-sm font-medium rounded-md bg-slate-800 text-white shadow-sm"
+              >
                 Screener
               </NavLink>
-              <NavLink href="/b2b" className="px-4 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+              <NavLink
+                href="/b2b"
+                className="px-4 py-1.5 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+              >
                 API Portal <TerminalIcon className="w-3.5 h-3.5" />
               </NavLink>
             </div>
@@ -159,8 +168,12 @@ export default function HomeB2C() {
             <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center mb-6 text-green-500">
               <ActivityIcon className="w-10 h-10" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight mb-4 text-white">AIVO Retail Intelligence</h1>
-            <p className="text-slate-400 max-w-md mb-8">Connect your Solana wallet to access live institutional token screener.</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-4 text-white">
+              AIVO Retail Intelligence
+            </h1>
+            <p className="text-slate-400 max-w-md mb-8">
+              Connect your Solana wallet to access live institutional token screener.
+            </p>
             <button
               onClick={() => setVisible(true)}
               className="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20"
@@ -207,17 +220,33 @@ export default function HomeB2C() {
               </h2>
               <div className="space-y-3">
                 {positions.map((pos, idx) => (
-                  <div key={idx} className="flex items-center justify-between border-b border-slate-800/50 pb-3 last:border-0">
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between border-b border-slate-800/50 pb-3 last:border-0"
+                  >
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs">💰</div>
+                      <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs">
+                        💰
+                      </div>
                       <div>
-                        <p className="text-white font-mono text-sm">{pos.mint.slice(0, 6)}...{pos.mint.slice(-6)}</p>
+                        <p className="text-white font-mono text-sm">
+                          {pos.mint.slice(0, 6)}...{pos.mint.slice(-6)}
+                        </p>
                         <p className="text-xs text-slate-500">{pos.amount} SOL</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className={`text-sm font-bold ${pos.pnl.includes('-') ? 'text-red-500' : 'text-green-500'}`}>{pos.pnl}</span>
-                      <button onClick={() => handleSell(pos.mint)} className="bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-colors">Sell</button>
+                      <span
+                        className={`text-sm font-bold ${pos.pnl.includes('-') ? 'text-red-500' : 'text-green-500'}`}
+                      >
+                        {pos.pnl}
+                      </span>
+                      <button
+                        onClick={() => handleSell(pos.mint)}
+                        className="bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Sell
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -227,21 +256,35 @@ export default function HomeB2C() {
             {/* Token List */}
             <div className="space-y-4">
               {isLoading ? (
-                <div className="w-full flex justify-center py-12"><LoaderIcon className="w-8 h-8 animate-spin text-green-500" /></div>
-              ) : tokens.map((token, idx) => (
-                <div key={idx} className="bg-slate-900/50 border border-slate-800 hover:border-green-500/30 p-5 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center text-xl font-bold text-slate-900">{token.symbol?.[0]}</div>
-                    <div>
-                      <h3 className="font-bold text-lg text-white">{token.symbol}</h3>
-                      <p className="text-xs text-slate-500 font-mono">{token.mintAddress.slice(0, 8)}...</p>
-                    </div>
-                  </div>
-                  <button onClick={() => handleQuickBuy(token.mintAddress)} className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2">
-                    <RocketIcon className="w-4 h-4" /> Snipe
-                  </button>
+                <div className="w-full flex justify-center py-12">
+                  <LoaderIcon className="w-8 h-8 animate-spin text-green-500" />
                 </div>
-              ))}
+              ) : (
+                tokens.map((token, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-900/50 border border-slate-800 hover:border-green-500/30 p-5 rounded-2xl flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center text-xl font-bold text-slate-900">
+                        {token.symbol?.[0]}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-white">{token.symbol}</h3>
+                        <p className="text-xs text-slate-500 font-mono">
+                          {token.mintAddress.slice(0, 8)}...
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleQuickBuy(token.mintAddress)}
+                      className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
+                    >
+                      <RocketIcon className="w-4 h-4" /> Snipe
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
