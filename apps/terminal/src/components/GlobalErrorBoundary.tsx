@@ -37,7 +37,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,#3d0000,transparent_50%)] pointer-events-none opacity-40" />
 
           <div className="max-w-xl w-full bg-[#0a0a0f]/80 border border-red-900/30 rounded-3xl p-12 shadow-[0_0_100px_rgba(255,0,0,0.05)] backdrop-blur-2xl relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent opacity-50" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-red-500/50 to-transparent opacity-50" />
 
             <div className="w-20 h-20 bg-red-500/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/10 shadow-[0_0_30px_rgba(239,68,68,0.1)] group-hover:scale-110 transition-transform duration-500">
               <AlertTriangleIcon className="w-10 h-10 text-red-500/80" />
