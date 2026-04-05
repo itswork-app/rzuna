@@ -3,9 +3,7 @@
 import React, { ReactNode } from 'react';
 import { WalletContextProvider } from './WalletContextProvider';
 import { SafeTelemetry } from './SafeTelemetry';
-import { AuthProvider } from './AuthProvider';
 import { GlobalErrorBoundary } from './GlobalErrorBoundary';
-import { RefineProvider } from './RefineProvider';
 
 /**
  * 🏛️ The Institutional Provider Bundle (v22.1)
