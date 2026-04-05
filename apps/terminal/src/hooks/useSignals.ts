@@ -1,51 +1,77 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useState, useEffect } from 'react';
 import { TokenSignal as Signal } from '@rzuna/contracts';
-import '@solana/wallet-adapter-react-ui/styles.css';
 import { getApiUrl } from '@/lib/env';
 
 interface UseSignalsReturn {
   signals: Signal[];
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
 }
 
 /**
- * Fetches tier-filtered alpha signals from the backend /signals endpoint.
+ * ⚡ Institutional Signal Stream (v22.3)
+ * Consumes real-time Alpha signals via WebSocket for sub-100ms delivery.
  */
 export function useSignals(): UseSignalsReturn {
-  const { publicKey } = useWallet();
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSignals = useCallback(async () => {
-    if (!publicKey) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`${getApiUrl()}/signals?wallet=${publicKey.toBase58()}`);
-      if (!res.ok) throw new Error(`Signal fetch failed: ${res.statusText}`);
-
-      const data = await res.json();
-      setSignals(data.signals || []);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[SIGNALS]', message);
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [publicKey]);
-
   useEffect(() => {
-    void fetchSignals();
-  }, [publicKey, fetchSignals]);
+    let socket: WebSocket | null = null;
+    let isMounted = true;
 
-  return { signals, isLoading, error, refetch: fetchSignals };
+    const initializeSocket = () => {
+      try {
+        const wsUrl = getApiUrl().replace('http', 'ws') + '/ws/signals';
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          if (isMounted) {
+            console.info('🛡️ [Signals] WebSocket Connected');
+            setIsLoading(false);
+          }
+        };
+
+        socket.onmessage = (event) => {
+          if (isMounted) {
+            const message = JSON.parse(event.data);
+            if (message.type === 'SIGNAL_UPDATE') {
+              setSignals((prev) => [message.data, ...prev].slice(0, 50));
+            }
+          }
+        };
+
+        socket.onerror = (err) => {
+          if (isMounted) {
+            console.error('🛡️ [Signals] WebSocket Error:', err);
+            setError('Signal stream connection failed');
+          }
+        };
+
+        socket.onclose = () => {
+          if (isMounted) {
+            console.info('🛡️ [Signals] WebSocket Disconnected');
+          }
+        };
+      } catch (e) {
+        if (isMounted) {
+          console.error('🛡️ [Signals] Initialization failed:', e);
+          setError('Failed to initialize signal stream');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeSocket();
+
+    return () => {
+      isMounted = false;
+      socket?.close();
+    };
+  }, []);
+
+  return { signals, isLoading, error };
 }

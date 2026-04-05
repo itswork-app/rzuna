@@ -7,13 +7,10 @@ import { useSignals } from '@/hooks/useSignals';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { TokenCard } from '@/components/TokenCard';
-import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { TelegramSettings } from '@/components/TelegramSettings';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Badge, Card, CardContent, Button } from '@rzuna/ui';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 
 // Cast icons for React 19 compatibility
 const ShieldCheckIcon = ShieldCheck as any;
@@ -27,18 +24,15 @@ const ActivityIcon = Activity as any;
 
 export default function DashboardPage() {
   const { connected, publicKey } = useWallet();
-  const { isAuthenticated, isAuthenticating, login, logout } = useAuth();
+  const { isAuthenticated, isLoading, login, logout } = useAuth();
   const { signals, isLoading: signalsLoading } = useSignals();
   const { profile, mutate } = useProfile();
-  const supabase = createClient();
+  // Supabase purged in V22.3 Reconstruction.
+  // Quota consumption is now handled by the Engine gateway.
 
   const handleConsumeQuota = async () => {
     if (!publicKey) return;
-
-    // Decrement quota in DB atomically
-    await supabase.rpc('consume_quota', {
-      user_wallet: publicKey.toBase58(),
-    });
+    // 🏗️ SIWS: Quota consumption logic moved to Engine.
   };
 
   // 1. Connection Gate
@@ -83,10 +77,10 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={login}
-            disabled={isAuthenticating}
+            disabled={isLoading}
             className="w-full h-14 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
           >
-            {isAuthenticating ? (
+            {isLoading ? (
               <Loader2Icon className="w-6 h-6 animate-spin" />
             ) : (
               <>

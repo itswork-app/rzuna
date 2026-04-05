@@ -2,7 +2,6 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import websocket from '@fastify/websocket';
 import {
   serializerCompiler,
   validatorCompiler,
@@ -17,7 +16,9 @@ import { sdkRoutes } from './routes/sdk.js';
 import { signalRoutes } from './routes/signals.js';
 import { adminRoutes } from './routes/admin.js';
 import { tradeRoutes } from './routes/trade.js';
+import { authRoutes } from './routes/auth.js';
 import { feePlugin } from './plugins/fee.plugin.js';
+import { websocketPlugin } from './plugins/websocket.js';
 
 /**
  * 🏛️ Fastify Application Factory: V22.1 Singularity
@@ -32,9 +33,9 @@ export const buildApp = async () => {
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
-  await fastify.register(websocket);
   await fastify.register(cors, { origin: true, credentials: true });
   await fastify.register(helmet);
+
   const redisConfig = env.REDIS_URL ? { redis: new Redis(env.REDIS_URL) } : {};
 
   await fastify.register(rateLimit, {
@@ -71,6 +72,8 @@ export const buildApp = async () => {
   await fastify.register(signalRoutes);
   await fastify.register(adminRoutes, { tuner: engine.tuner });
   await fastify.register(tradeRoutes, { prefix: '/v1/trade' });
+  await fastify.register(authRoutes, { prefix: '/v1/auth' });
+  await fastify.register(websocketPlugin);
 
   // Initialize engine
   void engine.start();

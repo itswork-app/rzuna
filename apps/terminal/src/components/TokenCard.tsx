@@ -10,9 +10,7 @@ const ArrowRightIcon = ArrowRight as any;
 import { useTrade } from '@/hooks/useTrade';
 import { useWallet } from '@solana/wallet-adapter-react';
 import posthog from 'posthog-js';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@rzuna/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TokenSignal {

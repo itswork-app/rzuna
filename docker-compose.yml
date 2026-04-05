@@ -1,32 +1,40 @@
 version: '3.8'
 
 services:
-  rzuna-backend:
+  rzuna-engine:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rzuna-backend
+    container_name: rzuna-engine
     restart: always
     ports:
-      - '3001:3001'
+      - '3000:3000'
     env_file:
       - .env
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 15000M
-        reservations:
-          cpus: '0.25'
-          memory: 512M
+          memory: 15G
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     logging:
-      driver: 'json-file'
+      driver: "json-file"
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
+
+  # 🏎️ Redis: Institutional Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: rzuna-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

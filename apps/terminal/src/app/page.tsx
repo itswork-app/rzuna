@@ -26,7 +26,7 @@ const ExternalLinkIcon = ExternalLink as any;
 
 export default function MarketingPage() {
   const { connected } = useWallet();
-  const { isAuthenticated, isAuthenticating, login } = useAuth();
+  const { isAuthenticated, isLoading, login } = useAuth();
   const { signals } = useSignals();
   const [liveSignals, setLiveSignals] = React.useState<Signal[]>([]);
 
@@ -109,10 +109,10 @@ export default function MarketingPage() {
             ) : !isAuthenticated ? (
               <button
                 onClick={login}
-                disabled={isAuthenticating}
+                disabled={isLoading}
                 className="h-14 px-10 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-[0_0_30px_rgba(168,85,247,0.3)] active:scale-95"
               >
-                {isAuthenticating ? (
+                {isLoading ? (
                   'Authorizing...'
                 ) : (
                   <>
