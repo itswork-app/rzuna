@@ -15,11 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <GlobalErrorBoundary>
       <WalletContextProvider>
-        <SafeTelemetry>
-          <AuthProvider>
-            <RefineProvider>{children}</RefineProvider>
-          </AuthProvider>
-        </SafeTelemetry>
+        <SafeTelemetry>{children}</SafeTelemetry>
       </WalletContextProvider>
     </GlobalErrorBoundary>
   );

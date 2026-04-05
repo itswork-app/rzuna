@@ -17,7 +17,9 @@ import { sdkRoutes } from './routes/sdk.js';
 import { signalRoutes } from './routes/signals.js';
 import { adminRoutes } from './routes/admin.js';
 import { tradeRoutes } from './routes/trade.js';
+import { authRoutes } from './routes/auth.js';
 import { feePlugin } from './plugins/fee.plugin.js';
+import { websocketPlugin } from './plugins/websocket.js';
 
 /**
  * 🏛️ Fastify Application Factory: V22.1 Singularity
@@ -71,6 +73,7 @@ export const buildApp = async () => {
   await fastify.register(signalRoutes);
   await fastify.register(adminRoutes, { tuner: engine.tuner });
   await fastify.register(tradeRoutes, { prefix: '/v1/trade' });
+  await fastify.register(websocketPlugin);
 
   // Initialize engine
   void engine.start();

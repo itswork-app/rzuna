@@ -1,12 +1,11 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
 /**
- * Institutional Utility for Tailwind Class Merging
+ * 🏛️ RZUNA UI Library (Institutional Standard)
+ * Unified Atomic Design System for Terminal and Dashboard.
  */
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
-// Export UI Components here as they are added
-// export * from './components/button';
+// Atomic Components
+export * from './atoms/badge';
+export * from './atoms/button';
+export * from './atoms/card';
+
+// Layouts & Templates (TODO)
