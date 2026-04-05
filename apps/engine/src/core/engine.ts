@@ -48,6 +48,9 @@ export class IntelligenceEngine extends EventEmitter {
   async start() {
     console.info('🛡️ [Engine] Starting Dual-Path Orchestrator V22.1...');
 
+    // 💧 Hydrate memory from Upstash/Redis on boot
+    await this.reputation.hydrateFromRedis();
+
     this.pumpPortal.on('transaction', (event: PumpPortalEvent) => this.handleStream(event));
     this.solana.on('mint', (event) => this.handleStream(event));
 

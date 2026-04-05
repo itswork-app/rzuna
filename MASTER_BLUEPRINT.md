@@ -49,3 +49,24 @@
 2. **Usage Tracking:** Every call must be logged atomically in `usage_logs` to trigger rate limiting or billing.
 3. **Revenue Integrity:** B2B fees (1.5% - 0.5%) are locked at the Engine level and logged to `treasury_logs`.
 4. **Rate Limiting:** Dynamic limits based on B2B Tier: Starlight (10 RPM), Starlight+ (100 RPM), VIP (Unlimited/High).
+
+## VI. DOMAIN MAPPING & SAAS ARCHITECTURE (`aivo.sh`)
+
+Sistem arsitektur berbasis *Micro-Frontend & Dedicated Backend* untuk jualan B2B (Helius-style):
+
+1. **`app.aivo.sh` / `aivo.sh` (Vercel)**
+   - **Target:** `apps/terminal`
+   - **Fungsi:** Aplikasi B2C Alpha Terminal. Portal utama pelancong ritel untuk bertransaksi dan melihat *dashboard* sinyal token.
+
+2. **`api.aivo.sh` (Hetzner CCX23 Dedicated)**
+   - **Target:** `apps/engine`
+   - **DNS Setup:** `A Record` murni ke IP VPS (tanpa proksi Cloudflare demi minimalisasi latensi WebSockets).
+   - **Fungsi:** Urat nadi sistem / API Gateway berbayar. Integrasi koneksi WebSocket Solana dan eksekutor OpenAI/ElizaOS asinkron.
+
+3. **`b2b.aivo.sh` / `developers.aivo.sh` (Vercel)**
+   - **Target:** `apps/dashboard`
+   - **Fungsi:** B2B Developer Portal. Di sini tempat klien melakukan *Top-Up* saldo, meng-generate `x-api-key`, dan melihat pantauan pemakaian kuota API (*Rate limits & Usage Logs*).
+
+4. **`admin.aivo.sh` (Vercel + Zero Trust)**
+   - **Target:** `apps/admin`
+   - **Fungsi:** Panel kendali internal (God Mode). Sangat krusial diamankan berlapis (contoh: Vercel Auth / Cloudflare Access).

@@ -5,6 +5,8 @@
  * Tracks creator wallet history across all tokens processed by the engine.
  * Builds a reputation score based on observed behavior patterns.
  */
+import { Redis } from 'ioredis';
+import { env } from '../../utils/env.js';
 
 export interface CreatorProfile {
   wallet: string;
@@ -19,6 +21,43 @@ export interface CreatorProfile {
 export class CreatorReputationService {
   // O(1) lookup — Map is the fastest JS data structure for key-value
   private profiles: Map<string, CreatorProfile> = new Map();
+  private redis: Redis | null = null;
+
+  constructor() {
+    if (env.REDIS_URL) {
+      // Connects to Upstash TCP with reconnect strategy
+      this.redis = new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        retryStrategy(times: number) {
+          return Math.min(times * 100, 3000); // Backoff
+        },
+      });
+      console.info('🛡️ [CreatorReputation] Connected to Upstash Redis (L2 Cache)');
+    }
+  }
+
+  /**
+   * 💧 Hydrate memory from Upstash on boot.
+   * Ensures Blacklist & Suspicious records persist past crashes/deploys.
+   */
+  async hydrateFromRedis(): Promise<void> {
+    if (!this.redis) return;
+    try {
+      const allProfiles = await this.redis.hgetall('reputation:wallets');
+      let count = 0;
+      for (const [wallet, data] of Object.entries(allProfiles)) {
+        try {
+          this.profiles.set(wallet, JSON.parse(data as string));
+          count++;
+        } catch {
+          // ignore corrupted JSON
+        }
+      }
+      console.info(`🛡️ [CreatorReputation] Hydrated ${count} profiles from Redis.`);
+    } catch (err) {
+      console.error('❌ [CreatorReputation] Failed to hydrate from Redis:', err);
+    }
+  }
 
   /**
    * Get reputation for a creator wallet. O(1) time.
@@ -111,6 +150,17 @@ export class CreatorReputationService {
     } else {
       profile.reputation = 'NEUTRAL';
     }
+    this.syncToRedis(profile.wallet, profile);
+  }
+
+  /**
+   * 🚀 Fire and Forget Write-Behind Cache
+   */
+  private syncToRedis(wallet: string, profile: CreatorProfile) {
+    if (!this.redis) return;
+    this.redis.hset('reputation:wallets', wallet, JSON.stringify(profile)).catch(() => {
+      // Background save error — silently fail to protect Hot Path
+    });
   }
 
   private ensureProfile(wallet: string): CreatorProfile {

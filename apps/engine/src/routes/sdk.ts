@@ -1,6 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { db, usageLogs, scoutedTokens, users, eq } from '@rzuna/database';
 import { validateApiKey } from '../middleware/auth.js';
+import { Redis } from 'ioredis';
+import { env } from '../utils/env.js';
+
+const redis = env.REDIS_URL ? new Redis(env.REDIS_URL) : null;
 
 /**
  * 🏛️ SDK Routes: B2B API Intelligence
@@ -29,8 +33,23 @@ export const sdkRoutes = async (fastify: FastifyInstance) => {
       MYTHIC: 1000,
     };
 
-    // In a real scenario, we'd use Redis or a more robust counter.
-    // For Task 4, we enforce the logic check.
+    const maxRps = limits[tier] || 10;
+
+    // Actual Redis Counter (Sliding Window per second)
+    if (redis) {
+      const apiKeyStr = request.headers['x-api-key'] as string;
+      const currentSecond = Math.floor(Date.now() / 1000);
+      const key = `ratelimit:sdk:${apiKeyStr}:${currentSecond}`;
+
+      const currentHits = await redis.incr(key);
+      if (currentHits === 1) {
+        await redis.expire(key, 2); // TTL 2 seconds
+      }
+
+      if (currentHits > maxRps) {
+        return reply.status(429).send({ error: 'TOO_MANY_REQUESTS', message: `Tier ${tier} limit is ${maxRps} RPS` });
+      }
+    }
   });
 
   /**
