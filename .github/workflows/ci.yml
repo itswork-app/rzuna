@@ -48,7 +48,8 @@ jobs:
         run: |
           if [ -f "./tests/smoke-test.js" ]; then
             # Setup k6
-            curl https://dl.k6.io/binaries/k6-v0.51.0-linux-amd64.tar.gz -L | tar -xz
+            curl -L https://github.com/grafana/k6/releases/download/v0.51.0/k6-v0.51.0-linux-amd64.tar.gz -o k6.tar.gz
+            tar -xzf k6.tar.gz
             sudo mv k6-v0.51.0-linux-amd64/k6 /usr/bin/k6
 
             # Build and Start Terminal for Smoke Test
