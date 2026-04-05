@@ -35,7 +35,7 @@ describe('ReasoningService (The Brain)', () => {
   const service = new ReasoningService();
 
   it('SHOULD analyze a token and return consistent alpha narrative', async () => {
-    const result = await service.analyzeToken({ symbol: 'RZUNA' } as any, 95);
+    const result = await service.analyzeToken({ symbol: 'RZUNA' } as any);
     expect(result.narrative).toBeDefined();
     expect(result.narrative).toBe('High Potential Alpha Sensor triggered');
   });

@@ -10,6 +10,7 @@ import { CreatorReputationService } from './services/reputation.service.js';
 import { TokenSecurityService } from './services/security.service.js';
 import { ElizaBrain } from '../agents/eliza.brain.js';
 import { ReasoningService, type ReasoningResult } from '../agents/reasoning.service.js';
+import { TreasuryWorker } from '../agents/workers/treasury.worker.js';
 import { db, scoutedTokens } from '@rzuna/database';
 import { UserRank, type AlphaSignal } from '@rzuna/contracts';
 
@@ -37,6 +38,7 @@ export class IntelligenceEngine extends EventEmitter {
   private reputation = new CreatorReputationService();
   private security = new TokenSecurityService();
   public eliza = new ElizaBrain();
+  private treasuryWorker = new TreasuryWorker();
 
   // 🏛️ Legacy Bridge for Audit Hooks (V22.1)
   public readonly hooks = {
@@ -64,6 +66,9 @@ export class IntelligenceEngine extends EventEmitter {
       // In production, this pushes to Telegram/Twitter
       console.info(`\n📢 [ElizaOS: ${message.platform}] ${message.content}\n`);
     });
+
+    // 🧹 Start Treasury Sweeper Module
+    this.treasuryWorker.start();
 
     await Promise.all([this.solana.start(), this.pumpPortal.start()]);
   }
@@ -235,6 +240,7 @@ export class IntelligenceEngine extends EventEmitter {
   // 🏛️ V22.1 Lifecycle Control
   stop() {
     console.info('🛡️ [Engine] Stopping Orchestrator...');
+    this.treasuryWorker.stop();
     void this.solana.stop();
     void this.pumpPortal.stop();
     this.removeAllListeners();
