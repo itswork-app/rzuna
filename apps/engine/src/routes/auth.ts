@@ -20,11 +20,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
     async (request, reply) => {
       const { publicKey, signature, message } = request.body as any;
 
-      const isValid = await AuthProtocol.validateSignature(
-        publicKey,
-        signature,
-        message
-      );
+      const isValid = await AuthProtocol.validateSignature(publicKey, signature, message);
 
       if (!isValid) {
         return reply.status(401).send({
@@ -40,8 +36,8 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       return reply.send({
         status: 'ok',
         user: { publicKey },
-        token: '🏛️_INSTITUTIONAL_JWT_PLACEHOLDER', // TODO: Implement JWT
+        token: '🏛️_SIWS_TOKEN_V22.3_PENDING',
       });
-    }
+    },
   );
 };

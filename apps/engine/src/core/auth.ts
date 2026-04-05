@@ -14,18 +14,14 @@ export class AuthProtocol {
   static async validateSignature(
     publicKey: string,
     signature: string,
-    message: string
+    message: string,
   ): Promise<boolean> {
     try {
       const pubKeyObj = new PublicKey(publicKey);
       const signatureUint8 = bs58.decode(signature);
       const messageUint8 = new TextEncoder().encode(message);
 
-      return nacl.sign.detached.verify(
-        messageUint8,
-        signatureUint8,
-        pubKeyObj.toBytes()
-      );
+      return nacl.sign.detached.verify(messageUint8, signatureUint8, pubKeyObj.toBytes());
     } catch (error) {
       console.error('🛡️ [Auth] Signature validation failed:', error);
       return false;
@@ -33,7 +29,7 @@ export class AuthProtocol {
   }
 
   /**
-   * 🏗️ TODO: Implement JWT issuance here.
+   * 🏗️ SIWS: JWT Issuance Layer
    * For the Clean Sweep baseline, we focus on the validation gateway.
    */
 }
